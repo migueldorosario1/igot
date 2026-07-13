@@ -1,0 +1,25 @@
+{
+  "name": "igot",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Leia qualquer coisa. Entenda tudo. — Leitor de e-books com IA integrada.",
+  "license": "MIT",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "echo \"TODO: rodar apps/web em dev (a configurar)\"",
+    "build": "echo \"TODO: build do monorepo (a configurar)\"",
+    "lint": "echo \"TODO: lint (a configurar)\""
+  },
+  "keywords": [
+    "ebook-reader",
+    "ai",
+    "translation",
+    "reading",
+    "pwa",
+    "rag"
+  ],
+  "author": "Miguel Dorosario"
+}

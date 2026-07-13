@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+*.pem
+.env.example.local
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test / coverage
+coverage/
+*.lcov
+
+# Data & uploads (dev)
+uploads/
+data/
+*.epub
+*.pdf
+*.mobi
+!docs/assets/*.pdf
+!docs/assets/*.epub
+
+# Python (caso usemos)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
