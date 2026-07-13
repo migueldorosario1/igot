@@ -103,6 +103,18 @@ a {
   background: var(--accent-soft);
 }
 
+/*
+ * CRÍTICO: força os painéis filhos do grid (Reader, AIPanel) a respeitarem
+ * a altura da linha do grid e ativarem o scroll interno. Sem isso, os
+ * painéis crescem além da janela e o rodapé fica invisível/cortado.
+ * (grid items têm min-height: auto por padrão, que precisa ser zerado.)
+ */
+.igot-workspace > * {
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
 /* ── Renderização de páginas de PDF ───────────────────────────────── */
 
 .pdf-page-container {
