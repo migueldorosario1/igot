@@ -25,6 +25,14 @@ interface PdfPageCanvasProps {
   data: ArrayBuffer;
   /** Número da página (1-based). */
   pageNum: number;
+  /** Multiplicador de zoom (1 = ajustado à tela, 2 = dobro, etc.). */
+  zoom?: number;
+  /** Tradução pra sobrepor à página; null/não informado = sem overlay. */
+  translationOverlay?: string | null;
+  /** Recebe o texto extraído da página atual (pra "Traduzir página"). */
+  onPageText?: (text: string) => void;
+  /** Recebe clique no ✕ do overlay (pra fechar). */
+  onTranslationClose?: () => void;
 }
 
 type Status = "loading" | "ready" | "error";
@@ -63,7 +71,14 @@ function useViewportSize() {
   return size;
 }
 
-export function PdfPageCanvas({ data, pageNum }: PdfPageCanvasProps) {
+export function PdfPageCanvas({
+  data,
+  pageNum,
+  zoom = 1,
+  translationOverlay = null,
+  onPageText,
+  onTranslationClose,
+}: PdfPageCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textLayerRef = useRef<HTMLDivElement>(null);
@@ -138,10 +153,9 @@ export function PdfPageCanvas({ data, pageNum }: PdfPageCanvasProps) {
         const parent = containerRef.current?.parentElement;
         const availW = (parent?.clientWidth ?? window.innerWidth) - 32; // padding
         const availH = (parent?.clientHeight ?? window.innerHeight) - 120; // header + padding
-        const scale = Math.max(
-          0.2,
-          fitScale(baseViewport.width, baseViewport.height, availW, availH),
-        );
+        // fitScale ajusta à tela; zoom multiplica pra permitir +/− manual.
+        const fit = fitScale(baseViewport.width, baseViewport.height, availW, availH);
+        const scale = Math.max(0.2, fit * zoom);
         const viewport = page.getViewport({ scale });
 
         // Alta nitidez em telas Retina/iPad.
@@ -201,6 +215,18 @@ export function PdfPageCanvas({ data, pageNum }: PdfPageCanvasProps) {
 
         if (cancelled) return;
 
+        // Entrega ao pai o texto concatenado da página (pra "Traduzir página").
+        // Heurística simples: junta os str dos items, quebrando linha quando
+        // um item tem hasEOL.
+        const pageText = textContent.items
+          .map((it) => {
+            const item = it as { str?: string; hasEOL?: boolean };
+            return item.hasEOL ? `${item.str ?? ""}\n` : (item.str ?? "");
+          })
+          .join("")
+          .trim();
+        onPageText?.(pageText);
+
         // PRONTO: só agora revelamos a página, já 100% alinhada.
         setPageReady(true);
       } catch (err) {
@@ -218,8 +244,8 @@ export function PdfPageCanvas({ data, pageNum }: PdfPageCanvasProps) {
       localRenderTask?.cancel();
       localTextLayer?.cancel();
     };
-    // vpSize dispara re-render ao redimensionar/girar a tela.
-  }, [pageNum, docReady, vpSize]);
+    // vpSize dispara re-render ao redimensionar/girar a tela. zoom ao mudar o zoom.
+  }, [pageNum, docReady, vpSize, zoom, onPageText]);
 
   const showSpinner = !pageReady && !error;
   const showError = error !== "";
@@ -234,6 +260,18 @@ export function PdfPageCanvas({ data, pageNum }: PdfPageCanvasProps) {
       >
         <canvas ref={canvasRef} className="pdf-canvas" />
         <div ref={textLayerRef} className="pdf-text-layer" />
+        {translationOverlay && (
+          <div className="pdf-translation-overlay">
+            <button
+              className="pdf-translation-close"
+              onClick={onTranslationClose}
+              aria-label="Fechar tradução e voltar ao original"
+            >
+              ✕
+            </button>
+            <div className="pdf-translation-text">{translationOverlay}</div>
+          </div>
+        )}
       </div>
 
       {showSpinner && (

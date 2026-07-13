@@ -216,3 +216,44 @@ a {
   font-size: 14px;
   text-align: center;
 }
+
+/* ── Overlay de tradução da página inteira ─────────────────────────── */
+
+.pdf-translation-overlay {
+  /* Cobre exatamente o canvas (mesmas dimensões do wrapper). */
+  position: absolute;
+  inset: 0;
+  background: #fffdf7;
+  overflow-y: auto;
+  padding: 6% 8%;
+  font-size: 15px;
+  line-height: 1.75;
+  color: #1a1a1a;
+  white-space: pre-wrap;
+  text-align: justify;
+  hyphens: auto;
+  z-index: 5; /* acima do canvas e da text-layer */
+}
+
+.pdf-translation-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: rgba(0, 0, 0, 0.06);
+  color: #333;
+  border-radius: 50%;
+  font-size: 14px;
+  cursor: pointer;
+  z-index: 6;
+}
+
+.pdf-translation-close:hover {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.pdf-translation-text {
+  /* Apenas o texto; padding já vem do overlay. */
+}

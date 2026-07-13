@@ -87,6 +87,40 @@ export async function translate(
   }
 }
 
+/**
+ * Traduz a página/capítulo INTEIRO de uma vez.
+ *
+ * Diferente do `translate` (trecho curto), aqui o texto é longo e o prompt
+ * pede pra preservar a estrutura de parágrafos e quebras de linha — a
+ * tradução vai preencher um overlay sobre a página original.
+ */
+export async function translatePage(
+  text: string,
+  ctx: BookContext,
+): Promise<AIActionResult> {
+  if (!text.trim()) return { ok: false, error: "Página sem texto para traduzir." };
+  const targetLang = getTargetLang();
+  const systemPrompt =
+    `Você é um tradutor literário e técnico de excelência. ` +
+    `Traduza o texto completo da página a seguir para ${targetLang}. ` +
+    `PRESERVE a estrutura: mantenha os parágrafos e as quebras de linha ` +
+    `exatamente como no original (uma linha traduzida para cada linha original). ` +
+    `Respeite o tom, o estilo e o contexto da obra. ` +
+    `Devolva APENAS a tradução, sem comentários, sem aspas, sem introdução.`;
+
+  try {
+    const { provider } = resolveProvider();
+    const result = await provider.complete(text, {
+      systemPrompt,
+      context: buildContext(ctx),
+      temperature: 0.3,
+    });
+    return { ok: true, text: result.text };
+  } catch (err) {
+    return { ok: false, error: toMessage(err) };
+  }
+}
+
 /** Explica um trecho (sentido, idiotismos, contexto). */
 export async function explain(
   text: string,

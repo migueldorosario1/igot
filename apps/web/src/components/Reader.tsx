@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ParsedBook } from "@igot/parser";
 import type { SelectionAction } from "@/lib/types";
 import { PdfPageCanvas } from "./PdfPageCanvas";
+import { translatePage } from "@/lib/ai-client";
 
 interface ReaderProps {
   book: ParsedBook;
@@ -12,11 +13,16 @@ interface ReaderProps {
   onSelection: (action: SelectionAction) => void;
 }
 
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 3.0;
+const ZOOM_STEP = 0.2;
+
 /**
  * Painel de leitura.
  *
  * Renderiza os capítulos do livro. Quando o leitor seleciona um trecho,
  * mostra um menu flutuante (Traduzir / Explicar) que dispara `onSelection`.
+ * Pra PDF: zoom + botão "Traduzir página" (overlay traduzido).
  */
 export function Reader({ book, pdfSource, onSelection }: ReaderProps) {
   const [chapterIdx, setChapterIdx] = useState(0);
@@ -27,12 +33,46 @@ export function Reader({ book, pdfSource, onSelection }: ReaderProps) {
   } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Zoom e tradução de página (só fazem sentido pra PDF).
+  const [zoom, setZoom] = useState(1);
+  const [pageTranslation, setPageTranslation] = useState<string | null>(null);
+  const [translatingPage, setTranslatingPage] = useState(false);
+  const [currentPageText, setCurrentPageText] = useState("");
+
   const chapter = book.chapters[chapterIdx];
   const totalChapters = book.chapters.length;
 
   const goPrev = () => setChapterIdx((i) => Math.max(0, i - 1));
   const goNext = () =>
     setChapterIdx((i) => Math.min(totalChapters - 1, i + 1));
+
+  // Ao trocar de página, descarta a tradução e o texto antigo.
+  useEffect(() => {
+    setPageTranslation(null);
+    setCurrentPageText("");
+  }, [chapterIdx]);
+
+  const zoomIn = () => setZoom((z) => Math.min(MAX_ZOOM, +(z + ZOOM_STEP).toFixed(2)));
+  const zoomOut = () => setZoom((z) => Math.max(MIN_ZOOM, +(z - ZOOM_STEP).toFixed(2)));
+  const zoomReset = () => setZoom(1);
+
+  // Traduz a página inteira e mostra como overlay.
+  const handleTranslatePage = async () => {
+    if (!currentPageText || translatingPage) return;
+    setTranslatingPage(true);
+    const result = await translatePage(currentPageText, {
+      bookTitle: book.title,
+      bookAuthor: book.author,
+      bookLanguage: book.language,
+    });
+    setTranslatingPage(false);
+    if (result.ok && result.text) {
+      setPageTranslation(result.text);
+    } else {
+      // Mostra erro como overlay curto pra feedback imediato.
+      setPageTranslation(`⚠️ ${result.error ?? "Erro ao traduzir."}`);
+    }
+  };
 
   // Detecta seleção dentro do conteúdo e, se houver texto, mostra o menu.
   const handleSelection = () => {
@@ -87,26 +127,58 @@ export function Reader({ book, pdfSource, onSelection }: ReaderProps) {
             </span>
           )}
         </div>
-        <div className="reader-nav">
-          <button onClick={goPrev} disabled={chapterIdx === 0} aria-label={book.sourceFormat === "pdf" ? "Página anterior" : "Capítulo anterior"}>
-            ‹
-          </button>
-          <span className="reader-counter">
-            {chapterIdx + 1} / {totalChapters}
-          </span>
-          <button
-            onClick={goNext}
-            disabled={chapterIdx >= totalChapters - 1}
-            aria-label={book.sourceFormat === "pdf" ? "Próxima página" : "Próximo capítulo"}
-          >
-            ›
-          </button>
+        <div className="reader-actions">
+          {book.sourceFormat === "pdf" && pdfSource && (
+            <>
+              <div className="reader-zoom" title="Zoom">
+                <button onClick={zoomOut} disabled={zoom <= MIN_ZOOM} aria-label="Diminuir zoom">
+                  −
+                </button>
+                <button onClick={zoomReset} className="zoom-value" aria-label="Restaurar zoom">
+                  {Math.round(zoom * 100)}%
+                </button>
+                <button onClick={zoomIn} disabled={zoom >= MAX_ZOOM} aria-label="Aumentar zoom">
+                  +
+                </button>
+              </div>
+              <button
+                onClick={handleTranslatePage}
+                disabled={translatingPage || !currentPageText}
+                className="translate-page-btn"
+                title="Traduzir a página inteira"
+              >
+                {translatingPage ? "⏳" : "🌐"} {translatingPage ? "Traduzindo…" : "Traduzir página"}
+              </button>
+            </>
+          )}
+          <div className="reader-nav">
+            <button onClick={goPrev} disabled={chapterIdx === 0} aria-label={book.sourceFormat === "pdf" ? "Página anterior" : "Capítulo anterior"}>
+              ‹
+            </button>
+            <span className="reader-counter">
+              {chapterIdx + 1} / {totalChapters}
+            </span>
+            <button
+              onClick={goNext}
+              disabled={chapterIdx >= totalChapters - 1}
+              aria-label={book.sourceFormat === "pdf" ? "Próxima página" : "Próximo capítulo"}
+            >
+              ›
+            </button>
+          </div>
         </div>
       </header>
 
       <div className="reader-scroll" onMouseUp={handleSelection}>
         {book.sourceFormat === "pdf" && pdfSource ? (
-          <PdfPageCanvas data={pdfSource} pageNum={chapterIdx + 1} />
+          <PdfPageCanvas
+            data={pdfSource}
+            pageNum={chapterIdx + 1}
+            zoom={zoom}
+            translationOverlay={pageTranslation}
+            onPageText={setCurrentPageText}
+            onTranslationClose={() => setPageTranslation(null)}
+          />
         ) : (
           <article className="reader-text">
             {chapter?.title && <h2>{chapter.title}</h2>}
@@ -146,6 +218,57 @@ export function Reader({ book, pdfSource, onSelection }: ReaderProps) {
           padding: 14px 28px;
           border-bottom: 1px solid var(--border);
           background: var(--surface);
+        }
+        .reader-actions {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+        }
+        .reader-zoom {
+          display: flex;
+          align-items: center;
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          overflow: hidden;
+        }
+        .reader-zoom button {
+          border: none;
+          background: transparent;
+          color: var(--text);
+          width: 30px;
+          height: 30px;
+          font-size: 16px;
+          border-radius: 0;
+        }
+        .reader-zoom button:hover:not(:disabled) {
+          background: var(--accent-soft);
+          color: var(--accent);
+        }
+        .reader-zoom .zoom-value {
+          width: auto;
+          min-width: 48px;
+          font-size: 12px;
+          border-left: 1px solid var(--border);
+          border-right: 1px solid var(--border);
+        }
+        .translate-page-btn {
+          padding: 6px 12px;
+          border: 1px solid var(--border);
+          background: var(--surface);
+          color: var(--text);
+          border-radius: 8px;
+          font-size: 13px;
+          white-space: nowrap;
+        }
+        .translate-page-btn:hover:not(:disabled) {
+          border-color: var(--accent);
+          color: var(--accent);
+        }
+        .translate-page-btn:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
         }
         .reader-title h1 {
           margin: 0;

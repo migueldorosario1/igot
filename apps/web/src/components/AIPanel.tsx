@@ -116,13 +116,6 @@ export function AIPanel({ action, book, onClose }: AIPanelProps) {
           </div>
         )}
 
-        {action?.text && (
-          <div className="ai-selection">
-            <span className="ai-selection-label">Você selecionou:</span>
-            <blockquote>{action.text}</blockquote>
-          </div>
-        )}
-
         {state.loading && (
           <div className="ai-loading">
             <span className="dot" />
@@ -193,21 +186,6 @@ export function AIPanel({ action, book, onClose }: AIPanelProps) {
         }
         .ai-empty-sub {
           font-size: 13px;
-        }
-        .ai-selection-label {
-          font-size: 12px;
-          color: var(--text-muted);
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-        .ai-selection blockquote {
-          margin: 6px 0 0;
-          padding: 10px 14px;
-          background: var(--surface-alt);
-          border-radius: 8px;
-          border-left: 3px solid var(--accent);
-          font-style: italic;
-          font-size: 14px;
         }
         .ai-loading {
           display: flex;
