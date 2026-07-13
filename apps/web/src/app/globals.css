@@ -45,6 +45,28 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ── Ajustes pra iOS / iPad (PWA) ─────────────────────────────────── */
+
+/* Permite rolagem com momento (sensação nativa) nos painéis com scroll. */
+.reader-scroll,
+.ai-body {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Remove o highlight cinza ao tocar (iOS Safari / PWA). */
+button,
+.dropzone,
+.gear,
+.ai-footer button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Seleção de texto funciona bem dentro do leitor, inclusive em PWA iOS. */
+.reader-text {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 button {
   font-family: inherit;
   cursor: pointer;
