@@ -77,16 +77,24 @@ export async function parseEPUB(input: EPUBParseInput): Promise<ParsedBook> {
       async (src) => resolveImage(zip, item.zipPath, src),
     );
 
-    // Pula capítulos "triviais": sem blocos de conteúdo, ou só metadados
-    // (copyright, keywords, sumário navegável). Evita lixo no leitor.
-    // Critério: precisa de pelo menos 1 parágrafo com texto substancial.
-    const hasRealContent = blocks.some(
-      (b) =>
-        (b.type === "paragraph" || b.type === "heading" || b.type === "quote") &&
-        (b.text?.length ?? 0) >= 40,
+    // Pula capítulos "triviais": sem conteúdo real (copyright, keywords,
+    // sumário navegável, capa de créditos). Heurística baseada em texto
+    // total do capítulo + parágrafo mais longo: um capítulo legítimo tem
+    // parágrafos longos; páginas de metadata têm muitos blocos curtos.
+    const textBlocks = blocks.filter(
+      (b) => b.type === "paragraph" || b.type === "heading" || b.type === "quote",
     );
-    if (!hasRealContent && blocks.every((b) => b.type !== "image")) {
-      continue; // pula capa de créditos, página de keywords, etc.
+    const totalText = textBlocks.reduce((acc, b) => acc + (b.text?.length ?? 0), 0);
+    const longestPara = Math.max(
+      0,
+      ...textBlocks.map((b) => b.text?.length ?? 0),
+    );
+    const hasImage = blocks.some((b) => b.type === "image");
+    // Critério: OU tem imagem, OU tem ≥200 chars totais E um parágrafo ≥80.
+    // Isso descarta keywords (muitos blocos curtos) mantendo capítulos reais.
+    const isRealContent = hasImage || (totalText >= 200 && longestPara >= 80);
+    if (!isRealContent) {
+      continue;
     }
 
     // Título do capítulo: heading > <title> > "Capítulo N".
@@ -101,6 +109,20 @@ export async function parseEPUB(input: EPUBParseInput): Promise<ParsedBook> {
       blocks,
     });
     chapIdx++;
+  }
+
+  // DEBUG temporário: mostra no console do navegador a estrutura extraída.
+  if (typeof console !== "undefined") {
+    console.log(
+      `[igot/epub] ${chapters.length} capítulos:`,
+      chapters.map((c) => ({
+        id: c.id,
+        title: c.title,
+        blocks: c.blocks.length,
+        preview:
+          c.blocks.find((b) => b.text)?.text?.slice(0, 60) ?? "(sem texto)",
+      })),
+    );
   }
 
   return {
