@@ -29,12 +29,14 @@ Três peças:
    fura o CORS dos provedores. Em código de servidor, `createDirectTransport()`
    faz fetch puro.
 
-2. **Adapters** — implementam `AIProvider`. Dois bastam:
+2. **Adapters** — implementam `AIProvider`. Três cobrem todos os provedores:
    - `OpenAICompatibleProvider` atende Z.ai, OpenAI, DeepSeek, Kimi, Qwen
      (todos seguem o formato OpenAI: `POST /chat/completions`, `Bearer`, body
      com `model`/`messages`).
    - `AnthropicProvider` tem formato próprio (`POST /messages`, `x-api-key`,
      `system` separado, `max_tokens` obrigatório).
+   - `GeminiProvider` tem formato próprio do Google (`POST /models/{model}:generateContent`,
+     header `x-goog-api-key`, modelo no path da URL, `contents`/`parts`).
 
 3. **`registry.ts`** — catálogo `PRESETS` (id, nome, baseUrl, modelo padrão,
    adapter, link pra chave) + factory `getProvider(config, transport)`.
@@ -49,6 +51,7 @@ Três peças:
 | `kimi` | Kimi (Moonshot) | openai | `moonshot-v1-128k` |
 | `qwen` | Qwen (Alibaba, DashScope) | openai | `qwen-plus` |
 | `anthropic` | Anthropic | anthropic | `claude-3-5-haiku-latest` |
+| `gemini` | Google Gemini | gemini | `gemini-2.0-flash` |
 
 ## Uso
 

@@ -75,7 +75,7 @@ export interface AIConfig {
 }
 
 /** Família de protocolo do adapter. */
-export type AdapterKind = "openai" | "anthropic";
+export type AdapterKind = "openai" | "anthropic" | "gemini";
 
 /**
  * Catálogo estático de provedores suportados.

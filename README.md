@@ -50,6 +50,7 @@ Provedores suportados:
 | **Kimi (Moonshot)** 🇨🇳 | Contexto gigante (128k+) |
 | **Qwen (Alibaba)** 🇨🇳 | Multilíngue fortíssimo, ótimo em tradução |
 | **Anthropic** | Modelos Claude — forte em escrita |
+| **Google Gemini** | Janela de contexto enorme, multilíngue |
 
 Os modelos chineses são particularmente interessantes para este uso (janela de
 contexto enorme, multilíngue robusto, custo por token baixo), mas a escolha é
@@ -74,7 +75,8 @@ incluí-lo no catálogo de presets.
                                             ├─ DeepSeek
                                             ├─ Kimi (Moonshot)
                                             ├─ Qwen (Alibaba)
-                                            └─ Anthropic
+                                            ├─ Anthropic
+                                            └─ Google Gemini
 ```
 
 ## 🧱 Stack

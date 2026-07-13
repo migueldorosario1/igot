@@ -11,6 +11,7 @@ import { AIProviderError } from "./types";
 import type { Transport } from "./transport";
 import { OpenAICompatibleProvider } from "./providers/openaiCompatible";
 import { AnthropicProvider } from "./providers/anthropic";
+import { GeminiProvider } from "./providers/gemini";
 
 /**
  * Catálogo dos provedores suportados.
@@ -72,6 +73,15 @@ export const PRESETS: ProviderPreset[] = [
     keyUrl: "https://console.anthropic.com/settings/keys",
     description: "Modelos Claude. Forte em escrita e explicação.",
   },
+  {
+    id: "gemini",
+    name: "Google Gemini",
+    baseUrl: "https://generativelanguage.googleapis.com/v1beta",
+    defaultModel: "gemini-2.0-flash",
+    adapter: "gemini",
+    keyUrl: "https://aistudio.google.com/app/apikey",
+    description: "Modelos Gemini do Google. Janela de contexto enorme, multilíngue.",
+  },
 ];
 
 /** Retorna o preset pelo id, ou undefined. */
@@ -111,6 +121,8 @@ export function getProvider(config: AIConfig, transport: Transport): AIProvider 
       return new OpenAICompatibleProvider(common, transport);
     case "anthropic":
       return new AnthropicProvider(common, transport);
+    case "gemini":
+      return new GeminiProvider(common, transport);
     default:
       throw new AIProviderError(
         `Adapter não implementado: ${preset.adapter}`,
