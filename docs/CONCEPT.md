@@ -63,21 +63,30 @@ A IA **não é** um chatbot separado. Ela vive **ao lado do texto**:
 - **Perguntar** no painel → resposta com citação da obra
 - **Destacar** → vira flashcard ou anotação enriquecida
 
-## Por que IA chinesa como padrão
+## IA: escolha do usuário, não nossa
 
-Não é idéia por modismo. É uma escolha técnica com base em características
-objetivas dos modelos chineses de ponta:
+O igot não impõe um provedor de IA. Cada usuário escolhe o seu e cola a própria
+chave (BYOK) na tela de Configurações. A chave fica no navegador dele — o
+servidor nunca a persiste.
 
-- **Janela de contexto enorme** (centenas de milhares de tokens): um livro inteiro
-  cabe em memória, viabilizando Q&A e resumo sem particionamento grosseiro.
-- **Desempenho multilíngue** robusto, com força particular em idiomas que outros
-  modelos tratam mal (mandarim, russo, árabe, etc.).
-- **Custo por token** significativamente menor que os provedores ocidentais
-  dominantes — viabiliza uso contínuo, não só experimental.
+Provedores suportados: **Z.ai (GLM)**, **OpenAI**, **DeepSeek**, **Kimi**,
+**Qwen** e **Anthropic**. Adicionar um novo é só incluí-lo no catálogo de
+presets (se for compatível com a API OpenAI, a maioria é — não exige código).
+
+### Por que tantas opções chinesas?
+
+Os modelos chineses (GLM, DeepSeek, Kimi, Qwen) têm características objetivas
+que combinam muito com leitura assistida:
+
+- **Janela de contexto enorme** (centenas de milhares de tokens): cabe um
+  livro inteiro, viabilizando Q&A e resumo de verdade (na Fase 2).
+- **Desempenho multilíngue** robusto, com força em idiomas que outros modelos
+  tratam mal (mandarim, russo, árabe...).
+- **Custo por token** baixo — viabiliza uso contínuo, não só experimental.
 - **Diversificação de fornecedor** — resiliência e soberania tecnológica.
 
-**Mas não somos reféns:** a arquitetura é plugável. GLM hoje, mas qualquer
-provedor (DeepSeek, Qwen, OpenAI, Anthropic) pode ser trocado ou rodado em paralelo.
+Mas a escolha é sempre do usuário. Oferecemos OpenAI e Anthropic também para
+quem prefere provedores ocidentais.
 
 ## Princípios de design
 

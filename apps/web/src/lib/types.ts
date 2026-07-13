@@ -13,8 +13,11 @@ export interface SelectionAction {
   type: SelectionActionType;
   /** O trecho selecionado. */
   text: string;
-  /** Em que idioma o leitor quer a resposta (ex.: "pt-BR"). */
-  targetLang: string;
+  /**
+   * Idioma-alvo. Hoje é resolvido pelo ai-client a partir da config do
+   * usuário (getTargetLang()); mantido aqui opcional pra uso futuro.
+   */
+  targetLang?: string;
   /** Onde o trecho está (capítulo), pra eventual contexto. */
   chapterId?: string;
 }

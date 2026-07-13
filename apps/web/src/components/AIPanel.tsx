@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ParsedBook } from "@igot/parser";
 import type { SelectionAction } from "@/lib/types";
+import { translate, explain, ask, type BookContext } from "@/lib/ai-client";
 
 interface AIPanelProps {
   action: SelectionAction | null;
@@ -19,8 +20,8 @@ interface PanelState {
 /**
  * Painel lateral da IA.
  *
- * Quando recebe uma `action` (Traduzir/Explicar), chama a API Route
- * correspondente e mostra o resultado com streaming de texto.
+ * Quando recebe uma `action` (Traduzir/Explicar), chama o ai-client (que
+ * fala com o provedor escolhido pelo usuário, via proxy) e mostra o resultado.
  */
 export function AIPanel({ action, book, onClose }: AIPanelProps) {
   const [state, setState] = useState<PanelState>({
@@ -31,90 +32,58 @@ export function AIPanel({ action, book, onClose }: AIPanelProps) {
   const [query, setQuery] = useState("");
   const resultRef = useRef<HTMLDivElement>(null);
 
-  // Dispara a ação quando muda.
+  const bookCtx: BookContext = {
+    bookTitle: book.title,
+    bookAuthor: book.author,
+    bookLanguage: book.language,
+  };
+
+  // Dispara a ação (traduzir/explicar) quando ela muda.
   useEffect(() => {
     if (!action) return;
 
     let cancelled = false;
     setState({ loading: true, result: null, error: null });
 
-    const endpoint = action.type === "translate" ? "/api/translate" : "/api/explain";
-
-    (async () => {
-      try {
-        const res = await fetch(endpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            text: action.text,
-            targetLang: action.targetLang,
-            bookTitle: book.title,
-            bookAuthor: book.author,
-            bookLanguage: book.language,
-          }),
-        });
-        const data = (await res.json()) as { ok: boolean; text?: string; error?: string };
-        if (cancelled) return;
-        if (data.ok && data.text) {
-          setState({ loading: false, result: data.text, error: null });
-        } else {
-          setState({ loading: false, result: null, error: data.error ?? "Erro desconhecido." });
-        }
-      } catch (err) {
-        if (cancelled) return;
-        setState({
-          loading: false,
-          result: null,
-          error: err instanceof Error ? err.message : String(err),
-        });
-      }
-    })();
+    const run = async () => {
+      const res =
+        action.type === "translate"
+          ? await translate(action.text, bookCtx)
+          : await explain(action.text, bookCtx);
+      if (cancelled) return;
+      setState(
+        res.ok
+          ? { loading: false, result: res.text ?? null, error: null }
+          : { loading: false, result: null, error: res.error ?? "Erro." },
+      );
+    };
+    run();
 
     return () => {
       cancelled = true;
     };
-  }, [action, book.title, book.author, book.language]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [action]);
 
-  // Rola pro fim enquanto chega o resultado (sensação de streaming).
+  // Rola pro fim quando o resultado chega.
   useEffect(() => {
     if (state.result) {
       resultRef.current?.scrollTo({ top: resultRef.current.scrollHeight });
     }
   }, [state.result]);
 
-  // Pergunta livre ao livro (preview do Q&A da Fase 2 — sem RAG ainda).
+  // Pergunta livre ao livro.
   const askBook = async () => {
     const q = query.trim();
     if (!q) return;
-    let cancelled = false;
-    setState({ loading: true, result: null, error: null });
 
-    try {
-      const res = await fetch("/api/ask", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          question: q,
-          bookTitle: book.title,
-          bookAuthor: book.author,
-          bookLanguage: book.language,
-        }),
-      });
-      const data = (await res.json()) as { ok: boolean; text?: string; error?: string };
-      if (cancelled) return;
-      if (data.ok && data.text) {
-        setState({ loading: false, result: data.text, error: null });
-      } else {
-        setState({ loading: false, result: null, error: data.error ?? "Erro desconhecido." });
-      }
-    } catch (err) {
-      if (cancelled) return;
-      setState({
-        loading: false,
-        result: null,
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
+    setState({ loading: true, result: null, error: null });
+    const res = await ask(q, bookCtx);
+    setState(
+      res.ok
+        ? { loading: false, result: res.text ?? null, error: null }
+        : { loading: false, result: null, error: res.error ?? "Erro." },
+    );
     setQuery("");
   };
 
@@ -143,9 +112,7 @@ export function AIPanel({ action, book, onClose }: AIPanelProps) {
               Selecione um trecho do texto e escolha{" "}
               <strong>Traduzir</strong> ou <strong>Explicar</strong>.
             </p>
-            <p className="ai-empty-sub">
-              Ou faça uma pergunta sobre o livro abaixo.
-            </p>
+            <p className="ai-empty-sub">Ou faça uma pergunta sobre o livro abaixo.</p>
           </div>
         )}
 
@@ -164,13 +131,9 @@ export function AIPanel({ action, book, onClose }: AIPanelProps) {
           </div>
         )}
 
-        {state.error && (
-          <p className="ai-error">⚠️ {state.error}</p>
-        )}
+        {state.error && <p className="ai-error">⚠️ {state.error}</p>}
 
-        {state.result && (
-          <div className="ai-result">{state.result}</div>
-        )}
+        {state.result && <div className="ai-result">{state.result}</div>}
       </div>
 
       <footer className="ai-footer">

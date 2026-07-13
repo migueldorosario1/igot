@@ -13,21 +13,23 @@
 - [ ] Escrever documento de conceito detalhado (`docs/CONCEPT.md`)
 - [ ] Definir stack definitiva de backend (Node vs Python)
 
-## Fase 1 — MVP: leitor + assistente básico
+## Fase 1 — MVP: leitor + assistente básico ✅ _(parcialmente pronto)_
 
 > **Objetivo:** abrir um livro (EPUB **e** PDF), selecionar um trecho e receber tradução/explicação.
 
-- [ ] App Next.js rodando localmente (App Router + TypeScript)
-- [ ] Camada de IA (`packages/ai-providers`) com adapter do **Z.ai (GLM)**
-- [ ] **Parser EPUB** → estrutura comum (capítulos/blocos)
-- [ ] **Parser PDF** → estrutura comum (com texto extraído)
-- [ ] Renderização do texto: leitor funcional (paginação, fontes, temas)
-- [ ] Upload de livros (arrastar/soltar + file picker)
-- [ ] Seleção de texto → menu contextual ("Traduzir" / "Explicar")
-- [ ] API Routes: `/api/translate`, `/api/explain` (chave GLM no servidor)
-- [ ] Painel lateral de IA conectado ao **Z.ai (GLM)**
-- [ ] Tradução de seleção (prompt simples, sem contexto da obra ainda)
-- [ ] Explicação de seleção (prompt simples)
+- [x] App Next.js rodando localmente (App Router + TypeScript)
+- [x] Camada de IA (`packages/ai-providers`) **multi-provedor plugável** (BYOK)
+- [x] **Parser EPUB** → estrutura comum (capítulos/blocos)
+- [x] **Parser PDF** → estrutura comum (com texto extraído)
+- [x] Renderização do texto: leitor funcional (paginação, navegação por capítulo)
+- [x] Upload de livros (arrastar/soltar + file picker)
+- [x] Seleção de texto → menu contextual ("Traduzir" / "Explicar")
+- [x] `/api/proxy` leve com allowlist de hosts (fura CORS; sem chave no servidor)
+- [x] Painel lateral de IA conectado ao provedor escolhido pelo usuário
+- [x] Tradução de seleção (prompt com contexto da obra)
+- [x] Explicação de seleção (prompt com contexto da obra)
+- [x] Página `/settings` com 6 provedores, teste de conexão e idioma-alvo
+- [ ] Streaming de respostas (IA "digita" em tempo real)
 - [ ] Persistência local da biblioteca (IndexedDB)
 
 ## Fase 2 — Inteligência de obra (RAG)
@@ -57,8 +59,8 @@
 
 > **Objetivo:** flexibilidade e polimento.
 
-- [ ] Abstração de provedores madura (GLM, DeepSeek, Qwen, OpenAI, Anthropic)
-- [ ] Comparador de traduções entre modelos
+- [x] Abstração de provedores madura (GLM, OpenAI, DeepSeek, Kimi, Qwen, Anthropic) ✅
+- [ ] Comparador de traduções entre modelos (rodar 2+ em paralelo)
 - [ ] Cache inteligente de traduções (não retraduzir o mesmo trecho)
 - [ ] Offline-first para leitura (IA só quando solicitada)
 - [ ] TTS (narrção) — opcional

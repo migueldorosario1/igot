@@ -55,10 +55,10 @@ export function Reader({ book, onSelection }: ReaderProps) {
 
   const fire = (type: SelectionAction["type"]) => {
     if (!menu) return;
+    // targetLang é resolvido pelo ai-client a partir da config do usuário.
     onSelection({
       type,
       text: menu.text,
-      targetLang: "pt-BR",
       chapterId: chapter?.id,
     });
     setMenu(null);

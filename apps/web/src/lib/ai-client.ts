@@ -1,0 +1,168 @@
+/**
+ * Cliente de IA de alto nível (roda no navegador).
+ *
+ * Lê a config do usuário (localStorage), instancia o provider com o transport
+ * proxy (fura CORS), e expõe as três ações da UI: traduzir, explicar, perguntar.
+ *
+ * Esta é a lógica de prompt que antes morava nas API Routes — agora no cliente,
+ * já que o servidor não detém mais a chave.
+ */
+
+import {
+  getProvider,
+  createProxyTransport,
+  AIProviderError,
+  type AIConfig,
+} from "@igot/ai-providers";
+import { getConfig, getTargetLang } from "./config";
+
+/** Contexto da obra relevante para as ações. */
+export interface BookContext {
+  bookTitle?: string;
+  bookAuthor?: string;
+  bookLanguage?: string;
+}
+
+/** Resultado padronizado das ações. */
+export interface AIActionResult {
+  ok: boolean;
+  text?: string;
+  error?: string;
+}
+
+/** Monta o bloco de contexto (metadados da obra) que acompanha o prompt. */
+function buildContext(ctx: BookContext): string | undefined {
+  const parts = [
+    ctx.bookTitle && `Obra: ${ctx.bookTitle}`,
+    ctx.bookAuthor && `Autor: ${ctx.bookAuthor}`,
+    ctx.bookLanguage && `Idioma original: ${ctx.bookLanguage}`,
+  ].filter(Boolean);
+  return parts.length ? parts.join("\n") : undefined;
+}
+
+/** Instancia o provider a partir da config do usuário (ou lança erro legível). */
+function resolveProvider() {
+  const config = getConfig();
+  if (!config) {
+    throw new Error(
+      "IA não configurada. Abra Configurações e escolha um provedor.",
+    );
+  }
+  const transport = createProxyTransport("/api/proxy");
+  return { provider: getProvider(config as AIConfig, transport), config };
+}
+
+/** Converte qualquer exceção numa mensagem amigável. */
+function toMessage(err: unknown): string {
+  if (err instanceof AIProviderError) return err.message;
+  if (err instanceof Error) return err.message;
+  return String(err);
+}
+
+// ─── Ações ──────────────────────────────────────────────────────────────
+
+/** Traduz um trecho para o idioma-alvo do usuário. */
+export async function translate(
+  text: string,
+  ctx: BookContext,
+): Promise<AIActionResult> {
+  if (!text.trim()) return { ok: false, error: "Texto ausente." };
+  const targetLang = getTargetLang();
+  const systemPrompt =
+    `Você é um tradutor literário e técnico de excelência. ` +
+    `Traduza o trecho fornecido para ${targetLang}. ` +
+    `Respeite o tom, o estilo e o contexto da obra. ` +
+    `Devolva APENAS a tradução, sem comentários, sem aspas, sem introdução.`;
+
+  try {
+    const { provider } = resolveProvider();
+    const result = await provider.complete(text, {
+      systemPrompt,
+      context: buildContext(ctx),
+      temperature: 0.3,
+    });
+    return { ok: true, text: result.text };
+  } catch (err) {
+    return { ok: false, error: toMessage(err) };
+  }
+}
+
+/** Explica um trecho (sentido, idiotismos, contexto). */
+export async function explain(
+  text: string,
+  ctx: BookContext,
+): Promise<AIActionResult> {
+  if (!text.trim()) return { ok: false, error: "Texto ausente." };
+  const targetLang = getTargetLang();
+  const systemPrompt =
+    `Você é um assistente de leitura. Explique o trecho fornecido em ${targetLang}, ` +
+    `de forma clara e didática. ` +
+    `Cubra: sentido literal, possíveis sentidos figurados, idiotismos ou ` +
+    `referências culturais, e como ele se encaixa no contexto da obra. ` +
+    `Seja conciso (2 a 4 parágrafos curtos). ` +
+    `Não invente — se não souber algo, diga.`;
+
+  try {
+    const { provider } = resolveProvider();
+    const result = await provider.complete(
+      `Explique este trecho:\n\n"${text}"`,
+      {
+        systemPrompt,
+        context: buildContext(ctx),
+        temperature: 0.4,
+      },
+    );
+    return { ok: true, text: result.text };
+  } catch (err) {
+    return { ok: false, error: toMessage(err) };
+  }
+}
+
+/** Responde uma pergunta livre sobre o livro (preview do Q&A — sem RAG ainda). */
+export async function ask(
+  question: string,
+  ctx: BookContext,
+): Promise<AIActionResult> {
+  if (!question.trim()) return { ok: false, error: "Pergunta ausente." };
+  const targetLang = getTargetLang();
+  const systemPrompt =
+    `Você é um assistente de leitura ajudando alguém com o livro "${ctx.bookTitle ?? "desconhecido"}". ` +
+    `Responda em ${targetLang}, de forma útil e honesta. ` +
+    `Se não souber algo por falta de contexto do texto, diga — não invente. ` +
+    `(Em breve: respostas fundamentadas no texto da obra.)`;
+
+  try {
+    const { provider } = resolveProvider();
+    const result = await provider.complete(question, {
+      systemPrompt,
+      context: buildContext(ctx),
+      temperature: 0.4,
+    });
+    return { ok: true, text: result.text };
+  } catch (err) {
+    return { ok: false, error: toMessage(err) };
+  }
+}
+
+/**
+ * Teste de conexão: faz uma chamada mínima ao provider escolhido.
+ * Usado pela tela de Configurações pra validar chave + provedor.
+ */
+export async function testConnection(
+  config: AIConfig,
+): Promise<{ ok: boolean; message: string }> {
+  try {
+    const transport = createProxyTransport("/api/proxy");
+    const provider = getProvider(config, transport);
+    const result = await provider.complete("Diga apenas: OK", {
+      temperature: 0,
+      maxTokens: 16,
+    });
+    return {
+      ok: true,
+      message: `Conexão bem-sucedida. Resposta: "${result.text.slice(0, 40)}"`,
+    };
+  } catch (err) {
+    return { ok: false, message: toMessage(err) };
+  }
+}

@@ -34,46 +34,57 @@ Um leitor que **conhece o livro inteiro** e te ajuda a destravar a leitura em te
 - ❓ **Pergunte ao livro** — Q&A fundamentado no texto (RAG), sem invenção
 - 🗣️ **Modo idiomas** — flashcards de vocabulário extraídos do que você leu
 
-## 🇨🇳 Por que uma IA chinesa?
+## 🔌 IA agnóstica — você escolhe o provedor
 
-Os modelos de IA chineses estão entre os melhores do mundo e têm características
-**perfeitas** para este uso:
+O igot **não te prende a uma IA**. Na tela de Configurações (`/settings`) você
+escolhe o provedor e cola a **própria chave** (BYOK — *bring your own key*).
+Sua chave fica no seu navegador (localStorage); nunca é persistida no servidor.
 
-| Vantagem | Por que importa |
-|----------|-----------------|
-| **Janela de contexto gigante** (Qwen, DeepSeek, GLM) | Cabe um livro inteiro → Q&A e resumo de verdade |
-| **Multilíngue robusto** | Português ↔ Mandarim ↔ Inglês ↔ Russo ↔ ... |
-| **Custo-benefício** | Mais barato por token → uso contínuo viável |
-| **Independência de provedores ocidentais** | Resiliência e soberania tecnológica |
+Provedores suportados:
 
-A arquitetura é **multi-provedor plugável**: **Z.ai (GLM)** como padrão no MVP,
-com DeepSeek, Qwen, OpenAI e Anthropic como opcionais. Nunca ficamos reféns de um só.
+| Provedor | Destaque |
+|----------|----------|
+| **Z.ai (GLM)** 🇨🇳 | Janela de contexto longa, multilíngue |
+| **OpenAI** | GPT-4o e família — padrão de mercado |
+| **DeepSeek** 🇨🇳 | Custo-benefício e raciocínio |
+| **Kimi (Moonshot)** 🇨🇳 | Contexto gigante (128k+) |
+| **Qwen (Alibaba)** 🇨🇳 | Multilíngue fortíssimo, ótimo em tradução |
+| **Anthropic** | Modelos Claude — forte em escrita |
+
+Os modelos chineses são particularmente interessantes para este uso (janela de
+contexto enorme, multilíngue robusto, custo por token baixo), mas a escolha é
+sempre sua. A arquitetura é **multi-provedor plugável**: adicionar um novo é só
+incluí-lo no catálogo de presets.
 
 ## 🏗️ Arquitetura
 
 ```
 ┌──────────────────┐     ┌─────────────────────────────────────────┐
 │  Frontend        │     │  Backend                                │
-│  Web (PWA)       │◄────┤   • Parser: PDF / EPUB / MOBI / TXT     │
-│  Next.js + React │     │   • Motor RAG (vetores)                 │
-│  → depois mobile │     │   • Orquestrador de IA (plugável)       │
-└──────────────────┘     │   • Cache de tradução                   │
-                         └──────────────────┬──────────────────────┘
-                                            │
-              ┌─────────────────┬───────────┴───────────┬──────────────┐
-              ▼                 ▼                       ▼              ▼
-         Z.ai (GLM)       DeepSeek                  Qwen          OpenAI
-         [padrão MVP]                                    [+ Anthropic]
+│  Web (PWA)       │◄────┤   • /api/proxy (fura CORS, allowlist)   │
+│  Next.js + React │     │   • Parser: EPUB / PDF (+ MOBI/TXT)     │
+│  → depois mobile │     │   • Motor RAG (Fase 2)                  │
+└────────┬─────────┘     └──────────────────┬──────────────────────┘
+         │                                  │
+   config no localStorage           repassa ao provedor
+   (BYOK: chave do usuário)              escolhido pelo usuário
+         │                                  │
+         └──────────► /api/proxy ──────────►├─ Z.ai (GLM)
+                                            ├─ OpenAI
+                                            ├─ DeepSeek
+                                            ├─ Kimi (Moonshot)
+                                            ├─ Qwen (Alibaba)
+                                            └─ Anthropic
 ```
 
 ## 🧱 Stack
 
-- **Frontend + Backend:** Next.js (App Router) + React + TypeScript — stack única,
-  com API Routes mantendo a chave da IA no servidor
-- **IA padrão:** Z.ai (GLM) via `packages/ai-providers` (camada plugável)
+- **Frontend + API:** Next.js (App Router) + React + TypeScript
+- **IA:** multi-provedor plugável via `packages/ai-providers` (BYOK); chamadas
+  roteadas por um `/api/proxy` leve que fura o CORS dos provedores
 - **Parsing:** EPUB (estruturado) + PDF (texto extraído) — ambos no MVP
 - **Banco + Vetores:** PostgreSQL + pgvector (a confirmar na Fase 2)
-- **Persistência local (MVP):** IndexedDB
+- **Persistência local (config de IA):** localStorage (chave nunca no servidor)
 
 ## 📐 Estrutura do repositório
 
@@ -91,10 +102,23 @@ igot/
 
 ## 🚦 Status
 
-**Fase 0 — Conceito & Scaffolding.** O repositório está nascendo agora.
-Nenhum código funcional ainda — só a ideia, a estrutura e o roadmap.
+**Fase 1 (MVP) implementada** — leitor EPUB/PDF + assistente de IA multi-provedor
+(traduzir / explicar / perguntar). Configure sua chave de IA em `/settings`.
 
 👉 Veja o [**ROADMAP**](./ROADMAP.md) completo.
+
+## ▶️ Como rodar
+
+```bash
+git clone git@github.com:migueldorosario1/igot.git
+cd igot
+npm install
+npm run dev          # abre http://localhost:3000
+```
+
+Depois, em `http://localhost:3000/settings`, escolha o provedor de IA e cole
+sua chave (fica no seu navegador). Sem isso, as ações de IA não funcionam —
+mas o leitor já abre e navega pelos livros.
 
 ## 🤝 Como contribuir
 

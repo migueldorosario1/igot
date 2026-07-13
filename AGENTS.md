@@ -8,7 +8,8 @@
 Leitor de e-books com IA integrada. Leia qualquer livro em qualquer língua /
 assunto; a IA traduz, explica, resume e responde perguntas com fundamento no texto.
 
-**Diferencial:** IA chinesa como padrão (Z.ai/GLM), arquitetura multi-provedor plugável.
+**Diferencial:** IA agnóstica (multi-provedor plugável, BYOK) — o usuário escolhe
+entre Z.ai (GLM), OpenAI, DeepSeek, Kimi, Qwen e Anthropic.
 
 ## Princípios (NÃO violar)
 
@@ -19,7 +20,8 @@ assunto; a IA traduz, explica, resume e responde perguntas com fundamento no tex
 3. **Um passo de cada vez.** EPUB antes de PDF. Simples antes de contextualizado.
    Não antecipe features do ROADMAP que pertencem a fases futuras.
 4. **Multi-provedor.** Nunca acoplar lógica a um único provedor de IA. Tudo passa
-   pela camada de abstração em `packages/ai-providers`.
+   pela camada de abstração em `packages/ai-providers`. O usuário traz a própria
+   chave (BYOK) — ela fica no navegador dele, nunca persistida no servidor.
 
 ## Estrutura do monorepo
 
@@ -41,10 +43,13 @@ docs/               # Conceito, decisões técnicas
 
 ## Como adicionar um novo provedor de IA
 
-1. Crie o adapter em `packages/ai-providers/src/providers/<nome>.ts`.
-2. Implemente a interface comum (`complete`, `stream`, `embed` quando aplicável).
-3. Registre no seletor de provedores.
-4. Adicione teste básico.
+1. **Se for OpenAI-compatible** (a maioria dos LLMs como serviço): basta
+   adicionar um item a `PRESETS` em `packages/ai-providers/src/registry.ts`
+   — sem código novo. E adicione o host à allowlist em `apps/web/src/app/api/proxy/route.ts`.
+2. **Se o protocolo for diferente**: crie um adapter em
+   `packages/ai-providers/src/providers/<nome>.ts` que implemente `AIProvider`,
+   adicione um `AdapterKind` em `types.ts`, trate-o no `switch` de `getProvider`
+   e registre o preset. Adicione o host à allowlist do proxy.
 
 ## Estado atual
 
