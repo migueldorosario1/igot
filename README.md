@@ -66,13 +66,14 @@ com DeepSeek, Qwen, OpenAI e Anthropic como opcionais. Nunca ficamos reféns de 
          [padrão MVP]                                    [+ Anthropic]
 ```
 
-## 🧱 Stack (planejada)
+## 🧱 Stack
 
-- **Frontend:** Next.js + React + TypeScript (PWA)
-- **Backend:** Node/TypeScript (ou Python/FastAPI — a definir)
-- **Banco + Vetores:** PostgreSQL + pgvector (ou Chroma)
-- **Parsing:** pdf.js / PyMuPDF (PDF), epub.js (EPUB)
-- **IA:** SDKs plugáveis (Z.ai GLM, DeepSeek, Qwen, ...)
+- **Frontend + Backend:** Next.js (App Router) + React + TypeScript — stack única,
+  com API Routes mantendo a chave da IA no servidor
+- **IA padrão:** Z.ai (GLM) via `packages/ai-providers` (camada plugável)
+- **Parsing:** EPUB (estruturado) + PDF (texto extraído) — ambos no MVP
+- **Banco + Vetores:** PostgreSQL + pgvector (a confirmar na Fase 2)
+- **Persistência local (MVP):** IndexedDB
 
 ## 📐 Estrutura do repositório
 

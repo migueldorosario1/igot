@@ -2,10 +2,23 @@
   "name": "@igot/web",
   "version": "0.0.0",
   "private": true,
-  "description": "App web (PWA) do igot.",
+  "type": "module",
   "scripts": {
-    "dev": "echo \"TODO: next dev\"",
-    "build": "echo \"TODO: next build\"",
-    "start": "echo \"TODO: next start\""
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@igot/ai-providers": "*",
+    "@igot/parser": "*",
+    "next": "^14.2.15",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.5",
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.0"
   }
 }

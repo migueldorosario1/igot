@@ -15,16 +15,19 @@
 
 ## Fase 1 — MVP: leitor + assistente básico
 
-> **Objetivo:** abrir um livro, selecionar um trecho e receber tradução/explicação.
+> **Objetivo:** abrir um livro (EPUB **e** PDF), selecionar um trecho e receber tradução/explicação.
 
-- [ ] App Next.js rodando localmente
-- [ ] Upload e abertura de **EPUB** (formato mais estruturado, melhor pra começar)
-- [ ] Renderização do texto com leitor funcional (paginação, fontes, temas)
+- [ ] App Next.js rodando localmente (App Router + TypeScript)
+- [ ] Camada de IA (`packages/ai-providers`) com adapter do **Z.ai (GLM)**
+- [ ] **Parser EPUB** → estrutura comum (capítulos/blocos)
+- [ ] **Parser PDF** → estrutura comum (com texto extraído)
+- [ ] Renderização do texto: leitor funcional (paginação, fontes, temas)
+- [ ] Upload de livros (arrastar/soltar + file picker)
 - [ ] Seleção de texto → menu contextual ("Traduzir" / "Explicar")
+- [ ] API Routes: `/api/translate`, `/api/explain` (chave GLM no servidor)
 - [ ] Painel lateral de IA conectado ao **Z.ai (GLM)**
 - [ ] Tradução de seleção (prompt simples, sem contexto da obra ainda)
 - [ ] Explicação de seleção (prompt simples)
-- [ ] Suporte a **PDF** (mais complexo — layout, colunas, imagens)
 - [ ] Persistência local da biblioteca (IndexedDB)
 
 ## Fase 2 — Inteligência de obra (RAG)

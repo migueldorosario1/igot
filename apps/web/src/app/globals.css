@@ -1,0 +1,82 @@
+/* ─── igot — estilos globais ─────────────────────────────────────────── */
+
+:root {
+  --bg: #faf9f7;
+  --surface: #ffffff;
+  --surface-alt: #f3f1ec;
+  --text: #1a1a1a;
+  --text-muted: #6b6b6b;
+  --border: #e3e0d8;
+  --accent: #c8553d;
+  --accent-soft: #fce9e4;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --radius: 10px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16161a;
+    --surface: #1e1e24;
+    --surface-alt: #26262e;
+    --text: #e8e8ea;
+    --text-muted: #9a9aa3;
+    --border: #33333c;
+    --accent: #e87a63;
+    --accent-soft: #3a2420;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+a {
+  color: var(--accent);
+}
+
+/* ── Tipografia do leitor ─────────────────────────────────────────── */
+
+.reader-text p {
+  margin: 0 0 1.1em;
+  text-align: justify;
+  hyphens: auto;
+}
+
+.reader-text h1,
+.reader-text h2,
+.reader-text h3 {
+  margin: 1.6em 0 0.6em;
+  line-height: 1.3;
+}
+
+.reader-text blockquote {
+  margin: 1.2em 0;
+  padding-left: 1em;
+  border-left: 3px solid var(--border);
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.reader-text ::selection {
+  background: var(--accent-soft);
+}

@@ -97,8 +97,9 @@ provedor (DeepSeek, Qwen, OpenAI, Anthropic) pode ser trocado ou rodado em paral
 
 ## Perguntas em aberto (a decidir)
 
-- [ ] Backend em Node/TypeScript ou Python/FastAPI?
-- [ ] Banco vetorial: pgvector, Chroma ou SQLite-vss?
+- [x] ~~Backend em Node/TypeScript ou Python/FastAPI?~~ → **Next.js (Node/TS)** com API Routes
+- [x] ~~Quais formatos no MVP?~~ → **EPUB + PDF** (ambos desde o início)
+- [ ] Banco vetorial: pgvector, Chroma ou SQLite-vss? (decidir na Fase 2)
 - [ ] Modelo de negócio: open-source puro, freemium com IA hospedada, ou ambos?
 - [ ] Como lidar com direitos autorais ao enviar trechos à IA?
 - [ ] Suporte a formatos proprietários (Kindle/AZW3) — vale a pena?
