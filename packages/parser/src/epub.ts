@@ -77,11 +77,27 @@ export async function parseEPUB(input: EPUBParseInput): Promise<ParsedBook> {
       async (src) => resolveImage(zip, item.zipPath, src),
     );
 
-    // Título do capítulo = primeiro heading, ou vazio
+    // Pula capítulos "triviais": sem blocos de conteúdo, ou só metadados
+    // (copyright, keywords, sumário navegável). Evita lixo no leitor.
+    // Critério: precisa de pelo menos 1 parágrafo com texto substancial.
+    const hasRealContent = blocks.some(
+      (b) =>
+        (b.type === "paragraph" || b.type === "heading" || b.type === "quote") &&
+        (b.text?.length ?? 0) >= 40,
+    );
+    if (!hasRealContent && blocks.every((b) => b.type !== "image")) {
+      continue; // pula capa de créditos, página de keywords, etc.
+    }
+
+    // Título do capítulo: heading > <title> > "Capítulo N".
     const firstHeading = blocks.find((b) => b.type === "heading");
+    const docTitle = doc.querySelector("title")?.textContent?.trim();
+    const title =
+      firstHeading?.text || docTitle || (chapIdx === 0 ? "Início" : `Capítulo ${chapIdx + 1}`);
+
     chapters.push({
       id: `ch${chapIdx}`,
-      title: firstHeading?.text,
+      title,
       blocks,
     });
     chapIdx++;

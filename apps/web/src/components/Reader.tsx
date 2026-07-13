@@ -78,10 +78,17 @@ export function Reader({ book, pdfSource, onSelection }: ReaderProps) {
       <header className="reader-header">
         <div className="reader-title">
           <h1>{book.title}</h1>
-          {book.author && <span className="reader-author">{book.author}</span>}
+          {book.sourceFormat === "pdf" ? (
+            book.author && <span className="reader-author">{book.author}</span>
+          ) : (
+            <span className="reader-author">
+              {chapter?.title || `Capítulo ${chapterIdx + 1}`}
+              {book.author && ` · ${book.author}`}
+            </span>
+          )}
         </div>
         <div className="reader-nav">
-          <button onClick={goPrev} disabled={chapterIdx === 0} aria-label="Capítulo anterior">
+          <button onClick={goPrev} disabled={chapterIdx === 0} aria-label={book.sourceFormat === "pdf" ? "Página anterior" : "Capítulo anterior"}>
             ‹
           </button>
           <span className="reader-counter">
@@ -90,7 +97,7 @@ export function Reader({ book, pdfSource, onSelection }: ReaderProps) {
           <button
             onClick={goNext}
             disabled={chapterIdx >= totalChapters - 1}
-            aria-label="Próximo capítulo"
+            aria-label={book.sourceFormat === "pdf" ? "Próxima página" : "Próximo capítulo"}
           >
             ›
           </button>
