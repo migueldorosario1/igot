@@ -13,6 +13,11 @@ import { useEffect, useRef, useState } from "react";
  *
  * O window.getSelection() do Reader enxerga os <span>s da text-layer como
  * texto normal, então o menu flutuante aparece no lugar certo.
+ *
+ * VISIBILIDADE: o canvas e a text-layer ficam INVISÍVEIS (opacity:0) até o
+ * render completar 100%, evitando o "flash" feio de conteúdo desalinhado
+ * aparecendo no canto antes de estar pronto. O spinner cobre tudo enquanto
+ * isso.
  */
 
 interface PdfPageCanvasProps {
@@ -24,26 +29,64 @@ interface PdfPageCanvasProps {
 
 type Status = "loading" | "ready" | "error";
 
-// Escala-alvo de largura, em CSS px. O canvas é redimensionado pra caber.
-const TARGET_WIDTH = 900;
+/**
+ * Calcula a escala pra a página caber INTEIRA na área visível do leitor.
+ * Considera tanto largura quanto altura — essencial pra telas paisagem
+ * (notebook deitado, iPad em modo horizontal) onde a página é mais alta
+ * que a área visível.
+ *
+ * @param baseViewport viewport do PDF na escala 1 (page.getViewport({scale:1}))
+ * @param availW largura útil em CSS px
+ * @param availH altura útil em CSS px
+ */
+function fitScale(
+  baseWidth: number,
+  baseHeight: number,
+  availW: number,
+  availH: number,
+): number {
+  const byWidth = availW / baseWidth;
+  const byHeight = availH / baseHeight;
+  // O menor dos dois garante que a página inteira caiba sem cortar.
+  return Math.min(byWidth, byHeight);
+}
+
+/** Hook: tamanho da janela (pra re-render ao redimensionar/girar). */
+function useViewportSize() {
+  const [size, setSize] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const update = () => setSize({ w: window.innerWidth, h: window.innerHeight });
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+  return size;
+}
 
 export function PdfPageCanvas({ data, pageNum }: PdfPageCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textLayerRef = useRef<HTMLDivElement>(null);
 
+  // Re-render quando a janela muda de tamanho (redimensionar, girar tablet).
+  const vpSize = useViewportSize();
+
   // Handles transitórios (pra cancelar em re-renders).
   const docRef = useRef<Awaited<ReturnType<typeof loadDoc>> | null>(null);
   const renderTaskRef = useRef<{ cancel: () => void } | null>(null);
   const textLayerHandleRef = useRef<{ cancel: () => void } | null>(null);
 
-  const [status, setStatus] = useState<Status>("loading");
-  const [errorMsg, setErrorMsg] = useState<string>("");
+  // `pageReady` controla a opacidade do canvas/text-layer. Só vira true DEPOIS
+  // que o render do canvas E da text-layer terminam — evita o flash feio.
+  const [docReady, setDocReady] = useState(false);
+  const [pageReady, setPageReady] = useState(false);
+  const [error, setError] = useState<string>("");
 
   // Carrega o documento UMA vez quando o `data` muda.
   useEffect(() => {
     let cancelled = false;
-    setStatus("loading");
+    setDocReady(false);
+    setPageReady(false);
 
     loadDoc(data)
       .then((doc) => {
@@ -52,12 +95,11 @@ export function PdfPageCanvas({ data, pageNum }: PdfPageCanvasProps) {
           return;
         }
         docRef.current = doc;
-        setStatus("ready");
+        setDocReady(true);
       })
       .catch((err) => {
         if (cancelled) return;
-        setStatus("error");
-        setErrorMsg(err instanceof Error ? err.message : String(err));
+        setError(err instanceof Error ? err.message : String(err));
       });
 
     return () => {
@@ -69,9 +111,9 @@ export function PdfPageCanvas({ data, pageNum }: PdfPageCanvasProps) {
     };
   }, [data]);
 
-  // Renderiza a página quando muda `pageNum` ou o documento fica pronto.
+  // Renderiza a página quando muda `pageNum` (requer doc pronto).
   useEffect(() => {
-    if (status !== "ready") return;
+    if (!docReady) return;
 
     const doc = docRef.current;
     const canvas = canvasRef.current;
@@ -82,13 +124,24 @@ export function PdfPageCanvas({ data, pageNum }: PdfPageCanvasProps) {
     let localRenderTask: { cancel: () => void } | null = null;
     let localTextLayer: { cancel: () => void } | null = null;
 
+    // Esconde a página antiga imediatamente (mostra spinner).
+    setPageReady(false);
+
     (async () => {
       try {
         const page = await doc.getPage(pageNum);
 
-        // Calcula escala pra caber na largura-alvo.
         const baseViewport = page.getViewport({ scale: 1 });
-        const scale = TARGET_WIDTH / baseViewport.width;
+
+        // Mede a área realmente disponível no leitor (o .reader-scroll, pai
+        // deste container). Cai pra um padrão se não conseguir medir.
+        const parent = containerRef.current?.parentElement;
+        const availW = (parent?.clientWidth ?? window.innerWidth) - 32; // padding
+        const availH = (parent?.clientHeight ?? window.innerHeight) - 120; // header + padding
+        const scale = Math.max(
+          0.2,
+          fitScale(baseViewport.width, baseViewport.height, availW, availH),
+        );
         const viewport = page.getViewport({ scale });
 
         // Alta nitidez em telas Retina/iPad.
@@ -134,13 +187,17 @@ export function PdfPageCanvas({ data, pageNum }: PdfPageCanvasProps) {
         localTextLayer = textLayer;
         textLayerHandleRef.current = textLayer;
         await textLayer.render();
+
+        if (cancelled) return;
+
+        // PRONTO: só agora revelamos a página, já 100% alinhada.
+        setPageReady(true);
       } catch (err) {
         if (cancelled) return;
         // RenderingCancelledException é esperada em re-renders; ignora.
         const msg = err instanceof Error ? err.message : String(err);
         if (!/cancelled/i.test(msg)) {
-          setStatus("error");
-          setErrorMsg(msg);
+          setError(msg);
         }
       }
     })();
@@ -150,34 +207,56 @@ export function PdfPageCanvas({ data, pageNum }: PdfPageCanvasProps) {
       localRenderTask?.cancel();
       localTextLayer?.cancel();
     };
-  }, [pageNum, status]);
+    // vpSize dispara re-render ao redimensionar/girar a tela.
+  }, [pageNum, docReady, vpSize]);
+
+  const showSpinner = !pageReady && !error;
+  const showError = error !== "";
 
   return (
     <div className="pdf-page-container" ref={containerRef}>
-      {status === "loading" && (
+      <div
+        className="pdf-page-wrapper"
+        style={{
+          visibility: pageReady ? "visible" : "hidden",
+        }}
+      >
+        <canvas ref={canvasRef} className="pdf-canvas" />
+        <div ref={textLayerRef} className="pdf-text-layer" />
+      </div>
+
+      {showSpinner && (
         <div className="pdf-loading">
           <div className="pdf-spinner" />
           <span>Carregando página…</span>
         </div>
       )}
-      {status === "error" && (
-        <div className="pdf-error">⚠️ Não foi possível renderizar a página: {errorMsg}</div>
+
+      {showError && (
+        <div className="pdf-error">
+          ⚠️ Não foi possível renderizar a página: {error}
+        </div>
       )}
-      <div className="pdf-page-wrapper">
-        <canvas ref={canvasRef} className="pdf-canvas" />
-        <div ref={textLayerRef} className="pdf-text-layer" />
-      </div>
     </div>
   );
 }
 
 // ─── Helpers (lazy import + cache) ───────────────────────────────────────
 
-/** Importa o pdfjs uma única vez e devolve getDocument + version. */
+/**
+ * Importa o pdfjs, configura o worker e devolve um wrapper do documento.
+ *
+ * Importante: o pdfjs "detacha" o ArrayBuffer que recebe (ele é transferido
+ * ao Worker via postMessage e não pode ser reusado). Por isso criamos uma
+ * cópia AQUI, antes de criar a Uint8Array — o ArrayBuffer original que vem
+ * das props permanece intacto pra eventuais re-renderizações.
+ */
 async function loadDoc(data: ArrayBuffer) {
   const pdfjs = await import("pdfjs-dist");
   pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
-  const loadingTask = pdfjs.getDocument({ data: new Uint8Array(data) });
+  // Cópia defensiva: este buffer pertence ao componente, não ao caller.
+  const owned = data.slice(0);
+  const loadingTask = pdfjs.getDocument({ data: new Uint8Array(owned) });
   const doc = await loadingTask.promise;
   return {
     getPage: (n: number) => doc.getPage(n),
