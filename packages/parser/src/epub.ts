@@ -69,7 +69,13 @@ export async function parseEPUB(input: EPUBParseInput): Promise<ParsedBook> {
     if (!html) continue;
 
     const doc = parser.parseFromString(html, "application/xhtml+xml");
-    const blocks = extractBlocks(doc, `ch${chapIdx}`);
+    const blocks = await extractBlocks(
+      doc,
+      `ch${chapIdx}`,
+      // Resolvedor de imagens: lê do ZIP e devolve data URL embutida.
+      // Assim a capa/ilustrações aparecem sem depender de servidor.
+      async (src) => resolveImage(zip, item.zipPath, src),
+    );
 
     // Título do capítulo = primeiro heading, ou vazio
     const firstHeading = blocks.find((b) => b.type === "heading");
@@ -152,28 +158,39 @@ function resolveRelative(base: string, rel: string): string {
   }
 }
 
+/** Função que resolve um `src` de imagem (relativo ao XHTML) num data URL. */
+type ImageResolver = (src: string) => Promise<string | undefined>;
+
 /**
  * Percorre o body do (X)HTML e extrai blocos de conteúdo.
  * Heurística simples: cada <p>, <h1-6>, <blockquote>, <ul/ol>, <img>
  * vira um Block. Outras tags viram parágrafos com texto agregado.
+ *
+ * O `resolveImage` é chamado pra cada <img> encontrado, permitindo ler
+ * a imagem do ZIP do EPUB e embuti-la como data URL.
  */
-function extractBlocks(doc: Document, chapId: string): Block[] {
+async function extractBlocks(
+  doc: Document,
+  chapId: string,
+  resolveImage: ImageResolver,
+): Promise<Block[]> {
   const blocks: Block[] = [];
   const body = doc.getElementsByTagName("body")[0] ?? doc.documentElement;
   let counter = 0;
 
   for (const node of Array.from(body.childNodes)) {
-    walk(node, blocks, chapId, () => counter++);
+    await walk(node, blocks, chapId, () => counter++, resolveImage);
   }
   return blocks;
 }
 
-function walk(
+async function walk(
   node: ChildNode,
   blocks: Block[],
   chapId: string,
   nextId: () => number,
-): void {
+  resolveImage: ImageResolver,
+): Promise<void> {
   if (node.nodeType !== 1) return; // só elementos
   const el = node as Element;
   const tag = el.tagName.toLowerCase();
@@ -203,14 +220,87 @@ function walk(
     return;
   }
   if (tag === "img") {
-    const src = el.getAttribute("src") ?? undefined;
+    const rawSrc = el.getAttribute("src") ?? el.getAttribute("xlink:href") ?? undefined;
     const alt = el.getAttribute("alt") ?? undefined;
-    if (src) blocks.push({ id, type: "image", src, alt });
+    if (rawSrc) {
+      // Resolve o src relativo ao XHTML lendo do ZIP → data URL embutida.
+      const src = (await resolveImage(rawSrc)) ?? rawSrc;
+      blocks.push({ id, type: "image", src, alt });
+    }
+    return;
+  }
+  // Também cobre <image> (SVG, comum em capas EPUB) com xlink:href.
+  if (tag === "image") {
+    const rawSrc =
+      el.getAttribute("xlink:href") ?? el.getAttribute("href") ?? undefined;
+    if (rawSrc) {
+      const src = (await resolveImage(rawSrc)) ?? rawSrc;
+      blocks.push({ id, type: "image", src });
+    }
     return;
   }
 
   // Recursão: div, section, article, etc.
   for (const child of Array.from(el.childNodes)) {
-    walk(child, blocks, chapId, nextId);
+    await walk(child, blocks, chapId, nextId, resolveImage);
+  }
+}
+
+/**
+ * Resolve um `src` de imagem relativo ao XHTML que a referencia.
+ *
+ * Estratégia:
+ *   - Ignora data URLs e URLs http(s) absolutas (já válidas como estão).
+ *   - Resolve o caminho relativo ao arquivo XHTML (não ao OPF).
+ *   - Lê o arquivo do ZIP, determina o MIME pela extensão e devolve
+ *     um data URL (`data:image/...;base64,...`).
+ *   - Se não encontrar, devolve undefined (o caller preserva o src bruto).
+ */
+async function resolveImage(
+  zip: JSZip,
+  htmlZipPath: string,
+  src: string,
+): Promise<string | undefined> {
+  // data: e http(s): já são válidos como estão.
+  if (/^(data:|https?:|blob:)/i.test(src)) return undefined;
+
+  // Caminho do diretório do XHTML no ZIP.
+  const htmlDir = htmlZipPath.includes("/")
+    ? htmlZipPath.slice(0, htmlZipPath.lastIndexOf("/") + 1)
+    : "";
+
+  // Resolve o src relativo ao diretório do XHTML.
+  let imgPath: string;
+  try {
+    imgPath = decodeURIComponent(new URL(src, `http://x/${htmlDir}`).pathname.slice(1));
+  } catch {
+    imgPath = src;
+  }
+
+  const file = zip.file(imgPath);
+  if (!file) return undefined;
+
+  const mime = mimeFromExt(imgPath);
+  const blob = await file.async("base64");
+  return `data:${mime};base64,${blob}`;
+}
+
+/** Devolve o MIME type pela extensão do arquivo de imagem. */
+function mimeFromExt(path: string): string {
+  const ext = path.toLowerCase().split(".").pop() ?? "";
+  switch (ext) {
+    case "jpg":
+    case "jpeg":
+      return "image/jpeg";
+    case "png":
+      return "image/png";
+    case "gif":
+      return "image/gif";
+    case "svg":
+      return "image/svg+xml";
+    case "webp":
+      return "image/webp";
+    default:
+      return "application/octet-stream";
   }
 }

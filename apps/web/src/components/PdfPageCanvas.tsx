@@ -145,6 +145,8 @@ export function PdfPageCanvas({ data, pageNum }: PdfPageCanvasProps) {
         const viewport = page.getViewport({ scale });
 
         // Alta nitidez em telas Retina/iPad.
+        // Abordagem oficial do pdfjs: dimensionar o canvas internamente
+        // pelo devicePixelRatio, mas usar o viewport LÓGICO no render.
         const outputScale = window.devicePixelRatio || 1;
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
@@ -154,6 +156,14 @@ export function PdfPageCanvas({ data, pageNum }: PdfPageCanvasProps) {
         canvas.style.width = `${Math.floor(viewport.width)}px`;
         canvas.style.height = `${Math.floor(viewport.height)}px`;
 
+        // Limpa o canvas antes de renderizar (evita artefatos e garante
+        // que o fundo/imagens da capa sejam pintados do zero).
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Fundo branco — alguns PDFs (capas, slides) têm fundo transparente
+        // e ficariam "invisíveis" sem isso.
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
         // pdfjs 4.x exige --scale-factor na text-layer p/ alinhar os spans.
         textLayerDiv.style.setProperty("--scale-factor", String(scale));
         textLayerDiv.style.width = `${Math.floor(viewport.width)}px`;
@@ -161,7 +171,8 @@ export function PdfPageCanvas({ data, pageNum }: PdfPageCanvasProps) {
         // Limpa text-layer de render anterior.
         textLayerDiv.innerHTML = "";
 
-        // Render do canvas (fiel ao PDF).
+        // Render do canvas (fiel ao PDF). Usamos transform de escala pra
+        // alta nitidez — mesma fórmula dos exemplos oficiais do pdfjs.
         const task = page.render({
           canvasContext: ctx,
           viewport,
