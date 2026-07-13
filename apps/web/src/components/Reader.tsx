@@ -3,9 +3,12 @@
 import { useMemo, useRef, useState } from "react";
 import type { ParsedBook } from "@igot/parser";
 import type { SelectionAction } from "@/lib/types";
+import { PdfPageCanvas } from "./PdfPageCanvas";
 
 interface ReaderProps {
   book: ParsedBook;
+  /** Buffer PDF original (só pra sourceFormat === "pdf"). */
+  pdfSource?: ArrayBuffer | null;
   onSelection: (action: SelectionAction) => void;
 }
 
@@ -15,7 +18,7 @@ interface ReaderProps {
  * Renderiza os capítulos do livro. Quando o leitor seleciona um trecho,
  * mostra um menu flutuante (Traduzir / Explicar) que dispara `onSelection`.
  */
-export function Reader({ book, onSelection }: ReaderProps) {
+export function Reader({ book, pdfSource, onSelection }: ReaderProps) {
   const [chapterIdx, setChapterIdx] = useState(0);
   const [menu, setMenu] = useState<{
     x: number;
@@ -95,10 +98,14 @@ export function Reader({ book, onSelection }: ReaderProps) {
       </header>
 
       <div className="reader-scroll" onMouseUp={handleSelection}>
-        <article className="reader-text">
-          {chapter?.title && <h2>{chapter.title}</h2>}
-          {renderedBlocks}
-        </article>
+        {book.sourceFormat === "pdf" && pdfSource ? (
+          <PdfPageCanvas data={pdfSource} pageNum={chapterIdx + 1} />
+        ) : (
+          <article className="reader-text">
+            {chapter?.title && <h2>{chapter.title}</h2>}
+            {renderedBlocks}
+          </article>
+        )}
       </div>
 
       {menu && (
@@ -123,6 +130,7 @@ export function Reader({ book, onSelection }: ReaderProps) {
           height: 100%;
           background: var(--bg);
           border-right: 1px solid var(--border);
+          position: relative;
         }
         .reader-header {
           display: flex;

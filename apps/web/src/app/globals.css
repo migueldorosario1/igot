@@ -102,3 +102,93 @@ a {
 .reader-text ::selection {
   background: var(--accent-soft);
 }
+
+/* ── Renderização de páginas de PDF ───────────────────────────────── */
+
+.pdf-page-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 16px 80px;
+}
+
+.pdf-page-wrapper {
+  /* Wrapper relativo pra a text-layer se posicionar absolutamente sobre o canvas. */
+  position: relative;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+  background: white;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.pdf-canvas {
+  display: block;
+}
+
+/*
+ * Camada de texto selecionável (TextLayer do pdfjs 4.x).
+ * Os <span>s são transparentes mas selecionáveis; o pdfjs os posiciona
+ * usando a variável --scale-factor (setada via JS no componente).
+ * Deixamos os spans invisíveis e só o destaque de seleção aparece.
+ */
+.pdf-text-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  line-height: 1;
+  opacity: 0.25;
+  /* Required by pdfjs 4.x text layer */
+  --scale-factor: 1;
+}
+
+.pdf-text-layer span {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  transform-origin: 0 0;
+  cursor: text;
+}
+
+.pdf-text-layer ::selection {
+  background: rgba(200, 85, 61, 0.28);
+}
+
+.pdf-text-layer br {
+  display: none;
+}
+
+/* Spinner / estados de carregamento */
+.pdf-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 60px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.pdf-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: pdf-spin 0.8s linear infinite;
+}
+
+@keyframes pdf-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pdf-error {
+  padding: 24px;
+  margin: 24px;
+  background: var(--accent-soft);
+  border-radius: 8px;
+  color: var(--accent);
+  font-size: 14px;
+  text-align: center;
+}

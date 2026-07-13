@@ -23,6 +23,8 @@ import type { SelectionAction } from "@/lib/types";
  */
 export default function HomePage() {
   const [book, setBook] = useState<ParsedBook | null>(null);
+  // Buffer PDF original, preservado pra renderização fiel das páginas.
+  const [pdfSource, setPdfSource] = useState<ArrayBuffer | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [action, setAction] = useState<SelectionAction | null>(null);
@@ -47,9 +49,12 @@ export default function HomePage() {
 
     try {
       const data = await file.arrayBuffer();
-      const result = await parseBook({ data, fileName: file.name });
+      // O pdfjs consome (neutaliza) o ArrayBuffer; passamos uma cópia ao
+      // parser e guardamos o original pro PdfPageCanvas.
+      const result = await parseBook({ data: data.slice(0), fileName: file.name });
       if (result.ok) {
         setBook(result.book);
+        setPdfSource(result.book.sourceFormat === "pdf" ? data : null);
       } else {
         setError(result.error);
       }
@@ -83,7 +88,7 @@ export default function HomePage() {
 
       {book && (
         <div className="igot-workspace">
-          <Reader book={book} onSelection={handleSelection} />
+          <Reader book={book} pdfSource={pdfSource} onSelection={handleSelection} />
           <AIPanel action={action} book={book} onClose={handleClosePanel} />
         </div>
       )}
