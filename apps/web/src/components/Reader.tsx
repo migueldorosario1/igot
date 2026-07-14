@@ -19,6 +19,16 @@ interface ReaderProps {
   onChapterChange?: (n: number) => void;
   /** Avisa o pai quando muda o zoom (pra persistir). */
   onZoomChange?: (z: number) => void;
+  /** Fecha o livro atual (volta pro uploader). */
+  onCloseBook?: () => void;
+  /** Traduções já prontas (chave = String(chapterIdx+1)). */
+  translations?: Record<string, string>;
+  /** Persiste a tradução de uma página. */
+  onPageTranslation?: (chapterIdx: number, text: string) => void;
+  /** Anotações salvas (pra abrir o modal de Notas). */
+  notes?: Array<{ id: string; kind: string; source: string; result: string; savedAt: number }>;
+  /** Remove uma anotação. */
+  onRemoveNote?: (id: string) => void;
 }
 
 const MIN_ZOOM = 0.5;
@@ -44,6 +54,11 @@ export function Reader({
   initialZoom = 1,
   onChapterChange,
   onZoomChange,
+  onCloseBook,
+  translations = {},
+  onPageTranslation,
+  notes = [],
+  onRemoveNote,
 }: ReaderProps) {
   const [chapterIdx, setChapterIdxState] = useState(initialChapterIdx);
   const [menu, setMenu] = useState<{
@@ -52,6 +67,7 @@ export function Reader({
     text: string;
   } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [notesOpen, setNotesOpen] = useState(false);
 
   // Zoom e tradução de página (só fazem sentido pra PDF).
   const [zoom, setZoomState] = useState(initialZoom);
@@ -83,19 +99,28 @@ export function Reader({
   const goNext = () =>
     setChapterIdx((i) => Math.min(totalChapters - 1, i + 1));
 
-  // Ao trocar de página, descarta a tradução e o texto antigo.
+  // Ao trocar de página: RESTAURA do mapa de traduções se houver tradução
+  // salva pra essa página (não re-traduz). Limpa o texto extraído antigo.
   useEffect(() => {
-    setPageTranslation(null);
-    setShowTranslation(false);
+    const key = String(chapterIdx + 1);
+    const saved = translations[key];
+    if (saved) {
+      setPageTranslation(saved);
+      setShowTranslation(false); // volta pro original por padrão
+    } else {
+      setPageTranslation(null);
+      setShowTranslation(false);
+    }
     setCurrentPageText("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chapterIdx]);
 
   const zoomIn = () => setZoom((z) => Math.min(MAX_ZOOM, +(z + ZOOM_STEP).toFixed(2)));
   const zoomOut = () => setZoom((z) => Math.max(MIN_ZOOM, +(z - ZOOM_STEP).toFixed(2)));
   const zoomReset = () => setZoom(1);
 
-  // Traduz a página inteira. Mantém a tradução guardada (não re-traduz ao
-  // alternar Original ⇄ Tradução).
+  // Traduz a página inteira. Persiste a tradução pra não re-traduzir ao
+  // navegar de volta. Alterna visibilidade se já estiver traduzida.
   const handleTranslatePage = async () => {
     // Se já temos a tradução, só alterna a visibilidade (toggle).
     if (pageTranslation) {
@@ -112,7 +137,8 @@ export function Reader({
     setTranslatingPage(false);
     if (result.ok && result.text) {
       setPageTranslation(result.text);
-      setShowTranslation(true); // mostra a tradução assim que fica pronta
+      setShowTranslation(true);
+      onPageTranslation?.(chapterIdx, result.text); // persiste
     } else {
       setPageTranslation(`⚠️ ${result.error ?? "Erro ao traduzir."}`);
       setShowTranslation(true);
@@ -182,6 +208,20 @@ export function Reader({
           )}
         </div>
         <div className="reader-actions">
+          <button
+            onClick={() => setNotesOpen(true)}
+            className="notes-btn"
+            title="Minhas anotações"
+          >
+            📓 <span className="btn-label">{notes.length > 0 ? notes.length : ""}</span>
+          </button>
+          <button
+            onClick={onCloseBook}
+            className="open-other-btn"
+            title="Fechar e abrir outro livro"
+          >
+            📂 Abrir outro
+          </button>
           {book.sourceFormat === "pdf" && pdfSource && (
             <>
               <div className="reader-zoom" title="Zoom">
@@ -256,6 +296,49 @@ export function Reader({
         </div>
       )}
 
+      {notesOpen && (
+        <div className="notes-overlay" onClick={() => setNotesOpen(false)}>
+          <div className="notes-modal" onClick={(e) => e.stopPropagation()}>
+            <header className="notes-header">
+              <h2>📓 Minhas anotações</h2>
+              <button onClick={() => setNotesOpen(false)} aria-label="Fechar">✕</button>
+            </header>
+            <div className="notes-body">
+              {notes.length === 0 ? (
+                <p className="notes-empty">
+                  Você ainda não salvou nenhuma anotação deste livro.
+                  <br />
+                  Selecione um trecho, peça <strong>Traduzir</strong> ou{" "}
+                  <strong>Explicar</strong>, e clique em <strong>📌 Salvar</strong>.
+                </p>
+              ) : (
+                notes.map((n) => (
+                  <div key={n.id} className="note-card">
+                    <div className="note-meta">
+                      <span className={`note-kind note-${n.kind}`}>
+                        {n.kind === "translate" ? "🌐 Tradução" : n.kind === "explain" ? "🧠 Explicação" : "❓ Pergunta"}
+                      </span>
+                      <time>{new Date(n.savedAt).toLocaleString("pt-BR")}</time>
+                      <button
+                        className="note-delete"
+                        onClick={() => onRemoveNote?.(n.id)}
+                        aria-label="Excluir"
+                      >
+                        🗑
+                      </button>
+                    </div>
+                    {n.source && (
+                      <blockquote className="note-source">{n.source}</blockquote>
+                    )}
+                    <div className="note-result">{n.result}</div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <style jsx>{`
         .reader {
           display: flex;
@@ -323,6 +406,131 @@ export function Reader({
         .translate-page-btn:disabled {
           opacity: 0.4;
           cursor: not-allowed;
+        }
+        .open-other-btn,
+        .notes-btn {
+          padding: 6px 12px;
+          border: 1px solid var(--border);
+          background: var(--surface);
+          color: var(--text);
+          border-radius: 8px;
+          font-size: 13px;
+          white-space: nowrap;
+        }
+        .open-other-btn:hover,
+        .notes-btn:hover {
+          border-color: var(--accent);
+          color: var(--accent);
+        }
+        .notes-btn .btn-label {
+          font-size: 11px;
+          opacity: 0.7;
+        }
+
+        /* Modal de Notas */
+        .notes-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          padding: 20px;
+        }
+        .notes-modal {
+          background: var(--bg);
+          border-radius: 14px;
+          width: 100%;
+          max-width: 620px;
+          max-height: 85vh;
+          display: flex;
+          flex-direction: column;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        .notes-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 18px 24px;
+          border-bottom: 1px solid var(--border);
+        }
+        .notes-header h2 {
+          margin: 0;
+          font-size: 18px;
+          font-weight: 700;
+        }
+        .notes-header button {
+          border: none;
+          background: var(--surface-alt);
+          color: var(--text-muted);
+          width: 30px;
+          height: 30px;
+          border-radius: 50%;
+          cursor: pointer;
+        }
+        .notes-body {
+          padding: 20px 24px;
+          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+        .notes-empty {
+          text-align: center;
+          color: var(--text-muted);
+          line-height: 1.7;
+          margin: 40px 0;
+        }
+        .note-card {
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          padding: 14px;
+          background: var(--surface);
+        }
+        .note-meta {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 8px;
+          font-size: 12px;
+          color: var(--text-muted);
+        }
+        .note-kind {
+          font-weight: 600;
+          padding: 2px 8px;
+          border-radius: 6px;
+          background: var(--surface-alt);
+        }
+        .note-meta time {
+          font-size: 11px;
+        }
+        .note-delete {
+          margin-left: auto;
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          font-size: 14px;
+          opacity: 0.5;
+        }
+        .note-delete:hover {
+          opacity: 1;
+        }
+        .note-source {
+          margin: 0 0 8px;
+          padding: 8px 10px;
+          background: var(--surface-alt);
+          border-left: 3px solid var(--accent);
+          border-radius: 4px;
+          font-size: 13px;
+          font-style: italic;
+          white-space: pre-wrap;
+        }
+        .note-result {
+          font-size: 14px;
+          line-height: 1.6;
+          white-space: pre-wrap;
+          color: var(--text);
         }
         .reader-title h1 {
           margin: 0;

@@ -9,6 +9,8 @@ interface AIPanelProps {
   action: SelectionAction | null;
   book: ParsedBook;
   onClose: () => void;
+  /** Salvar a resposta atual como anotação. */
+  onSaveNote?: (entry: { kind: "translate" | "explain" | "ask"; source: string; result: string; chapterId?: string }) => void;
 }
 
 interface PanelState {
@@ -23,7 +25,7 @@ interface PanelState {
  * Quando recebe uma `action` (Traduzir/Explicar), chama o ai-client (que
  * fala com o provedor escolhido pelo usuário, via proxy) e mostra o resultado.
  */
-export function AIPanel({ action, book, onClose }: AIPanelProps) {
+export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
   const [state, setState] = useState<PanelState>({
     loading: false,
     result: null,
@@ -98,11 +100,29 @@ export function AIPanel({ action, book, onClose }: AIPanelProps) {
     <aside className="ai-panel">
       <header className="ai-header">
         <span className="ai-title">{action ? title : "🧠 Assistente igot"}</span>
-        {action && (
-          <button className="ai-close" onClick={onClose} aria-label="Fechar">
-            ×
-          </button>
-        )}
+        <div className="ai-header-actions">
+          {state.result && action && (
+            <button
+              className="ai-save"
+              onClick={() =>
+                onSaveNote?.({
+                  kind: action.type,
+                  source: action.text,
+                  result: state.result ?? "",
+                  chapterId: action.chapterId,
+                })
+              }
+              title="Salvar esta resposta nas suas anotações"
+            >
+              📌 Salvar
+            </button>
+          )}
+          {action && (
+            <button className="ai-close" onClick={onClose} aria-label="Fechar">
+              ×
+            </button>
+          )}
+        </div>
       </header>
 
       <div className="ai-body" ref={resultRef}>
@@ -167,6 +187,24 @@ export function AIPanel({ action, book, onClose }: AIPanelProps) {
           font-size: 24px;
           line-height: 1;
           padding: 0 4px;
+        }
+        .ai-header-actions {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .ai-save {
+          border: 1px solid var(--border);
+          background: var(--surface-alt);
+          color: var(--text);
+          border-radius: 6px;
+          font-size: 12px;
+          padding: 4px 10px;
+          cursor: pointer;
+        }
+        .ai-save:hover {
+          border-color: var(--accent);
+          color: var(--accent);
         }
         .ai-body {
           flex: 1;

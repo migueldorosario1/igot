@@ -18,6 +18,22 @@ const DB_VERSION = 1;
 const STORE = "sessions";
 const SESSION_KEY = "current";
 
+/** Tipo de nota salva (tradução, explicação ou pergunta livre). */
+export type NoteKind = "translate" | "explain" | "ask";
+
+/** Uma anotação persistida pelo usuário. */
+export interface SavedNote {
+  id: string;
+  kind: NoteKind;
+  /** Trecho selecionado (pra translate/explain) ou pergunta (ask). */
+  source: string;
+  /** Resposta da IA. */
+  result: string;
+  /** Capítulo/página de origem (opcional). */
+  chapterId?: string;
+  savedAt: number;
+}
+
 /** Tudo que precisa pra retomar a leitura exatamente de onde parou. */
 export interface Session {
   id: typeof SESSION_KEY;
@@ -29,6 +45,13 @@ export interface Session {
   chapterIdx: number;
   zoom: number;
   savedAt: number;
+  /**
+   * Traduções de página já prontas. Chave = String(chapterIdx + 1)
+   * (alinha com pageNum do PdfPageCanvas). Evita re-traduzir ao navegar.
+   */
+  translations?: Record<string, string>;
+  /** Anotações salvas pelo usuário (tradução/explicação/pergunta). */
+  notes?: SavedNote[];
 }
 
 /**

@@ -17,7 +17,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ParsedBook } from "@igot/parser";
 import { parseBook } from "@igot/parser";
-import { saveSession, loadSession, clearSession, type Session } from "./db";
+import {
+  saveSession,
+  loadSession,
+  clearSession,
+  type Session,
+  type SavedNote,
+} from "./db";
 
 const DEBOUNCE_MS = 500;
 
@@ -29,17 +35,24 @@ export function useSession() {
   const [zoom, setZoom] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Traduções por página + notas salvas (persistidas no IndexedDB).
+  const [translations, setTranslations] = useState<Record<string, string>>({});
+  const [notes, setNotes] = useState<SavedNote[]>([]);
 
   // Refs pra construir a sessão no debounce sem re-rodar o effect.
   const bookRef = useRef(book);
   const pdfRef = useRef(pdfSource);
   const chapRef = useRef(chapterIdx);
   const zoomRef = useRef(zoom);
+  const translationsRef = useRef(translations);
+  const notesRef = useRef(notes);
   const metaRef = useRef<{ fileName: string; fileSize: number } | null>(null);
   bookRef.current = book;
   pdfRef.current = pdfSource;
   chapRef.current = chapterIdx;
   zoomRef.current = zoom;
+  translationsRef.current = translations;
+  notesRef.current = notes;
 
   // --- Hidratação no boot ---
   // Importante: o IndexedDB pode demorar, falhar silenciosamente (modo
@@ -73,6 +86,8 @@ export function useSession() {
         }
         setChapterIdx(saved.chapterIdx ?? 0);
         setZoom(saved.zoom ?? 1);
+        setTranslations(saved.translations ?? {});
+        setNotes(saved.notes ?? []);
         metaRef.current = { fileName: saved.fileName, fileSize: saved.fileSize };
       } catch (err) {
         console.warn("Falha ao hidratar sessão:", err);
@@ -101,13 +116,15 @@ export function useSession() {
         chapterIdx: chapRef.current,
         zoom: zoomRef.current,
         savedAt: Date.now(),
+        translations: translationsRef.current,
+        notes: notesRef.current,
       };
       saveSession(session).catch((err) =>
         console.warn("Falha ao gravar sessão:", err),
       );
     }, DEBOUNCE_MS);
     return () => clearTimeout(t);
-  }, [book, chapterIdx, zoom, booting]);
+  }, [book, chapterIdx, zoom, translations, notes, booting]);
 
   // --- Abrir livro (upload) ---
   const openBook = useCallback(async (file: File) => {
@@ -121,6 +138,8 @@ export function useSession() {
         setPdfSource(result.book.sourceFormat === "pdf" ? data : null);
         setChapterIdx(0);
         setZoom(1);
+        setTranslations({}); // novo livro = sem traduções ainda
+        setNotes([]);
         metaRef.current = { fileName: file.name, fileSize: file.size };
       } else {
         setError(result.error);
@@ -138,10 +157,38 @@ export function useSession() {
     setPdfSource(null);
     setChapterIdx(0);
     setZoom(1);
+    setTranslations({});
+    setNotes([]);
     metaRef.current = null;
     await clearSession().catch((err) =>
       console.warn("Falha ao limpar sessão:", err),
     );
+  }, []);
+
+  // --- Persistir tradução de uma página ---
+  // Recebe chapterIdx (number, 0-based) e converte pra String(chapterIdx+1)
+  // pra alinhar com pageNum do PdfPageCanvas.
+  const setPageTranslation = useCallback((chapterIdx: number, text: string) => {
+    const key = String(chapterIdx + 1);
+    setTranslations((prev) => ({ ...prev, [key]: text }));
+  }, []);
+
+  // --- Salvar uma anotação (tradução/explicação/pergunta) ---
+  const addNote = useCallback(
+    (entry: Omit<SavedNote, "id" | "savedAt">) => {
+      const note: SavedNote = {
+        ...entry,
+        id: `note-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        savedAt: Date.now(),
+      };
+      setNotes((prev) => [note, ...prev]);
+    },
+    [],
+  );
+
+  // --- Remover uma anotação ---
+  const removeNote = useCallback((id: string) => {
+    setNotes((prev) => prev.filter((n) => n.id !== id));
   }, []);
 
   return {
@@ -154,6 +201,11 @@ export function useSession() {
     setZoom,
     loading,
     error,
+    translations,
+    notes,
+    setPageTranslation,
+    addNote,
+    removeNote,
     openBook,
     closeBook,
   };

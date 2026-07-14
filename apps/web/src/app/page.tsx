@@ -71,8 +71,18 @@ export default function HomePage() {
             initialZoom={zoom}
             onChapterChange={session.setChapterIdx}
             onZoomChange={session.setZoom}
+            onCloseBook={session.closeBook}
+            translations={session.translations}
+            onPageTranslation={session.setPageTranslation}
+            notes={session.notes}
+            onRemoveNote={session.removeNote}
           />
-          <AIPanel action={action} book={book} onClose={handleClosePanel} />
+          <AIPanel
+            action={action}
+            book={book}
+            onClose={handleClosePanel}
+            onSaveNote={session.addNote}
+          />
         </div>
       )}
 
