@@ -56,6 +56,7 @@ export function Reader({
   // Zoom e tradução de página (só fazem sentido pra PDF).
   const [zoom, setZoomState] = useState(initialZoom);
   const [pageTranslation, setPageTranslation] = useState<string | null>(null);
+  const [showTranslation, setShowTranslation] = useState(false);
   const [translatingPage, setTranslatingPage] = useState(false);
   const [currentPageText, setCurrentPageText] = useState("");
 
@@ -85,6 +86,7 @@ export function Reader({
   // Ao trocar de página, descarta a tradução e o texto antigo.
   useEffect(() => {
     setPageTranslation(null);
+    setShowTranslation(false);
     setCurrentPageText("");
   }, [chapterIdx]);
 
@@ -92,8 +94,14 @@ export function Reader({
   const zoomOut = () => setZoom((z) => Math.max(MIN_ZOOM, +(z - ZOOM_STEP).toFixed(2)));
   const zoomReset = () => setZoom(1);
 
-  // Traduz a página inteira e mostra como overlay.
+  // Traduz a página inteira. Mantém a tradução guardada (não re-traduz ao
+  // alternar Original ⇄ Tradução).
   const handleTranslatePage = async () => {
+    // Se já temos a tradução, só alterna a visibilidade (toggle).
+    if (pageTranslation) {
+      setShowTranslation((s) => !s);
+      return;
+    }
     if (!currentPageText || translatingPage) return;
     setTranslatingPage(true);
     const result = await translatePage(currentPageText, {
@@ -104,11 +112,21 @@ export function Reader({
     setTranslatingPage(false);
     if (result.ok && result.text) {
       setPageTranslation(result.text);
+      setShowTranslation(true); // mostra a tradução assim que fica pronta
     } else {
-      // Mostra erro como overlay curto pra feedback imediato.
       setPageTranslation(`⚠️ ${result.error ?? "Erro ao traduzir."}`);
+      setShowTranslation(true);
     }
   };
+
+  /** Rótulo dinâmico do botão conforme o estado. */
+  const translateBtnLabel = translatingPage
+    ? "⏳ Traduzindo…"
+    : pageTranslation
+      ? showTranslation
+        ? "📖 Ver original"
+        : "🌐 Ver tradução"
+      : "🌐 Traduzir página";
 
   // Detecta seleção dentro do conteúdo e, se houver texto, mostra o menu.
   const handleSelection = () => {
@@ -181,9 +199,9 @@ export function Reader({
                 onClick={handleTranslatePage}
                 disabled={translatingPage || !currentPageText}
                 className="translate-page-btn"
-                title="Traduzir a página inteira"
+                title={pageTranslation ? "Alternar entre original e tradução" : "Traduzir a página inteira"}
               >
-                {translatingPage ? "⏳" : "🌐"} {translatingPage ? "Traduzindo…" : "Traduzir página"}
+                {translateBtnLabel}
               </button>
             </>
           )}
@@ -212,8 +230,8 @@ export function Reader({
             pageNum={chapterIdx + 1}
             zoom={zoom}
             translationOverlay={pageTranslation}
+            showTranslation={showTranslation}
             onPageText={setCurrentPageText}
-            onTranslationClose={() => setPageTranslation(null)}
           />
         ) : (
           <article className="reader-text">

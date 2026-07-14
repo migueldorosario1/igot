@@ -217,43 +217,68 @@ a {
   text-align: center;
 }
 
-/* ── Overlay de tradução da página inteira ─────────────────────────── */
+/* ── Página traduzida (formato de página de livro) ─────────────────── */
+
+/*
+ * A tradução aparece como uma página de livro real, sobreposta ao PDF:
+ * papel creme, tipografia serifada, parágrafos justificados com indentação
+ * de primeira linha, espaçamento confortável. O objetivo é ler como num
+ * livro impresso, não como texto jogado.
+ */
 
 .pdf-translation-overlay {
-  /* Cobre exatamente o canvas (mesmas dimensões do wrapper). */
   position: absolute;
   inset: 0;
-  background: #fffdf7;
+  background: #fdfbf6; /* papel creme, como livro impresso */
   overflow-y: auto;
-  padding: 6% 8%;
-  font-size: 15px;
-  line-height: 1.75;
-  color: #1a1a1a;
-  white-space: pre-wrap;
+  z-index: 5; /* acima do canvas e da text-layer */
+  /* Borda sutis pra destacar a "página traduzida" da página original */
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+.pdf-translation-page {
+  /* Margens generosas de página de livro (layout de leitura). */
+  max-width: 38em; /* ~38 caracteres por linha — ideal pra leitura */
+  margin: 0 auto;
+  padding: 8% 6% 12%;
+  color: #1f1b16;
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia,
+    "Times New Roman", serif;
+  font-size: 17px;
+  line-height: 1.7;
   text-align: justify;
   hyphens: auto;
-  z-index: 5; /* acima do canvas e da text-layer */
+  -webkit-hyphens: auto;
 }
 
-.pdf-translation-close {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 30px;
-  height: 30px;
-  border: none;
-  background: rgba(0, 0, 0, 0.06);
-  color: #333;
-  border-radius: 50%;
-  font-size: 14px;
-  cursor: pointer;
-  z-index: 6;
+/* Parágrafos da tradução: indentação de primeira linha (estilo livro). */
+.pdf-translation-page p {
+  margin: 0 0 0.85em;
+  text-indent: 1.5em;
+  orphans: 2;
+  widows: 2;
 }
 
-.pdf-translation-close:hover {
-  background: rgba(0, 0, 0, 0.12);
+/* Primeiro parágrafo sem indentação (convenção tipográfica). */
+.pdf-translation-page p:first-child {
+  text-indent: 0;
 }
 
-.pdf-translation-text {
-  /* Apenas o texto; padding já vem do overlay. */
+/* Em telas pequenas, aumenta um pouco o corpo e reduz as margens. */
+@media (max-width: 600px) {
+  .pdf-translation-page {
+    font-size: 16px;
+    padding: 10% 8% 15%;
+  }
+}
+
+/* Dark mode: a página traduzida também acompanha o tema. */
+@media (prefers-color-scheme: dark) {
+  .pdf-translation-overlay {
+    background: #1a1a1f;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  }
+  .pdf-translation-page {
+    color: #e8e4dc;
+  }
 }

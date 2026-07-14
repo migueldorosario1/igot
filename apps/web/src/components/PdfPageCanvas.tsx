@@ -27,12 +27,12 @@ interface PdfPageCanvasProps {
   pageNum: number;
   /** Multiplicador de zoom (1 = ajustado à tela, 2 = dobro, etc.). */
   zoom?: number;
-  /** Tradução pra sobrepor à página; null/não informado = sem overlay. */
+  /** Tradução da página (já pronta); null = ainda não traduzida. */
   translationOverlay?: string | null;
+  /** True = mostra a tradução; False = mostra o original (toggle). */
+  showTranslation?: boolean;
   /** Recebe o texto extraído da página atual (pra "Traduzir página"). */
   onPageText?: (text: string) => void;
-  /** Recebe clique no ✕ do overlay (pra fechar). */
-  onTranslationClose?: () => void;
 }
 
 type Status = "loading" | "ready" | "error";
@@ -76,8 +76,8 @@ export function PdfPageCanvas({
   pageNum,
   zoom = 1,
   translationOverlay = null,
+  showTranslation = false,
   onPageText,
-  onTranslationClose,
 }: PdfPageCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -260,16 +260,13 @@ export function PdfPageCanvas({
       >
         <canvas ref={canvasRef} className="pdf-canvas" />
         <div ref={textLayerRef} className="pdf-text-layer" />
-        {translationOverlay && (
+        {showTranslation && translationOverlay && (
           <div className="pdf-translation-overlay">
-            <button
-              className="pdf-translation-close"
-              onClick={onTranslationClose}
-              aria-label="Fechar tradução e voltar ao original"
-            >
-              ✕
-            </button>
-            <div className="pdf-translation-text">{translationOverlay}</div>
+            <div className="pdf-translation-page">
+              {splitParagraphs(translationOverlay).map((para, i) => (
+                <p key={i}>{para}</p>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -291,6 +288,19 @@ export function PdfPageCanvas({
 }
 
 // ─── Helpers (lazy import + cache) ───────────────────────────────────────
+
+/**
+ * Divide a tradução em parágrafos. O prompt do translatePage pede pra separar
+ * parágrafos por linha em branco; aqui quebramos isso num array de strings,
+ * cada uma virando um <p> na página traduzida. Linhas vazias/só whitespace
+ * são descartadas (são os separadores).
+ */
+function splitParagraphs(text: string): string[] {
+  return text
+    .split(/\n\s*\n/) // blocos separados por linha em branco
+    .map((p) => p.replace(/\s+/g, " ").trim())
+    .filter((p) => p.length > 0);
+}
 
 /**
  * Importa o pdfjs, configura o worker e devolve um wrapper do documento.

@@ -90,9 +90,11 @@ export async function translate(
 /**
  * Traduz a página/capítulo INTEIRO de uma vez.
  *
- * Diferente do `translate` (trecho curto), aqui o texto é longo e o prompt
- * pede pra preservar a estrutura de parágrafos e quebras de linha — a
- * tradução vai preencher um overlay sobre a página original.
+ * Diferente do `translate` (trecho curto), aqui o texto é longo. O prompt
+ * pede parágrafos coerentes e bem separados — porque PDFs costumam ter
+ * quebras de linha artificiais (uma por linha impressa) que, preservadas
+ * à risca, geram um texto bagunçado. Ao reagrupar em parágrafos naturais,
+ * a tradução flui como uma página de livro real, legível e bonita.
  */
 export async function translatePage(
   text: string,
@@ -103,8 +105,12 @@ export async function translatePage(
   const systemPrompt =
     `Você é um tradutor literário e técnico de excelência. ` +
     `Traduza o texto completo da página a seguir para ${targetLang}. ` +
-    `PRESERVE a estrutura: mantenha os parágrafos e as quebras de linha ` +
-    `exatamente como no original (uma linha traduzida para cada linha original). ` +
+    `Reagrupe o conteúdo em PARÁGRAFOS coerentes e naturais: ` +
+    `uma mudança de ideia = novo parágrafo. ` +
+    `Ignore as quebras de linha artificiais do original (PDFs quebram a cada ` +
+    `linha impressa) e crie parágrafos que fluam como uma página de livro. ` +
+    `Mantenha títulos/heading em linhas próprias. ` +
+    `Separe cada parágrafo por UMA linha em branco. ` +
     `Respeite o tom, o estilo e o contexto da obra. ` +
     `Devolva APENAS a tradução, sem comentários, sem aspas, sem introdução.`;
 
