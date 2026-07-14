@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Uploader } from "@/components/Uploader";
 import { Reader } from "@/components/Reader";
 import { AIPanel } from "@/components/AIPanel";
@@ -27,11 +27,11 @@ export default function HomePage() {
   const [configReady, setConfigReady] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  // Lê config no boot (síncrono, localStorage).
-  // booting controla a hidratação async da sessão (IndexedDB).
-  if (!configReady && !booting) {
+  // Lê config no boot — SEMPRE em useEffect (nunca durante o render).
+  // No SSR/build não há window, então tem que ser lazy.
+  useEffect(() => {
     setConfigReady(hasConfig());
-  }
+  }, []);
 
   const handleSelection = (a: SelectionAction) => setAction(a);
   const handleClosePanel = () => setAction(null);
