@@ -5,22 +5,25 @@ import { Uploader } from "@/components/Uploader";
 import { Reader } from "@/components/Reader";
 import { AIPanel } from "@/components/AIPanel";
 import { SettingsModal } from "@/components/SettingsModal";
+import { AuthButton } from "@/components/AuthButton";
 import { hasConfig } from "@/lib/config";
 import { useSession } from "@/lib/session";
+import { useAuth } from "@/lib/auth";
 import type { SelectionAction } from "@/lib/types";
 
 /**
  * Página principal do igot.
  *
- * A sessão de leitura (livro, página atual, zoom) é persistida no IndexedDB
- * via `useSession`. Assim, ao recarregar/fechar/navegar, o usuário volta pra
- * onde estava — como um app de leitura de verdade.
+ * A sessão de leitura (livro, página atual, zoom) é persistida via
+ * `useSession`. Logado → Supabase (nuvem, sincroniza entre dispositivos).
+ * Deslogado → IndexedDB (local). As notas, traduções e progresso
+ * acompanham o usuário quando ele entra com Google.
  *
- * As Configurações de IA abrem como MODAL (por cima do livro), sem sair da
- * leitura — então ir configurar e voltar NÃO perde o livro.
+ * A chave de IA (BYOK) NUNCA vai pra nuvem — fica no localStorage por device.
  */
 export default function HomePage() {
-  const session = useSession();
+  const auth = useAuth();
+  const session = useSession(auth.userId);
   const { booting, book, pdfSource, chapterIdx, zoom } = session;
 
   const [action, setAction] = useState<SelectionAction | null>(null);
@@ -41,6 +44,7 @@ export default function HomePage() {
       <TopBar
         configReady={configReady}
         onOpenSettings={() => setSettingsOpen(true)}
+        auth={auth}
       />
 
       {booting && (
@@ -191,23 +195,34 @@ export default function HomePage() {
 function TopBar({
   configReady,
   onOpenSettings,
+  auth,
 }: {
   configReady: boolean;
   onOpenSettings: () => void;
+  auth: ReturnType<typeof useAuth>;
 }) {
   return (
     <div className="igot-topbar">
       <div className="brand">
         💡 <span>igot</span>
       </div>
-      <button
-        className={`gear ${configReady ? "" : "unset"}`}
-        onClick={onOpenSettings}
-        title={configReady ? "Configurações de IA" : "Configurar IA"}
-        aria-label="Configurações de IA"
-      >
-        ⚙️
-      </button>
+      <div className="igot-topbar-actions">
+        <AuthButton
+          status={auth.status}
+          userName={auth.user?.user_metadata?.full_name ?? null}
+          avatarUrl={auth.user?.user_metadata?.avatar_url ?? null}
+          onSignIn={auth.signInWithGoogle}
+          onSignOut={auth.signOut}
+        />
+        <button
+          className={`gear ${configReady ? "" : "unset"}`}
+          onClick={onOpenSettings}
+          title={configReady ? "Configurações de IA" : "Configurar IA"}
+          aria-label="Configurações de IA"
+        >
+          ⚙️
+        </button>
+      </div>
     </div>
   );
 }

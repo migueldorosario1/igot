@@ -12,6 +12,8 @@
   "dependencies": {
     "@igot/ai-providers": "*",
     "@igot/parser": "*",
+    "@supabase/ssr": "^0.12.3",
+    "@supabase/supabase-js": "^2.110.5",
     "next": "^14.2.15",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"

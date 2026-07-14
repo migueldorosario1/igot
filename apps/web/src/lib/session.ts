@@ -18,16 +18,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ParsedBook } from "@igot/parser";
 import { parseBook } from "@igot/parser";
 import {
-  saveSession,
-  loadSession,
-  clearSession,
   type Session,
   type SavedNote,
 } from "./db";
+import { saveBook, loadBook, deleteBook } from "./repository";
 
 const DEBOUNCE_MS = 500;
 
-export function useSession() {
+export function useSession(userId: string | null = null) {
   const [booting, setBooting] = useState(true);
   const [book, setBook] = useState<ParsedBook | null>(null);
   const [pdfSource, setPdfSource] = useState<ArrayBuffer | null>(null);
@@ -47,12 +45,15 @@ export function useSession() {
   const translationsRef = useRef(translations);
   const notesRef = useRef(notes);
   const metaRef = useRef<{ fileName: string; fileSize: number } | null>(null);
+  const cloudIdRef = useRef<string | undefined>(undefined); // id na nuvem (se logado)
+  const userIdRef = useRef(userId);
   bookRef.current = book;
   pdfRef.current = pdfSource;
   chapRef.current = chapterIdx;
   zoomRef.current = zoom;
   translationsRef.current = translations;
   notesRef.current = notes;
+  userIdRef.current = userId;
 
   // --- Hidratação no boot ---
   // Importante: o IndexedDB pode demorar, falhar silenciosamente (modo
@@ -74,8 +75,9 @@ export function useSession() {
 
     (async () => {
       try {
-        const saved = await loadSession();
-        if (cancelled || timedOut || !saved) return;
+        const result = await loadBook(userId);
+        if (cancelled || timedOut || !result) return;
+        const { session: saved, cloudId } = result;
         setBook(saved.book);
         if (saved.pdfSource) {
           const copy = new ArrayBuffer(saved.pdfSource.byteLength);
@@ -89,6 +91,7 @@ export function useSession() {
         setTranslations(saved.translations ?? {});
         setNotes(saved.notes ?? []);
         metaRef.current = { fileName: saved.fileName, fileSize: saved.fileSize };
+        cloudIdRef.current = cloudId;
       } catch (err) {
         console.warn("Falha ao hidratar sessão:", err);
       } finally {
@@ -104,6 +107,7 @@ export function useSession() {
   }, []);
 
   // --- Debounce: grava a sessão 500ms após a última mudança ---
+  // Usa o repository adapter: logado → Supabase (nuvem); deslogado → IndexedDB.
   useEffect(() => {
     if (booting || !book) return; // não grava antes de hidratar / sem livro
     const t = setTimeout(() => {
@@ -119,9 +123,11 @@ export function useSession() {
         translations: translationsRef.current,
         notes: notesRef.current,
       };
-      saveSession(session).catch((err) =>
-        console.warn("Falha ao gravar sessão:", err),
-      );
+      saveBook(session, userIdRef.current, cloudIdRef.current)
+        .then((newCloudId) => {
+          if (newCloudId) cloudIdRef.current = newCloudId;
+        })
+        .catch((err) => console.warn("Falha ao gravar:", err));
     }, DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [book, chapterIdx, zoom, translations, notes, booting]);
@@ -151,7 +157,7 @@ export function useSession() {
     }
   }, []);
 
-  // --- Fechar livro ---
+  // --- Fechar livro (local + nuvem se logado) ---
   const closeBook = useCallback(async () => {
     setBook(null);
     setPdfSource(null);
@@ -160,10 +166,38 @@ export function useSession() {
     setTranslations({});
     setNotes([]);
     metaRef.current = null;
-    await clearSession().catch((err) =>
-      console.warn("Falha ao limpar sessão:", err),
+    await deleteBook(userIdRef.current, cloudIdRef.current).catch((err) =>
+      console.warn("Falha ao limpar livro:", err),
     );
+    cloudIdRef.current = undefined;
   }, []);
+
+  // --- Re-hidrata quando muda o userId (login/logout no meio da sessão) ---
+  useEffect(() => {
+    if (booting) return;
+    let cancelled = false;
+    (async () => {
+      const result = await loadBook(userId);
+      if (cancelled) return;
+      if (result) {
+        const { session: saved, cloudId } = result;
+        setBook(saved.book);
+        setPdfSource(null);
+        setChapterIdx(saved.chapterIdx ?? 0);
+        setZoom(saved.zoom ?? 1);
+        setTranslations(saved.translations ?? {});
+        setNotes(saved.notes ?? []);
+        metaRef.current = { fileName: saved.fileName, fileSize: saved.fileSize };
+        cloudIdRef.current = cloudId;
+      } else {
+        cloudIdRef.current = undefined;
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   // --- Persistir tradução de uma página ---
   // Recebe chapterIdx (number, 0-based) e converte pra String(chapterIdx+1)
