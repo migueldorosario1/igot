@@ -184,6 +184,48 @@ export function Reader({
   };
 
   /**
+   * Escuta mudanças de seleção no documento (funciona em mouse E touch).
+   * No iPad/touch puro, o onMouseUp às vezes não dispara depois de arrastar
+   * pra selecionar — o selectionchange é o evento confiável. Mostra o menu
+   * quando a seleção estabiliza (debounce de 250ms).
+   */
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const check = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        const sel = window.getSelection();
+        if (!sel || sel.isCollapsed) {
+          setMenu(null);
+          return;
+        }
+        const text = sel.toString().trim();
+        if (!text || text.length < 2) {
+          setMenu(null);
+          return;
+        }
+        // Só mostra o menu se a seleção está DENTRO do reader.
+        const range = sel.getRangeAt(0);
+        if (!containerRef.current?.contains(range.commonAncestorContainer)) {
+          return;
+        }
+        const rect = range.getBoundingClientRect();
+        const containerRect = containerRef.current?.getBoundingClientRect();
+        setMenu({
+          x: rect.left + rect.width / 2 - (containerRect?.left ?? 0),
+          y: rect.top - (containerRect?.top ?? 0) - 12,
+          text,
+        });
+      }, 250);
+    };
+    document.addEventListener("selectionchange", check);
+    return () => {
+      document.removeEventListener("selectionchange", check);
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
+
+  /**
    * Toque duplo (double-click/double-tap): seleciona o parágrafo inteiro
    * sob o cursor. Muito útil em touch, onde arrastar pra selecionar é
    * impreciso. Encontra o ancestral <p> (ou block mais próximo) e seleciona
@@ -302,7 +344,7 @@ export function Reader({
         </div>
       </header>
 
-      <div className="reader-scroll" onMouseUp={handleSelection} onDoubleClick={handleDoubleClick}>
+      <div className="reader-scroll" onPointerUp={handleSelection} onDoubleClick={handleDoubleClick}>
         {book.sourceFormat === "pdf" && pdfSource ? (
           <PdfPageCanvas
             data={pdfSource}

@@ -100,7 +100,22 @@ a {
 }
 
 .reader-text ::selection {
-  background: var(--accent-soft);
+  background: #ffd84d;
+  color: #1a1a1a;
+}
+.reader-text ::-moz-selection {
+  background: #ffd84d;
+  color: #1a1a1a;
+}
+
+/* Seleção na camada de texto do PDF — amarelo marca-texto forte. */
+.pdf-text-layer ::selection {
+  background: #ffd84d !important;
+  color: #1a1a1a !important;
+}
+.pdf-text-layer ::-moz-selection {
+  background: #ffd84d !important;
+  color: #1a1a1a !important;
 }
 
 /*
