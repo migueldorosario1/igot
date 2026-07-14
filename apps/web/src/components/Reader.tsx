@@ -11,6 +11,14 @@ interface ReaderProps {
   /** Buffer PDF original (só pra sourceFormat === "pdf"). */
   pdfSource?: ArrayBuffer | null;
   onSelection: (action: SelectionAction) => void;
+  /** Capítulo/página inicial (hidratado do IndexedDB). */
+  initialChapterIdx?: number;
+  /** Zoom inicial (hidratado do IndexedDB). */
+  initialZoom?: number;
+  /** Avisa o pai quando muda de capítulo/página (pra persistir). */
+  onChapterChange?: (n: number) => void;
+  /** Avisa o pai quando muda o zoom (pra persistir). */
+  onZoomChange?: (z: number) => void;
 }
 
 const MIN_ZOOM = 0.5;
@@ -23,9 +31,21 @@ const ZOOM_STEP = 0.2;
  * Renderiza os capítulos do livro. Quando o leitor seleciona um trecho,
  * mostra um menu flutuante (Traduzir / Explicar) que dispara `onSelection`.
  * Pra PDF: zoom + botão "Traduzir página" (overlay traduzido).
+ *
+ * `chapterIdx` e `zoom` são inicializados dos props `initial*` (hidratados
+ * do IndexedDB no boot) e notificam o pai via `onChapterChange/onZoomChange`
+ * pra persistência. Internamente continuam useState.
  */
-export function Reader({ book, pdfSource, onSelection }: ReaderProps) {
-  const [chapterIdx, setChapterIdx] = useState(0);
+export function Reader({
+  book,
+  pdfSource,
+  onSelection,
+  initialChapterIdx = 0,
+  initialZoom = 1,
+  onChapterChange,
+  onZoomChange,
+}: ReaderProps) {
+  const [chapterIdx, setChapterIdxState] = useState(initialChapterIdx);
   const [menu, setMenu] = useState<{
     x: number;
     y: number;
@@ -34,13 +54,29 @@ export function Reader({ book, pdfSource, onSelection }: ReaderProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Zoom e tradução de página (só fazem sentido pra PDF).
-  const [zoom, setZoom] = useState(1);
+  const [zoom, setZoomState] = useState(initialZoom);
   const [pageTranslation, setPageTranslation] = useState<string | null>(null);
   const [translatingPage, setTranslatingPage] = useState(false);
   const [currentPageText, setCurrentPageText] = useState("");
 
   const chapter = book.chapters[chapterIdx];
   const totalChapters = book.chapters.length;
+
+  // Wrappers que atualizam o estado E avisam o pai (pra persistir).
+  const setChapterIdx = (n: number | ((prev: number) => number)) => {
+    setChapterIdxState((prev) => {
+      const next = typeof n === "function" ? n(prev) : n;
+      onChapterChange?.(next);
+      return next;
+    });
+  };
+  const setZoom = (n: number | ((prev: number) => number)) => {
+    setZoomState((prev) => {
+      const next = typeof n === "function" ? n(prev) : n;
+      onZoomChange?.(next);
+      return next;
+    });
+  };
 
   const goPrev = () => setChapterIdx((i) => Math.max(0, i - 1));
   const goNext = () =>

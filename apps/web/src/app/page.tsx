@@ -1,96 +1,86 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
-import Link from "next/link";
-import type { ParsedBook } from "@igot/parser";
-import { parseBook } from "@igot/parser";
+import { useState } from "react";
 import { Uploader } from "@/components/Uploader";
 import { Reader } from "@/components/Reader";
 import { AIPanel } from "@/components/AIPanel";
-import { getConfig } from "@/lib/config";
+import { SettingsModal } from "@/components/SettingsModal";
+import { hasConfig } from "@/lib/config";
+import { useSession } from "@/lib/session";
 import type { SelectionAction } from "@/lib/types";
 
 /**
  * Página principal do igot.
  *
- * Layout de dois painéis:
- *   ┌────────────────────┬──────────────────┐
- *   │   Reader (livro)   │   AIPanel (IA)   │
- *   └────────────────────┴──────────────────┘
+ * A sessão de leitura (livro, página atual, zoom) é persistida no IndexedDB
+ * via `useSession`. Assim, ao recarregar/fechar/navegar, o usuário volta pra
+ * onde estava — como um app de leitura de verdade.
  *
- * Fluxo: upload → parse → leitura → seleciona texto → IA ajuda.
- * A IA só funciona depois de configurada em /settings (BYOK).
+ * As Configurações de IA abrem como MODAL (por cima do livro), sem sair da
+ * leitura — então ir configurar e voltar NÃO perde o livro.
  */
 export default function HomePage() {
-  const [book, setBook] = useState<ParsedBook | null>(null);
-  // Buffer PDF original, preservado pra renderização fiel das páginas.
-  const [pdfSource, setPdfSource] = useState<ArrayBuffer | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const session = useSession();
+  const { booting, book, pdfSource, chapterIdx, zoom } = session;
+
   const [action, setAction] = useState<SelectionAction | null>(null);
   const [configReady, setConfigReady] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
-  // Lê a config UMA vez na montagem (evita flicker de hidratação).
-  const bootRef = useRef(false);
-  if (!bootRef.current) {
-    bootRef.current = true;
-    setConfigReady(getConfig() !== null);
+  // Lê config no boot (síncrono, localStorage).
+  // booting controla a hidratação async da sessão (IndexedDB).
+  if (!configReady && !booting) {
+    setConfigReady(hasConfig());
   }
 
-  const lastFileRef = useRef<string | null>(null);
-
-  const handleFile = useCallback(async (file: File) => {
-    if (lastFileRef.current === `${file.name}:${file.size}`) return;
-    lastFileRef.current = `${file.name}:${file.size}`;
-
-    setLoading(true);
-    setError(null);
-    setAction(null);
-
-    try {
-      const data = await file.arrayBuffer();
-      // O pdfjs consome (neutaliza) o ArrayBuffer; passamos uma cópia ao
-      // parser e guardamos o original pro PdfPageCanvas.
-      const result = await parseBook({ data: data.slice(0), fileName: file.name });
-      if (result.ok) {
-        setBook(result.book);
-        setPdfSource(result.book.sourceFormat === "pdf" ? data : null);
-      } else {
-        setError(result.error);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const handleSelection = useCallback((a: SelectionAction) => {
-    setAction(a);
-  }, []);
-
-  const handleClosePanel = useCallback(() => setAction(null), []);
+  const handleSelection = (a: SelectionAction) => setAction(a);
+  const handleClosePanel = () => setAction(null);
 
   return (
     <main className="igot-shell">
-      <TopBar configReady={configReady} />
+      <TopBar
+        configReady={configReady}
+        onOpenSettings={() => setSettingsOpen(true)}
+      />
 
-      {!book && !loading && (
-        <Uploader onFile={handleFile} error={error} />
+      {booting && (
+        <div className="igot-loading">
+          <div className="spinner" aria-hidden />
+          <p>Carregando sua leitura…</p>
+        </div>
       )}
 
-      {loading && (
+      {!booting && !book && !session.loading && (
+        <Uploader onFile={session.openBook} error={session.error} />
+      )}
+
+      {!booting && session.loading && (
         <div className="igot-loading">
           <div className="spinner" aria-hidden />
           <p>Analisando o livro…</p>
         </div>
       )}
 
-      {book && (
+      {!booting && book && (
         <div className="igot-workspace">
-          <Reader book={book} pdfSource={pdfSource} onSelection={handleSelection} />
+          <Reader
+            book={book}
+            pdfSource={pdfSource}
+            onSelection={handleSelection}
+            initialChapterIdx={chapterIdx}
+            initialZoom={zoom}
+            onChapterChange={session.setChapterIdx}
+            onZoomChange={session.setZoom}
+          />
           <AIPanel action={action} book={book} onClose={handleClosePanel} />
         </div>
+      )}
+
+      {settingsOpen && (
+        <SettingsModal
+          onClose={() => setSettingsOpen(false)}
+          onSaved={() => setConfigReady(hasConfig())}
+        />
       )}
 
       <style jsx>{`
@@ -133,8 +123,8 @@ export default function HomePage() {
           border-radius: 8px;
           font-size: 16px;
           color: var(--text);
-          text-decoration: none;
           position: relative;
+          cursor: pointer;
         }
         :global(.igot-topbar .gear:hover) {
           border-color: var(--accent);
@@ -187,20 +177,27 @@ export default function HomePage() {
   );
 }
 
-/** Barra superior com a marca e o atalho pra Configurações. */
-function TopBar({ configReady }: { configReady: boolean }) {
+/** Barra superior com a marca e o botão ⚙️ que abre o modal de settings. */
+function TopBar({
+  configReady,
+  onOpenSettings,
+}: {
+  configReady: boolean;
+  onOpenSettings: () => void;
+}) {
   return (
     <div className="igot-topbar">
       <div className="brand">
         💡 <span>igot</span>
       </div>
-      <Link
-        href="/settings"
+      <button
         className={`gear ${configReady ? "" : "unset"}`}
+        onClick={onOpenSettings}
         title={configReady ? "Configurações de IA" : "Configurar IA"}
+        aria-label="Configurações de IA"
       >
         ⚙️
-      </Link>
+      </button>
     </div>
   );
 }
