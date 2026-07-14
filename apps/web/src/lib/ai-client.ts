@@ -30,6 +30,9 @@ export interface AIActionResult {
   error?: string;
 }
 
+/** Callback chamado a cada pedaço de texto que chega (pra streaming). */
+export type StreamCallback = (fullText: string, chunk: string) => void;
+
 /** Monta o bloco de contexto (metadados da obra) que acompanha o prompt. */
 function buildContext(ctx: BookContext): string | undefined {
   const parts = [
@@ -88,6 +91,51 @@ export async function translate(
 }
 
 /**
+ * Versão STREAMING de translate: o texto vai aparecendo aos poucos.
+ * `onChunk` é chamado a cada pedaço (com o texto acumulado + o pedaço novo).
+ * Cai pra `translate` (sem stream) se o provedor não suportar.
+ */
+export async function translateStream(
+  text: string,
+  ctx: BookContext,
+  onChunk: StreamCallback,
+): Promise<AIActionResult> {
+  if (!text.trim()) return { ok: false, error: "Texto ausente." };
+  const targetLang = getTargetLang();
+  const systemPrompt =
+    `Você é um tradutor literário e técnico de excelência. ` +
+    `Traduza o trecho fornecido para ${targetLang}. ` +
+    `Respeite o tom, o estilo e o contexto da obra. ` +
+    `Devolva APENAS a tradução, sem comentários, sem aspas, sem introdução.`;
+
+  try {
+    const { provider } = resolveProvider();
+    if (!provider.stream) {
+      // Sem suporte a stream — faz normal e devolve de uma vez.
+      const result = await provider.complete(text, {
+        systemPrompt,
+        context: buildContext(ctx),
+        temperature: 0.3,
+      });
+      onChunk(result.text, result.text);
+      return { ok: true, text: result.text };
+    }
+    let full = "";
+    for await (const chunk of provider.stream(text, {
+      systemPrompt,
+      context: buildContext(ctx),
+      temperature: 0.3,
+    })) {
+      full += chunk;
+      onChunk(full, chunk);
+    }
+    return { ok: true, text: full };
+  } catch (err) {
+    return { ok: false, error: toMessage(err) };
+  }
+}
+
+/**
  * Traduz a página/capítulo INTEIRO de uma vez.
  *
  * Diferente do `translate` (trecho curto), aqui o texto é longo. O prompt
@@ -127,6 +175,56 @@ export async function translatePage(
   }
 }
 
+/**
+ * Versão STREAMING de translatePage: a tradução da página inteira vai
+ * aparecendo aos poucos (palavra por palavra). `onChunk` recebe o texto
+ * acumulado + o pedaço novo a cada chunk do LLM.
+ */
+export async function translatePageStream(
+  text: string,
+  ctx: BookContext,
+  onChunk: StreamCallback,
+): Promise<AIActionResult> {
+  if (!text.trim()) return { ok: false, error: "Página sem texto para traduzir." };
+  const targetLang = getTargetLang();
+  const systemPrompt =
+    `Você é um tradutor literário e técnico de excelência. ` +
+    `Traduza o texto completo da página a seguir para ${targetLang}. ` +
+    `Reagrupe o conteúdo em PARÁGRAFOS coerentes e naturais: ` +
+    `uma mudança de ideia = novo parágrafo. ` +
+    `Ignore as quebras de linha artificiais do original (PDFs quebram a cada ` +
+    `linha impressa) e crie parágrafos que fluam como uma página de livro. ` +
+    `Mantenha títulos/heading em linhas próprias. ` +
+    `Separe cada parágrafo por UMA linha em branco. ` +
+    `Respeite o tom, o estilo e o contexto da obra. ` +
+    `Devolva APENAS a tradução, sem comentários, sem aspas, sem introdução.`;
+
+  try {
+    const { provider } = resolveProvider();
+    if (!provider.stream) {
+      const result = await provider.complete(text, {
+        systemPrompt,
+        context: buildContext(ctx),
+        temperature: 0.3,
+      });
+      onChunk(result.text, result.text);
+      return { ok: true, text: result.text };
+    }
+    let full = "";
+    for await (const chunk of provider.stream(text, {
+      systemPrompt,
+      context: buildContext(ctx),
+      temperature: 0.3,
+    })) {
+      full += chunk;
+      onChunk(full, chunk);
+    }
+    return { ok: true, text: full };
+  } catch (err) {
+    return { ok: false, error: toMessage(err) };
+  }
+}
+
 /** Explica um trecho (sentido, idiotismos, contexto). */
 export async function explain(
   text: string,
@@ -153,6 +251,48 @@ export async function explain(
       },
     );
     return { ok: true, text: result.text };
+  } catch (err) {
+    return { ok: false, error: toMessage(err) };
+  }
+}
+
+/** Versão STREAMING de explain. */
+export async function explainStream(
+  text: string,
+  ctx: BookContext,
+  onChunk: StreamCallback,
+): Promise<AIActionResult> {
+  if (!text.trim()) return { ok: false, error: "Texto ausente." };
+  const targetLang = getTargetLang();
+  const systemPrompt =
+    `Você é um assistente de leitura. Explique o trecho fornecido em ${targetLang}, ` +
+    `de forma clara e didática. ` +
+    `Cubra: sentido literal, possíveis sentidos figurados, idiotismos ou ` +
+    `referências culturais, e como ele se encaixa no contexto da obra. ` +
+    `Seja conciso (2 a 4 parágrafos curtos). ` +
+    `Não invente — se não souber algo, diga.`;
+
+  try {
+    const { provider } = resolveProvider();
+    if (!provider.stream) {
+      const result = await provider.complete(`Explique este trecho:\n\n"${text}"`, {
+        systemPrompt,
+        context: buildContext(ctx),
+        temperature: 0.4,
+      });
+      onChunk(result.text, result.text);
+      return { ok: true, text: result.text };
+    }
+    let full = "";
+    for await (const chunk of provider.stream(`Explique este trecho:\n\n"${text}"`, {
+      systemPrompt,
+      context: buildContext(ctx),
+      temperature: 0.4,
+    })) {
+      full += chunk;
+      onChunk(full, chunk);
+    }
+    return { ok: true, text: full };
   } catch (err) {
     return { ok: false, error: toMessage(err) };
   }

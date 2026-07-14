@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ParsedBook } from "@igot/parser";
 import type { SelectionAction } from "@/lib/types";
 import { PdfPageCanvas } from "./PdfPageCanvas";
-import { translatePage } from "@/lib/ai-client";
+import { translatePageStream } from "@/lib/ai-client";
 
 interface ReaderProps {
   book: ParsedBook;
@@ -119,8 +119,8 @@ export function Reader({
   const zoomOut = () => setZoom((z) => Math.max(MIN_ZOOM, +(z - ZOOM_STEP).toFixed(2)));
   const zoomReset = () => setZoom(1);
 
-  // Traduz a página inteira. Persiste a tradução pra não re-traduzir ao
-  // navegar de volta. Alterna visibilidade se já estiver traduzida.
+  // Traduz a página inteira com STREAMING — o texto vai aparecendo aos poucos.
+  // Persiste a tradução ao final pra não re-traduzir ao navegar de volta.
   const handleTranslatePage = async () => {
     // Se já temos a tradução, só alterna a visibilidade (toggle).
     if (pageTranslation) {
@@ -129,19 +129,26 @@ export function Reader({
     }
     if (!currentPageText || translatingPage) return;
     setTranslatingPage(true);
-    const result = await translatePage(currentPageText, {
-      bookTitle: book.title,
-      bookAuthor: book.author,
-      bookLanguage: book.language,
-    });
+    // Mostra o overlay imediatamente (vazio) pra já ir revelando os chunks.
+    setPageTranslation("");
+    setShowTranslation(true);
+
+    const result = await translatePageStream(
+      currentPageText,
+      {
+        bookTitle: book.title,
+        bookAuthor: book.author,
+        bookLanguage: book.language,
+      },
+      // onChunk: atualiza o overlay a cada pedaço que chega.
+      (full) => setPageTranslation(full),
+    );
     setTranslatingPage(false);
     if (result.ok && result.text) {
       setPageTranslation(result.text);
-      setShowTranslation(true);
       onPageTranslation?.(chapterIdx, result.text); // persiste
     } else {
       setPageTranslation(`⚠️ ${result.error ?? "Erro ao traduzir."}`);
-      setShowTranslation(true);
     }
   };
 
@@ -174,6 +181,38 @@ export function Reader({
       y: rect.top - (containerRect?.top ?? 0) - 12,
       text,
     });
+  };
+
+  /**
+   * Toque duplo (double-click/double-tap): seleciona o parágrafo inteiro
+   * sob o cursor. Muito útil em touch, onde arrastar pra selecionar é
+   * impreciso. Encontra o ancestral <p> (ou block mais próximo) e seleciona
+   * todo o seu conteúdo, depois dispara o menu Traduzir/Explicar.
+   */
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    // Sobe até achar um parágrafo, heading, quote ou listItem.
+    const block = target.closest("p, h1, h2, h3, h4, h5, h6, blockquote, li, span");
+    if (!block) return;
+
+    const sel = window.getSelection();
+    if (!sel) return;
+    const range = document.createRange();
+    range.selectNodeContents(block);
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    // Dispara o menu na posição do parágrafo.
+    const rect = block.getBoundingClientRect();
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    const text = sel.toString().trim();
+    if (text.length >= 2) {
+      setMenu({
+        x: rect.left + rect.width / 2 - (containerRect?.left ?? 0),
+        y: rect.top - (containerRect?.top ?? 0) - 12,
+        text,
+      });
+    }
   };
 
   const fire = (type: SelectionAction["type"]) => {
@@ -263,7 +302,7 @@ export function Reader({
         </div>
       </header>
 
-      <div className="reader-scroll" onMouseUp={handleSelection}>
+      <div className="reader-scroll" onMouseUp={handleSelection} onDoubleClick={handleDoubleClick}>
         {book.sourceFormat === "pdf" && pdfSource ? (
           <PdfPageCanvas
             data={pdfSource}

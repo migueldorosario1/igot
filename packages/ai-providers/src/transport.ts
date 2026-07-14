@@ -25,6 +25,12 @@ export interface TransportRequest {
 
 export interface Transport {
   request(url: string, init: TransportRequest): Promise<TransportResponse>;
+  /**
+   * Stream: devolve o Response BRUTO do fetch (com .body legível como stream).
+   * Usado pra respostas streaming (SSE) dos LLMs. Opcional — só transports
+   * que suportam fetch nativo implementam.
+   */
+  stream?(url: string, init: TransportRequest): Promise<Response>;
 }
 
 // ─── Transporte via proxy (cliente) ──────────────────────────────────────
@@ -73,6 +79,22 @@ export function createProxyTransport(proxyPath = "/api/proxy"): Transport {
         status: env.status ?? res.status,
         body: env.body,
       };
+    },
+
+    /**
+     * Stream: faz fetch pra uma rota proxy-stream que devolve o Response
+     * BRUTO (com .body legível como ReadableStream). Usado pra SSE dos LLMs.
+     */
+    async stream(url, init): Promise<Response> {
+      const res = await fetch("/api/proxy-stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url, ...init }),
+      });
+      if (!res.ok) {
+        throw new Error(`Proxy-stream respondeu ${res.status}.`);
+      }
+      return res;
     },
   };
 }

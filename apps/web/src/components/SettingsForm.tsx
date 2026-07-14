@@ -348,12 +348,14 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
           font-size: 13px;
         }
         .feedback.ok {
-          background: var(--accent-soft);
-          color: var(--accent);
+          background: #e6f4ea;
+          color: #1e7e34;
+          border: 1px solid #b7dfc1;
         }
         .feedback.err {
-          background: var(--accent-soft);
-          color: var(--accent);
+          background: #fdecea;
+          color: #c0392b;
+          border: 1px solid #f5b7b1;
         }
       `}</style>
     </form>

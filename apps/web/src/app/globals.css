@@ -229,10 +229,11 @@ a {
 .pdf-translation-overlay {
   position: absolute;
   inset: 0;
+  /* Altura mínima garante espaço de leitura mesmo se o canvas PDF for baixo. */
+  min-height: 100%;
   background: #fdfbf6; /* papel creme, como livro impresso */
   overflow-y: auto;
   z-index: 5; /* acima do canvas e da text-layer */
-  /* Borda sutis pra destacar a "página traduzida" da página original */
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
 }
 

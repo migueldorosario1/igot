@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ParsedBook } from "@igot/parser";
 import type { SelectionAction } from "@/lib/types";
-import { translate, explain, ask, type BookContext } from "@/lib/ai-client";
+import { translateStream, explainStream, ask, type BookContext } from "@/lib/ai-client";
 
 interface AIPanelProps {
   action: SelectionAction | null;
@@ -40,7 +40,7 @@ export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
     bookLanguage: book.language,
   };
 
-  // Dispara a ação (traduzir/explicar) quando ela muda.
+  // Dispara a ação (traduzir/explicar) quando ela muda — com STREAMING.
   useEffect(() => {
     if (!action) return;
 
@@ -48,16 +48,22 @@ export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
     setState({ loading: true, result: null, error: null });
 
     const run = async () => {
+      // onChunk atualiza o resultado aos poucos (streaming) — o usuário vê
+      // o texto ir aparecendo palavra por palavra.
+      const onChunk = (full: string) => {
+        if (cancelled) return;
+        setState({ loading: false, result: full, error: null });
+      };
+
       const res =
         action.type === "translate"
-          ? await translate(action.text, bookCtx)
-          : await explain(action.text, bookCtx);
+          ? await translateStream(action.text, bookCtx, onChunk)
+          : await explainStream(action.text, bookCtx, onChunk);
+
       if (cancelled) return;
-      setState(
-        res.ok
-          ? { loading: false, result: res.text ?? null, error: null }
-          : { loading: false, result: null, error: res.error ?? "Erro." },
-      );
+      if (!res.ok) {
+        setState({ loading: false, result: null, error: res.error ?? "Erro." });
+      }
     };
     run();
 

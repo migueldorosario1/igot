@@ -141,4 +141,78 @@ export class AnthropicProvider implements AIProvider {
         : undefined,
     };
   }
+
+  /**
+   * Streaming Anthropic: SSE com events `content_block_delta` (delta.text).
+   * Outros event types (message_start, message_stop, etc.) são ignorados.
+   */
+  async *stream(
+    prompt: string,
+    opts: CompleteOptions = {},
+  ): AsyncIterable<string> {
+    if (!this.transport.stream) {
+      const result = await this.complete(prompt, opts);
+      yield result.text;
+      return;
+    }
+
+    const model = opts.model ?? this.defaultModel;
+    const userContent = opts.context
+      ? `${prompt}\n\n---\n[CONTEXTO DE REFERÊNCIA]\n${opts.context}`
+      : prompt;
+    const messages: AnthropicMessage[] = [{ role: "user", content: userContent }];
+
+    const res = await this.transport.stream(`${this.baseUrl}/messages`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": this.apiKey,
+        "anthropic-version": ANTHROPIC_VERSION,
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: opts.maxTokens ?? DEFAULT_MAX_TOKENS,
+        ...(opts.systemPrompt ? { system: opts.systemPrompt } : {}),
+        messages,
+        temperature: opts.temperature ?? 0.3,
+        stream: true,
+      }),
+    });
+
+    if (!res.body) throw new AIProviderError("Stream sem body.", this.id);
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith("data:")) continue;
+          try {
+            const parsed = JSON.parse(trimmed.slice(5).trim()) as {
+              type?: string;
+              delta?: { text?: string; type?: string };
+              error?: { message?: string };
+            };
+            if (parsed.error) {
+              throw new AIProviderError(parsed.error.message ?? "erro", this.id);
+            }
+            if (parsed.type === "content_block_delta" && parsed.delta?.text) {
+              yield parsed.delta.text;
+            }
+          } catch (err) {
+            if (err instanceof AIProviderError) throw err;
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  }
 }

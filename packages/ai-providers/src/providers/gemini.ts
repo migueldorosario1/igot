@@ -156,4 +156,80 @@ export class GeminiProvider implements AIProvider {
         : undefined,
     };
   }
+
+  /**
+   * Streaming Gemini: usa streamGenerateContent com alt=sse.
+   * Cada chunk é um JSON com candidates[0].content.parts[0].text.
+   */
+  async *stream(
+    prompt: string,
+    opts: CompleteOptions = {},
+  ): AsyncIterable<string> {
+    if (!this.transport.stream) {
+      const result = await this.complete(prompt, opts);
+      yield result.text;
+      return;
+    }
+
+    const model = opts.model ?? this.defaultModel;
+    const userText = opts.context
+      ? `${prompt}\n\n---\n[CONTEXTO DE REFERÊNCIA]\n${opts.context}`
+      : prompt;
+    const contents: GeminiContent[] = [{ role: "user", parts: [{ text: userText }] }];
+    const body: Record<string, unknown> = { contents };
+    if (opts.systemPrompt) body.systemInstruction = { parts: [{ text: opts.systemPrompt }] };
+    if (opts.temperature !== undefined || opts.maxTokens !== undefined) {
+      body.generationConfig = {
+        ...(opts.temperature !== undefined ? { temperature: opts.temperature } : {}),
+        ...(opts.maxTokens !== undefined ? { maxOutputTokens: opts.maxTokens } : {}),
+      };
+    }
+
+    const res = await this.transport.stream(
+      // alt=sse faz o Gemini devolver no formato SSE padrão (data: {...}\n\n).
+      `${this.baseUrl}/models/${model}:streamGenerateContent?alt=sse`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": this.apiKey,
+        },
+        body: JSON.stringify(body),
+      },
+    );
+
+    if (!res.body) throw new AIProviderError("Stream sem body.", this.id);
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith("data:")) continue;
+          try {
+            const parsed = JSON.parse(trimmed.slice(5).trim()) as GeminiResponse;
+            if (parsed.error) {
+              throw new AIProviderError(parsed.error.message, this.id);
+            }
+            const chunk = parsed.candidates
+              ?.flatMap((c) => c.content?.parts ?? [])
+              .map((p) => p.text ?? "")
+              .join("");
+            if (chunk) yield chunk;
+          } catch (err) {
+            if (err instanceof AIProviderError) throw err;
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  }
 }
