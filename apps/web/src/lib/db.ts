@@ -31,13 +31,27 @@ export interface Session {
   savedAt: number;
 }
 
-/** Abre (ou cria) o banco. Resolve quando tá pronto pra uso. */
+/**
+ * Abre (ou cria) o banco. Resolve quando tá pronto pra uso.
+ *
+ * Importante: em alguns contextos (Safari/iOS modo privado, frames
+ * restritos), o `indexedDB.open` pode NUNCA disparar onsuccess/onerror —
+ * a Promise ficaria pendente pra sempre e travaria o app. Por isso o
+ * timeout de segurança: se não responder em 5s, rejeita.
+ */
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     if (typeof indexedDB === "undefined") {
       reject(new Error("IndexedDB não disponível neste navegador."));
       return;
     }
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        reject(new Error("Timeout ao abrir IndexedDB (5s)."));
+      }
+    }, 5000);
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = () => {
       const db = req.result;
@@ -45,8 +59,20 @@ function openDB(): Promise<IDBDatabase> {
         db.createObjectStore(STORE); // key-path externo; usamos chave fixa
       }
     };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error ?? new Error("Erro ao abrir IndexedDB."));
+    req.onsuccess = () => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timer);
+        resolve(req.result);
+      }
+    };
+    req.onerror = () => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timer);
+        reject(req.error ?? new Error("Erro ao abrir IndexedDB."));
+      }
+    };
   });
 }
 

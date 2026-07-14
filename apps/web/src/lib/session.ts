@@ -42,15 +42,28 @@ export function useSession() {
   zoomRef.current = zoom;
 
   // --- Hidratação no boot ---
+  // Importante: o IndexedDB pode demorar, falhar silenciosamente (modo
+  // privado do Safari/iOS) ou nunca disparar os callbacks. Pra nunca
+  // travar o app em "Carregando…", usamos um TIMEOUT de segurança: se a
+  // hidratação não resolver em 3s, desistimos e seguimos (app funciona sem
+  // persistência — o usuário pode abrir um livro normalmente).
   useEffect(() => {
     let cancelled = false;
+    let timedOut = false;
+
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      if (!cancelled) {
+        console.warn("Timeout na hidratação da sessão — seguindo sem persistência.");
+        setBooting(false);
+      }
+    }, 3000);
+
     (async () => {
       try {
         const saved = await loadSession();
-        if (cancelled || !saved) return;
+        if (cancelled || timedOut || !saved) return;
         setBook(saved.book);
-        // Reconstrói o ArrayBuffer a partir do Uint8Array guardado.
-        // Cópia defensiva: o buffer do IndexedDB pode ser destacado depois.
         if (saved.pdfSource) {
           const copy = new ArrayBuffer(saved.pdfSource.byteLength);
           new Uint8Array(copy).set(saved.pdfSource);
@@ -64,11 +77,14 @@ export function useSession() {
       } catch (err) {
         console.warn("Falha ao hidratar sessão:", err);
       } finally {
-        if (!cancelled) setBooting(false);
+        clearTimeout(timeout);
+        if (!cancelled && !timedOut) setBooting(false);
       }
     })();
+
     return () => {
       cancelled = true;
+      clearTimeout(timeout);
     };
   }, []);
 
