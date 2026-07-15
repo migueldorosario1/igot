@@ -48,8 +48,8 @@ export async function GET(request: Request) {
       : `https://${host}`;
   }
 
-  // NUNCA redireciona pra localhost quando vindo de produção.
-  if (origin.includes("localhost") && !process.env.NODE_ENV !== "development") {
+  // NUNCA redireciona pra localhost quando em produção.
+  if (origin.includes("localhost") && process.env.NODE_ENV === "production") {
     origin = "https://igot-taupe.vercel.app";
   }
 
