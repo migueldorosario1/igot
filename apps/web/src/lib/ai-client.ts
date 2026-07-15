@@ -16,6 +16,7 @@ import {
   type AIConfig,
 } from "@igot/ai-providers";
 import { getConfig, getTargetLang } from "./config";
+import { t } from "./messages";
 
 /** Contexto da obra relevante para as ações. */
 export interface BookContext {
@@ -57,41 +58,29 @@ function resolveProvider() {
 }
 
 /**
- * Converte qualquer exceção numa mensagem amigável em português.
- * Traduz status HTTP comuns dos provedores de IA em texto claro,
- * com a próxima ação que o usuário deve tomar.
+ * Converte qualquer exceção numa mensagem amigável no IDIOMA DO USUÁRIO.
+ * Traduz status HTTP comuns dos provedores de IA em texto claro, com a
+ * próxima ação. O idioma acompanha o que o usuário configurou (targetLang):
+ * configurou em inglês? vê erros em inglês. Português? em português.
  */
 function toMessage(err: unknown): string {
+  const lang = getTargetLang();
+
   // Erro do proxy-stream com status HTTP do provedor.
   if (err instanceof ProxyStreamError) {
     const detail = err.providerDetail ? ` (${err.providerDetail})` : "";
     switch (err.statusCode) {
       case 401:
       case 403:
-        return (
-          `Chave de API inválida ou sem permissão. ` +
-          `Abra as Configurações (⚙️) e verifique sua chave do provedor.` +
-          detail
-        );
+        return t(lang, "errAuth") + detail;
       case 429:
-        return (
-          `Limite de uso atingido (muitas requisições). ` +
-          `Você fez muitas chamadas em pouco tempo, ou esgotou a cota gratuita ` +
-          `do seu provedor. Espere alguns minutos e tente de novo, ` +
-          `ou troque pra outro provedor nas Configurações (⚙️).` +
-          detail
-        );
+        return t(lang, "errRateLimit") + detail;
       case 500:
       case 502:
       case 503:
-        return (
-          `O provedor de IA está com problema no servidor dele. ` +
-          `Não é falha do igot — tente de novo em alguns minutos, ` +
-          `ou troque de provedor nas Configurações (⚙️).` +
-          detail
-        );
+        return t(lang, "errServer") + detail;
       default:
-        return `Erro ao contatar o provedor (código ${err.statusCode}).${detail}`;
+        return t(lang, "errGeneric", { code: err.statusCode }) + detail;
     }
   }
   if (err instanceof AIProviderError) return err.message;
