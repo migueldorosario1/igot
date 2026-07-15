@@ -2,10 +2,15 @@
  * GET /api/auth/callback
  *
  * Recebe o redirect do Google OAuth. O Supabase vem com um `code` na query
- * string; trocamos por uma sessão (setando os cookies HttpOnly) e mandamos
+ * string; trocamos por sessão (setando os cookies HttpOnly) e mandamos
  * o usuário de volta pra home.
  *
  * Esse é o fluxo padrão de PKCE do Supabase com @supabase/ssr.
+ *
+ * IMPORTANTE: o `requestUrl.origin` aqui é o domínio do Supabase (porque
+ * é o Supabase que faz o redirect final), NÃO o domínio do nosso app.
+ * Por isso usamos o header `x-forwarded-host` / referer pra achar a
+ * origem certa (igot-taupe.vercel.app). Cai pra "/" se não achar.
  */
 
 import { NextResponse } from "next/server";
@@ -23,6 +28,30 @@ export async function GET(request: Request) {
     await supabase.auth.exchangeCodeForSession(code);
   }
 
-  // Volta pra home (de onde o usuário tinha clicado em Entrar).
-  return NextResponse.redirect(requestUrl.origin);
+  // Descobre a URL pública do app pra onde voltar.
+  // 1. Variável de ambiente explícita (mais confiável em produção).
+  // 2. Headers da Vercel (x-forwarded-host).
+  // 3. Fallback: requestUrl.origin.
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  const proto = request.headers.get("x-forwarded-proto") ?? "https";
+  const fwdHost = request.headers.get("x-forwarded-host");
+  const host = request.headers.get("host");
+
+  let origin: string;
+  if (siteUrl) {
+    origin = siteUrl.replace(/\/$/, "");
+  } else if (fwdHost) {
+    origin = `${proto}://${fwdHost}`;
+  } else {
+    origin = requestUrl.origin.includes("localhost")
+      ? requestUrl.origin
+      : `https://${host}`;
+  }
+
+  // NUNCA redireciona pra localhost quando vindo de produção.
+  if (origin.includes("localhost") && !process.env.NODE_ENV !== "development") {
+    origin = "https://igot-taupe.vercel.app";
+  }
+
+  return NextResponse.redirect(`${origin}/`);
 }
