@@ -12,6 +12,7 @@ import {
   getProvider,
   createProxyTransport,
   AIProviderError,
+  ProxyStreamError,
   type AIConfig,
 } from "@igot/ai-providers";
 import { getConfig, getTargetLang } from "./config";
@@ -55,8 +56,44 @@ function resolveProvider() {
   return { provider: getProvider(config as AIConfig, transport), config };
 }
 
-/** Converte qualquer exceção numa mensagem amigável. */
+/**
+ * Converte qualquer exceção numa mensagem amigável em português.
+ * Traduz status HTTP comuns dos provedores de IA em texto claro,
+ * com a próxima ação que o usuário deve tomar.
+ */
 function toMessage(err: unknown): string {
+  // Erro do proxy-stream com status HTTP do provedor.
+  if (err instanceof ProxyStreamError) {
+    const detail = err.providerDetail ? ` (${err.providerDetail})` : "";
+    switch (err.statusCode) {
+      case 401:
+      case 403:
+        return (
+          `Chave de API inválida ou sem permissão. ` +
+          `Abra as Configurações (⚙️) e verifique sua chave do provedor.` +
+          detail
+        );
+      case 429:
+        return (
+          `Limite de uso atingido (muitas requisições). ` +
+          `Você fez muitas chamadas em pouco tempo, ou esgotou a cota gratuita ` +
+          `do seu provedor. Espere alguns minutos e tente de novo, ` +
+          `ou troque pra outro provedor nas Configurações (⚙️).` +
+          detail
+        );
+      case 500:
+      case 502:
+      case 503:
+        return (
+          `O provedor de IA está com problema no servidor dele. ` +
+          `Não é falha do igot — tente de novo em alguns minutos, ` +
+          `ou troque de provedor nas Configurações (⚙️).` +
+          detail
+        );
+      default:
+        return `Erro ao contatar o provedor (código ${err.statusCode}).${detail}`;
+    }
+  }
   if (err instanceof AIProviderError) return err.message;
   if (err instanceof Error) return err.message;
   return String(err);

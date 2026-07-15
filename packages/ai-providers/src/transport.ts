@@ -33,6 +33,20 @@ export interface Transport {
   stream?(url: string, init: TransportRequest): Promise<Response>;
 }
 
+/**
+ * Erro do proxy-stream. Carrega o status HTTP do provedor + detalhe,
+ * pra o caller (ai-client) traduzir numa mensagem amigável pro usuário.
+ */
+export class ProxyStreamError extends Error {
+  constructor(
+    public readonly statusCode: number,
+    public readonly providerDetail?: string,
+  ) {
+    super(`Proxy-stream respondeu ${statusCode}: ${providerDetail ?? ""}`);
+    this.name = "ProxyStreamError";
+  }
+}
+
 // ─── Transporte via proxy (cliente) ──────────────────────────────────────
 
 /**
@@ -92,7 +106,21 @@ export function createProxyTransport(proxyPath = "/api/proxy"): Transport {
         body: JSON.stringify({ url, ...init }),
       });
       if (!res.ok) {
-        throw new Error(`Proxy-stream respondeu ${res.status}.`);
+        // Lê o corpo do erro do provedor pra dar uma mensagem útil.
+        let detail = "";
+        try {
+          const text = await res.text();
+          try {
+            const json = JSON.parse(text);
+            detail = json?.error?.message ?? json?.message ?? text;
+          } catch {
+            detail = text;
+          }
+        } catch {
+          /* ignora */
+        }
+        // Inclui status + detalhe pra o ai-client traduzir depois.
+        throw new ProxyStreamError(res.status, detail);
       }
       return res;
     },

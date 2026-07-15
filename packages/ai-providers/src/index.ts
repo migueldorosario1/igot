@@ -22,6 +22,7 @@ export type { Transport, TransportRequest, TransportResponse } from "./transport
 export {
   createProxyTransport,
   createDirectTransport,
+  ProxyStreamError,
 } from "./transport";
 
 export { PRESETS, getPreset, getProvider } from "./registry";
