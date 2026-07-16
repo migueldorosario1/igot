@@ -16,6 +16,7 @@ const ALLOWED_HOSTS = new Set<string>([
   "api.openai.com",
   "api.deepseek.com",
   "api.moonshot.cn",
+  "api.moonshot.ai",
   "dashscope.aliyuncs.com",
   "api.anthropic.com",
   "generativelanguage.googleapis.com",
