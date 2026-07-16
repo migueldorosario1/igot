@@ -10,6 +10,7 @@
 
 import {
   getProvider,
+  getPreset,
   createProxyTransport,
   AIProviderError,
   ProxyStreamError,
@@ -370,5 +371,68 @@ export async function testConnection(
     };
   } catch (err) {
     return { ok: false, message: toMessage(err) };
+  }
+}
+
+/**
+ * Busca a lista de modelos disponíveis do provedor (endpoint /models).
+ * Retorna um array de IDs de modelo. Cai pra lista vazia se o provedor
+ * não suportar /models ou se a chave for inválida.
+ */
+export async function listModels(
+  config: AIConfig,
+): Promise<{ ok: boolean; models?: string[]; error?: string }> {
+  try {
+    const preset = getPreset(config.providerId);
+    if (!preset) return { ok: false, error: "Provedor desconhecido." };
+
+    const baseUrl = config.baseUrl ?? preset.baseUrl;
+    const transport = createProxyTransport("/api/proxy");
+
+    // O endpoint /models é padrão OpenAI-compatible (GET).
+    // Gemini e Anthropic têm formatos diferentes — trato abaixo.
+    if (preset.adapter === "gemini") {
+      // Gemini: GET /models?key=X
+      const { status, body } = await transport.request(
+        `${baseUrl}/models?key=${encodeURIComponent(config.apiKey)}`,
+        { method: "GET", headers: {}, body: "" },
+      );
+      if (status >= 400) {
+        const b = body as { error?: { message?: string } };
+        return { ok: false, error: b?.error?.message ?? `Erro ${status}` };
+      }
+      const data = body as { models?: Array<{ name?: string }> };
+      const models = (data.models ?? [])
+        .map((m) => m.name?.replace("models/", "") ?? "")
+        .filter(Boolean);
+      return { ok: true, models };
+    }
+
+    // Anthropic: não tem /models público estável. Devolve defaults.
+    if (preset.adapter === "anthropic") {
+      return {
+        ok: true,
+        models: ["claude-3-5-haiku-latest", "claude-3-5-sonnet-latest", "claude-sonnet-4-20250514"],
+      };
+    }
+
+    // OpenAI-compatible: GET /models com Bearer auth.
+    const { status, body } = await transport.request(`${baseUrl}/models`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${config.apiKey}` },
+      body: "",
+    });
+    if (status >= 400) {
+      const b = body as { error?: { message?: string } };
+      return { ok: false, error: b?.error?.message ?? `Erro ${status}` };
+    }
+    const data = body as { data?: Array<{ id?: string }> };
+    const models = (data.data ?? [])
+      .map((m) => m.id ?? "")
+      .filter(Boolean)
+      .sort();
+    return { ok: true, models };
+  } catch (err) {
+    return { ok: false, error: toMessage(err) };
   }
 }

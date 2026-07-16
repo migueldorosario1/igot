@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { PRESETS, type AIConfig } from "@igot/ai-providers";
 import { setConfig, clearConfig, getTargetLang, setTargetLang } from "@/lib/config";
-import { testConnection } from "@/lib/ai-client";
+import { testConnection, listModels } from "@/lib/ai-client";
 
 interface SettingsFormProps {
   /** Config inicial (se houver). */
@@ -35,8 +35,36 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
     message: "",
   });
   const [saved, setSaved] = useState(false);
+  // Busca de modelos disponíveis do provedor.
+  const [modelsList, setModelsList] = useState<string[] | null>(null);
+  const [modelsLoading, setModelsLoading] = useState(false);
+  const [modelsError, setModelsError] = useState("");
+  const [modelSearch, setModelSearch] = useState("");
 
   const preset = PRESETS.find((p) => p.id === providerId);
+
+  /** Busca os modelos disponíveis no provedor (requer chave). */
+  const handleListModels = async () => {
+    if (!apiKey.trim()) {
+      setModelsError("Cole a chave primeiro.");
+      return;
+    }
+    setModelsLoading(true);
+    setModelsError("");
+    setModelsList(null);
+    const config: AIConfig = {
+      providerId,
+      apiKey: apiKey.trim(),
+      baseUrl: baseUrl.trim() || undefined,
+    };
+    const result = await listModels(config);
+    setModelsLoading(false);
+    if (result.ok && result.models) {
+      setModelsList(result.models);
+    } else {
+      setModelsError(result.error ?? "Não foi possível buscar os modelos.");
+    }
+  };
 
   const handleTest = async () => {
     if (!apiKey.trim()) {
@@ -94,6 +122,9 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
           onChange={(e) => {
             setProviderId(e.target.value);
             setTest({ status: "idle", message: "" });
+            setModelsList(null);
+            setModelsError("");
+            setModelSearch("");
           }}
         >
           {PRESETS.map((p) => (
@@ -180,14 +211,63 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
                 (padrão: {preset?.defaultModel})
               </span>
             </label>
-            <input
-              id="model"
-              type="text"
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-              placeholder={preset?.defaultModel}
-              spellCheck={false}
-            />
+            <div className="model-row">
+              <input
+                id="model"
+                type="text"
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+                placeholder={preset?.defaultModel}
+                spellCheck={false}
+              />
+              <button
+                type="button"
+                className="ghost"
+                onClick={handleListModels}
+                disabled={modelsLoading || !apiKey.trim()}
+                title="Buscar modelos disponíveis no provedor"
+              >
+                {modelsLoading ? "⏳" : "🔍"}
+              </button>
+            </div>
+
+            {/* Lista de modelos encontrados (clicável) */}
+            {modelsLoading && (
+              <p className="hint">Buscando modelos disponíveis…</p>
+            )}
+            {modelsError && (
+              <p className="hint" style={{ color: "#c0392b" }}>⚠️ {modelsError}</p>
+            )}
+            {modelsList && modelsList.length > 0 && (
+              <div className="models-list">
+                <input
+                  type="text"
+                  className="model-search"
+                  placeholder="Filtrar modelos…"
+                  value={modelSearch}
+                  onChange={(e) => setModelSearch(e.target.value)}
+                />
+                <div className="models-scroll">
+                  {modelsList
+                    .filter((m) =>
+                      m.toLowerCase().includes(modelSearch.toLowerCase()),
+                    )
+                    .map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        className={`model-item ${model === m ? "selected" : ""}`}
+                        onClick={() => setModel(m)}
+                      >
+                        {model === m && "✓ "}{m}
+                      </button>
+                    ))}
+                </div>
+              </div>
+            )}
+            {modelsList && modelsList.length === 0 && (
+              <p className="hint">Nenhum modelo encontrado.</p>
+            )}
           </div>
           <div className="field">
             <label htmlFor="baseurl">
@@ -314,6 +394,62 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
           font-weight: 400;
           color: var(--text-muted);
           font-size: 12px;
+        }
+        .model-row {
+          display: flex;
+          gap: 8px;
+        }
+        .model-row input {
+          flex: 1;
+          font-family: ui-monospace, "SF Mono", Consolas, monospace;
+        }
+        .models-list {
+          margin-top: 8px;
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          overflow: hidden;
+        }
+        .model-search {
+          width: 100%;
+          padding: 8px 10px;
+          border: none;
+          border-bottom: 1px solid var(--border);
+          background: var(--surface);
+          color: var(--text);
+          font-size: 13px;
+        }
+        .model-search:focus {
+          outline: none;
+          background: var(--bg);
+        }
+        .models-scroll {
+          max-height: 200px;
+          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+        }
+        .model-item {
+          text-align: left;
+          border: none;
+          background: transparent;
+          color: var(--text);
+          padding: 8px 12px;
+          font-size: 13px;
+          font-family: ui-monospace, "SF Mono", Consolas, monospace;
+          cursor: pointer;
+          border-bottom: 1px solid var(--border);
+        }
+        .model-item:last-child {
+          border-bottom: none;
+        }
+        .model-item:hover {
+          background: var(--accent-soft);
+          color: var(--accent);
+        }
+        .model-item.selected {
+          background: #e6f4ea;
+          color: #1e7e34;
+          font-weight: 600;
         }
         .actions {
           display: flex;
