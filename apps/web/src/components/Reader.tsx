@@ -363,7 +363,6 @@ export function Reader({
           />
         ) : (
           <article className="reader-text">
-            {chapter?.title && <h2>{chapter.title}</h2>}
             {renderedBlocks}
           </article>
         )}

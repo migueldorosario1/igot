@@ -36,7 +36,7 @@ export interface SavedNote {
 
 /** Tudo que precisa pra retomar a leitura exatamente de onde parou. */
 export interface Session {
-  id: typeof SESSION_KEY;
+  id: string;
   fileName: string;
   fileSize: number;
   book: ParsedBook;
@@ -52,6 +52,8 @@ export interface Session {
   translations?: Record<string, string>;
   /** Anotações salvas pelo usuário (tradução/explicação/pergunta). */
   notes?: SavedNote[];
+  /** Capa do livro (data URL) pra mostrar na estante. */
+  coverImage?: string;
 }
 
 /**
@@ -146,6 +148,128 @@ export async function clearSession(): Promise<void> {
     tx.onerror = () => {
       db.close();
       reject(tx.error ?? new Error("Erro ao limpar sessão."));
+    };
+  });
+}
+
+// ─── Biblioteca (múltiplos livros) ───────────────────────────────────────
+
+const BOOKS_STORE = "books";
+
+/**
+ * Abre o DB garantindo que o store 'books' existe (pra múltiplos livros).
+ * Migra do DB v1 (só 'sessions') criando o novo store sob demanda.
+ */
+function openDBWithBooks(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    if (typeof indexedDB === "undefined") {
+      reject(new Error("IndexedDB não disponível."));
+      return;
+    }
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        reject(new Error("Timeout ao abrir IndexedDB (5s)."));
+      }
+    }, 5000);
+
+    // Tenta abrir na versão 2 (com o store 'books'). Se falhar por upgrade,
+    // o onupgradeneeded cria o store.
+    const req = indexedDB.open(DB_NAME, 2);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(STORE)) {
+        db.createObjectStore(STORE); // sessions (legado)
+      }
+      if (!db.objectStoreNames.contains(BOOKS_STORE)) {
+        db.createObjectStore(BOOKS_STORE, { keyPath: "id" });
+      }
+    };
+    req.onsuccess = () => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timer);
+        resolve(req.result);
+      }
+    };
+    req.onerror = () => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timer);
+        reject(req.error ?? new Error("Erro ao abrir IndexedDB."));
+      }
+    };
+  });
+}
+
+/** Lista TODOS os livros da estante (sem pdfSource — leve). */
+export async function listAllBooks(): Promise<Session[]> {
+  const db = await openDBWithBooks();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(BOOKS_STORE, "readonly");
+    const req = tx.objectStore(BOOKS_STORE).getAll();
+    req.onsuccess = () => {
+      db.close();
+      const books = (req.result as Session[]) ?? [];
+      // Ordena por mais recentemente acessado.
+      books.sort((a, b) => (b.savedAt ?? 0) - (a.savedAt ?? 0));
+      resolve(books);
+    };
+    req.onerror = () => {
+      db.close();
+      reject(req.error ?? new Error("Erro ao listar livros."));
+    };
+  });
+}
+
+/** Pega UM livro pelo ID (com pdfSource). */
+export async function getBookById(id: string): Promise<Session | null> {
+  const db = await openDBWithBooks();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(BOOKS_STORE, "readonly");
+    const req = tx.objectStore(BOOKS_STORE).get(id);
+    req.onsuccess = () => {
+      db.close();
+      resolve((req.result as Session | undefined) ?? null);
+    };
+    req.onerror = () => {
+      db.close();
+      reject(req.error ?? new Error("Erro ao ler livro."));
+    };
+  });
+}
+
+/** Salva (ou atualiza) um livro na estante. */
+export async function saveBookToLibrary(session: Session): Promise<void> {
+  const db = await openDBWithBooks();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(BOOKS_STORE, "readwrite");
+    tx.objectStore(BOOKS_STORE).put(session);
+    tx.oncomplete = () => {
+      db.close();
+      resolve();
+    };
+    tx.onerror = () => {
+      db.close();
+      reject(tx.error ?? new Error("Erro ao salvar livro."));
+    };
+  });
+}
+
+/** Remove um livro da estante. */
+export async function deleteBookFromLibrary(id: string): Promise<void> {
+  const db = await openDBWithBooks();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(BOOKS_STORE, "readwrite");
+    tx.objectStore(BOOKS_STORE).delete(id);
+    tx.oncomplete = () => {
+      db.close();
+      resolve();
+    };
+    tx.onerror = () => {
+      db.close();
+      reject(tx.error ?? new Error("Erro ao remover livro."));
     };
   });
 }

@@ -21,7 +21,7 @@ import {
   type Session,
   type SavedNote,
 } from "./db";
-import { saveBook, loadBook, deleteBook } from "./repository";
+import { saveBook, loadBook, deleteBook, saveToLibrary } from "./repository";
 
 const DEBOUNCE_MS = 500;
 
@@ -146,7 +146,24 @@ export function useSession(userId: string | null = null) {
         setZoom(1);
         setTranslations({}); // novo livro = sem traduções ainda
         setNotes([]);
+        // Gera um ID único pro livro (pra URL /book/[id] e estante).
+        const bookId = `b${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
         metaRef.current = { fileName: file.name, fileSize: file.size };
+        cloudIdRef.current = bookId;
+        // Já salva na estante pra aparecer na home.
+        const session: Session = {
+          id: bookId,
+          fileName: file.name,
+          fileSize: file.size,
+          book: result.book,
+          pdfSource: result.book.sourceFormat === "pdf" ? new Uint8Array(data) : null,
+          chapterIdx: 0,
+          zoom: 1,
+          savedAt: Date.now(),
+          translations: {},
+          notes: [],
+        };
+        await saveToLibrary(session, userIdRef.current).catch(() => {});
       } else {
         setError(result.error);
       }

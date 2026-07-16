@@ -11,7 +11,17 @@
  */
 
 import type { ParsedBook } from "@igot/parser";
-import { saveSession, loadSession, clearSession, type Session, type SavedNote } from "./db";
+import {
+  saveSession,
+  loadSession,
+  clearSession,
+  listAllBooks,
+  getBookById,
+  saveBookToLibrary,
+  deleteBookFromLibrary,
+  type Session,
+  type SavedNote,
+} from "./db";
 import { createClient } from "./supabase/client";
 
 /** O que vai pra nuvem (tudo exceto pdfSource binário). */
@@ -147,4 +157,74 @@ export async function deleteBook(
   if (!userId || !cloudId) return;
   const supabase = createClient();
   await supabase.from("books").delete().eq("id", cloudId);
+}
+
+// ─── Biblioteca (múltiplos livros) ───────────────────────────────────────
+
+/**
+ * Lista todos os livros da estante (sem pdfSource — leve, só pra grid).
+ * Logado → Supabase. Deslogado → IndexedDB.
+ */
+export async function listLibrary(userId: string | null): Promise<Session[]> {
+  if (!userId) {
+    return listAllBooks().catch(() => []);
+  }
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("books")
+    .select("*")
+    .order("saved_at", { ascending: false });
+  if (error || !data) return listAllBooks().catch(() => []);
+  return data.map((row: Record<string, unknown>) => ({
+    id: row.id as string,
+    fileName: row.file_name as string,
+    fileSize: row.file_size as number,
+    book: row.book as ParsedBook,
+    pdfSource: null,
+    chapterIdx: row.chapter_idx as number,
+    zoom: row.zoom as number,
+    savedAt: row.saved_at as number,
+    translations: (row.translations as Record<string, string>) ?? {},
+    notes: (row.notes as SavedNote[]) ?? [],
+    coverImage: row.cover_image as string | undefined,
+  }));
+}
+
+/** Pega um livro específico pelo ID (com pdfSource pra renderizar PDF). */
+export async function getBook(id: string): Promise<Session | null> {
+  // Sempre tenta local primeiro (pdfSource só tá local).
+  const local = await getBookById(id).catch(() => null);
+  return local;
+}
+
+/** Salva livro na biblioteca (estante). */
+export async function saveToLibrary(session: Session, userId?: string | null): Promise<void> {
+  await saveBookToLibrary(session).catch((err) =>
+    console.warn("Falha ao salvar na estante local:", err),
+  );
+  if (!userId) return;
+  // Também sincroniza pra nuvem (sem pdfSource).
+  const supabase = createClient();
+  await supabase.from("books").upsert({
+    id: session.id,
+    user_id: userId,
+    title: session.book.title,
+    file_name: session.fileName,
+    file_size: session.fileSize,
+    source_format: session.book.sourceFormat,
+    book: session.book,
+    chapter_idx: session.chapterIdx,
+    zoom: session.zoom,
+    translations: session.translations ?? {},
+    notes: session.notes ?? [],
+    saved_at: session.savedAt,
+  });
+}
+
+/** Remove livro da biblioteca (local + nuvem). */
+export async function removeFromLibrary(id: string, userId?: string | null): Promise<void> {
+  await deleteBookFromLibrary(id).catch(() => {});
+  if (!userId) return;
+  const supabase = createClient();
+  await supabase.from("books").delete().eq("id", id);
 }
