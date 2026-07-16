@@ -144,15 +144,22 @@ export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
 
         {state.loading && (
           <div className="ai-loading">
-            <span className="dot" />
-            <span className="dot" />
-            <span className="dot" />
+            <div className="ai-loading-dots">
+              <span className="dot" />
+              <span className="dot" />
+              <span className="dot" />
+            </div>
+            <span className="ai-loading-label">
+              {action?.type === "translate" ? "Traduzindo…" : "Explicando…"}
+            </span>
           </div>
         )}
 
         {state.error && <p className="ai-error">⚠️ {state.error}</p>}
 
-        {state.result && <div className="ai-result">{state.result}</div>}
+        {state.result && (
+          <div className="ai-result">{renderMarkdownBold(state.result)}</div>
+        )}
       </div>
 
       <footer className="ai-footer">
@@ -233,8 +240,18 @@ export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
         }
         .ai-loading {
           display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: var(--space-3);
+          padding: 16px 0;
+        }
+        .ai-loading-dots {
+          display: flex;
           gap: 6px;
-          padding: 8px 0;
+        }
+        .ai-loading-label {
+          font-size: var(--text-sm);
+          color: var(--text-muted);
         }
         .dot {
           width: 8px;
@@ -269,9 +286,18 @@ export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
           font-size: 14px;
         }
         .ai-result {
-          font-size: 15px;
-          line-height: 1.65;
+          font-size: var(--text-base);
+          line-height: 1.7;
           white-space: pre-wrap;
+          padding: 4px 0;
+        }
+        .ai-result :global(strong) {
+          font-weight: 600;
+          color: var(--text);
+        }
+        .ai-result :global(em) {
+          font-style: italic;
+          color: var(--text-muted);
         }
         .ai-footer {
           display: flex;
@@ -311,4 +337,24 @@ export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
 
 function truncate(s: string, n: number): string {
   return s.length > n ? `${s.slice(0, n)}…` : s;
+}
+
+/**
+ * Renderiza markdown MÍNIMO: só negrito (**texto**) e itálico (*texto*).
+ * Não usa biblioteca — regex simples que converte pra <strong>/<em>.
+ * Escapa HTML perigoso antes pra evitar XSS.
+ */
+function renderMarkdownBold(text: string): React.ReactNode {
+  // Escapa HTML pra evitar injeção.
+  const escaped = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  // Converte **negrito** e *itálico*.
+  const html = escaped
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>");
+
+  return <span dangerouslySetInnerHTML={{ __html: html }} />;
 }

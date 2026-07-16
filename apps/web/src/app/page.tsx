@@ -55,7 +55,12 @@ export default function HomePage() {
       )}
 
       {!booting && !book && !session.loading && (
-        <Uploader onFile={session.openBook} error={session.error} />
+        <Uploader
+          onFile={session.openBook}
+          error={session.error}
+          configReady={configReady}
+          onOpenSettings={() => setSettingsOpen(true)}
+        />
       )}
 
       {!booting && session.loading && (

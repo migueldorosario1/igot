@@ -5,13 +5,18 @@ import { useCallback, useRef, useState } from "react";
 interface UploaderProps {
   onFile: (file: File) => void;
   error?: string | null;
+  /** Se a IA está configurada (pra mostrar aviso de setup). */
+  configReady?: boolean;
+  /** Abre as configurações. */
+  onOpenSettings?: () => void;
 }
 
 /**
- * Tela de boas-vindas + upload.
- * Aceita .epub e .pdf por arrastar-soltar ou clique.
+ * Tela inicial (onboarding + upload).
+ * Apresenta o app, explica o que faz, avisa se a IA não tá configurada,
+ * e aceita .epub/.pdf por arrastar-soltar ou clique.
  */
-export function Uploader({ onFile, error }: UploaderProps) {
+export function Uploader({ onFile, error, configReady = true, onOpenSettings }: UploaderProps) {
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -36,11 +41,46 @@ export function Uploader({ onFile, error }: UploaderProps) {
   return (
     <div className="uploader-page">
       <div className="uploader-card">
-        <h1 className="logo">
-          💡 <span>igot</span>
-        </h1>
-        <p className="tagline">Leia qualquer coisa. Entenda tudo.</p>
+        {/* Hero */}
+        <div className="hero">
+          <div className="logo">💡</div>
+          <h1 className="brand-name">igot</h1>
+          <p className="tagline">Leia qualquer coisa. Entenda tudo.</p>
+          <p className="subtitle">
+            Leitor de livros com IA que <strong>traduz</strong> e <strong>explica</strong>{" "}
+            qualquer trecho — em qualquer idioma.
+          </p>
+        </div>
 
+        {/* Features */}
+        <div className="features">
+          <div className="feature">
+            <span className="feature-icon">🌐</span>
+            <span className="feature-text">Traduz</span>
+          </div>
+          <div className="feature">
+            <span className="feature-icon">🧠</span>
+            <span className="feature-text">Explica</span>
+          </div>
+          <div className="feature">
+            <span className="feature-icon">📄</span>
+            <span className="feature-text">PDF & EPUB</span>
+          </div>
+        </div>
+
+        {/* Aviso: IA não configurada */}
+        {!configReady && (
+          <div className="setup-warning" onClick={onOpenSettings} role="button">
+            <span className="setup-icon">⚠️</span>
+            <div className="setup-content">
+              <strong>Configure sua IA primeiro</strong>
+              <span>Escolha um provedor e cole sua chave pra traduzir e explicar.</span>
+            </div>
+            <span className="setup-arrow">⚙️ →</span>
+          </div>
+        )}
+
+        {/* Dropzone */}
         <label
           className={`dropzone ${dragging ? "is-dragging" : ""}`}
           onDragOver={(e) => {
@@ -74,10 +114,10 @@ export function Uploader({ onFile, error }: UploaderProps) {
           </p>
         )}
 
-        <p className="uploader-hint">
-          O livro é processado no seu navegador. A IA só vê o trecho que você
-          selecionar.
-        </p>
+        {/* Badge de privacidade */}
+        <div className="privacy-badge">
+          🔒 <span>Suas chaves de IA nunca saem do seu dispositivo.</span>
+        </div>
       </div>
 
       <style jsx>{`
@@ -87,19 +127,28 @@ export function Uploader({ onFile, error }: UploaderProps) {
           align-items: center;
           justify-content: center;
           padding: 24px;
+          overflow-y: auto;
         }
         .uploader-card {
-          max-width: 520px;
+          max-width: 480px;
           width: 100%;
           text-align: center;
         }
+
+        /* Hero */
+        .hero {
+          margin-bottom: 28px;
+        }
         .logo {
           font-size: 56px;
-          margin: 0 0 4px;
-          letter-spacing: -1px;
+          line-height: 1;
+          margin-bottom: 8px;
         }
-        .logo span {
+        .brand-name {
+          font-size: var(--text-2xl);
           font-weight: 700;
+          margin: 0 0 4px;
+          letter-spacing: -0.5px;
           background: linear-gradient(135deg, var(--accent), #e8a03d);
           -webkit-background-clip: text;
           background-clip: text;
@@ -107,30 +156,105 @@ export function Uploader({ onFile, error }: UploaderProps) {
         }
         .tagline {
           color: var(--text-muted);
-          margin: 0 0 36px;
-          font-size: 18px;
+          margin: 0 0 12px;
+          font-size: var(--text-lg);
         }
+        .subtitle {
+          color: var(--text);
+          margin: 0;
+          font-size: var(--text-base);
+          line-height: 1.6;
+        }
+
+        /* Features */
+        .features {
+          display: flex;
+          justify-content: center;
+          gap: var(--space-5);
+          margin-bottom: 28px;
+          flex-wrap: wrap;
+        }
+        .feature {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+        }
+        .feature-icon {
+          font-size: 24px;
+        }
+        .feature-text {
+          font-size: var(--text-sm);
+          color: var(--text-muted);
+          font-weight: 500;
+        }
+
+        /* Aviso de configuração */
+        .setup-warning {
+          display: flex;
+          align-items: center;
+          gap: var(--space-3);
+          padding: 12px 16px;
+          background: #fff8e1;
+          border: 1px solid #ffe082;
+          border-radius: var(--radius);
+          margin-bottom: 20px;
+          cursor: pointer;
+          transition: var(--transition);
+          text-align: left;
+        }
+        .setup-warning:hover {
+          border-color: var(--accent);
+          box-shadow: var(--shadow);
+        }
+        .setup-icon {
+          font-size: 20px;
+          flex-shrink: 0;
+        }
+        .setup-content {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          flex: 1;
+        }
+        .setup-content strong {
+          font-size: var(--text-sm);
+          color: #e65100;
+        }
+        .setup-content span {
+          font-size: var(--text-xs);
+          color: var(--text-muted);
+        }
+        .setup-arrow {
+          font-size: var(--text-sm);
+          color: var(--accent);
+          flex-shrink: 0;
+        }
+
+        /* Dropzone */
         .dropzone {
           display: block;
-          padding: 48px 24px;
+          padding: 40px 24px;
           border: 2px dashed var(--border);
           border-radius: var(--radius);
           background: var(--surface);
           cursor: pointer;
-          transition: border-color 0.15s, background 0.15s;
+          transition: border-color var(--transition), background var(--transition),
+            transform var(--transition);
         }
         .dropzone:hover,
         .dropzone.is-dragging {
           border-color: var(--accent);
           background: var(--accent-soft);
+          transform: scale(1.01);
         }
         .dropzone-icon {
-          font-size: 40px;
-          margin-bottom: 12px;
+          font-size: 36px;
+          margin-bottom: var(--space-3);
         }
         .dropzone-title {
           margin: 0 0 4px;
-          font-size: 16px;
+          font-size: var(--text-base);
         }
         .dropzone-title span {
           color: var(--accent);
@@ -139,21 +263,43 @@ export function Uploader({ onFile, error }: UploaderProps) {
         .dropzone-formats {
           margin: 0;
           color: var(--text-muted);
-          font-size: 13px;
+          font-size: var(--text-xs);
         }
+
+        /* Erro */
         .uploader-error {
-          margin: 20px 0 0;
-          padding: 12px 16px;
-          background: var(--accent-soft);
+          margin: 16px 0 0;
+          padding: 10px 14px;
+          background: #fdecea;
           border-radius: var(--radius);
-          color: var(--accent);
-          font-size: 14px;
+          color: #c0392b;
+          font-size: var(--text-sm);
           text-align: left;
+          border: 1px solid #f5b7b1;
         }
-        .uploader-hint {
-          margin: 28px 0 0;
+
+        /* Badge de privacidade */
+        .privacy-badge {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: var(--space-2);
+          margin-top: 28px;
           color: var(--text-muted);
-          font-size: 13px;
+          font-size: var(--text-xs);
+          padding: 8px 14px;
+          background: var(--surface-alt);
+          border-radius: 20px;
+          display: inline-flex;
+        }
+        .privacy-badge span {
+          color: var(--text-muted);
+        }
+
+        @media (max-width: 600px) {
+          .features {
+            gap: var(--space-4);
+          }
         }
       `}</style>
     </div>

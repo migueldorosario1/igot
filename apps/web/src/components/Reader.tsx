@@ -342,6 +342,13 @@ export function Reader({
             </button>
           </div>
         </div>
+        {/* Barra de progresso de leitura (estilo Kindle) */}
+        <div className="reader-progress" aria-hidden>
+          <div
+            className="reader-progress-bar"
+            style={{ width: `${totalChapters > 0 ? ((chapterIdx + 1) / totalChapters) * 100 : 0}%` }}
+          />
+        </div>
       </header>
 
       <div className="reader-scroll" onPointerUp={handleSelection} onDoubleClick={handleDoubleClick}>
@@ -658,9 +665,26 @@ export function Reader({
           max-width: 680px;
           margin: 0 auto;
           padding: 0 32px;
-          font-size: 18px;
-          line-height: 1.7;
+          font-family: var(--font-serif);
+          font-size: var(--text-lg);
+          line-height: 1.8;
           color: var(--text);
+        }
+        /* Barra de progresso de leitura */
+        .reader-progress {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 3px;
+          background: var(--surface-alt);
+          overflow: hidden;
+        }
+        .reader-progress-bar {
+          height: 100%;
+          background: var(--accent);
+          transition: width 200ms ease;
+          border-radius: 0 2px 2px 0;
         }
         .reader-text h2 {
           font-size: 22px;

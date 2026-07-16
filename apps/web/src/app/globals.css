@@ -1,6 +1,7 @@
 /* ─── igot — estilos globais ─────────────────────────────────────────── */
 
 :root {
+  /* Cores */
   --bg: #faf9f7;
   --surface: #ffffff;
   --surface-alt: #f3f1ec;
@@ -11,6 +12,36 @@
   --accent-soft: #fce9e4;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
   --radius: 10px;
+
+  /* Tipografia */
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia,
+    "Times New Roman", serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
+
+  /* Escala de tamanhos */
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 15px;
+  --text-lg: 17px;
+  --text-xl: 22px;
+  --text-2xl: 28px;
+
+  /* Espaçamento */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  /* Transições */
+  --transition: 150ms ease;
+
+  /* Seleção de texto (marca-texto amarelo) */
+  --selection-bg: #ffd84d;
+  --selection-color: #1a1a1a;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -24,6 +55,8 @@
     --accent: #e87a63;
     --accent-soft: #3a2420;
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --selection-bg: #806020;
+    --selection-color: #fff;
   }
 }
 
@@ -38,8 +71,7 @@ body {
   height: 100%;
   background: var(--bg);
   color: var(--text);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-sans);
   font-size: 16px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -47,10 +79,20 @@ body {
 
 /* ── Ajustes pra iOS / iPad (PWA) ─────────────────────────────────── */
 
-/* Permite rolagem com momento (sensação nativa) nos painéis com scroll. */
+/*
+ * CRÍTICO pra estabilidade do seletor de texto:
+ * - overscroll-behavior: contain impede o scroll-chain (bounce que cancela seleção)
+ * - touch-action: pan-y permite scroll vertical mas delega o toque horizontal
+ *   pro texto (seleção por arraste funciona sem a página "correr")
+ */
 .reader-scroll,
 .ai-body {
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.reader-scroll {
+  touch-action: pan-y;
 }
 
 /* Remove o highlight cinza ao tocar (iOS Safari / PWA). */
@@ -99,23 +141,16 @@ a {
   font-style: italic;
 }
 
-.reader-text ::selection {
-  background: #ffd84d;
-  color: #1a1a1a;
-}
-.reader-text ::-moz-selection {
-  background: #ffd84d;
-  color: #1a1a1a;
-}
-
-/* Seleção na camada de texto do PDF — amarelo marca-texto forte. */
+/* Seleção de texto — amarelo marca-texto (acompanha dark mode via variável). */
+.reader-text ::selection,
 .pdf-text-layer ::selection {
-  background: #ffd84d !important;
-  color: #1a1a1a !important;
+  background: var(--selection-bg);
+  color: var(--selection-color);
 }
+.reader-text ::-moz-selection,
 .pdf-text-layer ::-moz-selection {
-  background: #ffd84d !important;
-  color: #1a1a1a !important;
+  background: var(--selection-bg);
+  color: var(--selection-color);
 }
 
 /* ── TopBar actions + Auth ─────────────────────────────────────────── */
@@ -291,10 +326,6 @@ a {
   white-space: pre;
   transform-origin: 0 0;
   cursor: text;
-}
-
-.pdf-text-layer ::selection {
-  background: rgba(200, 85, 61, 0.28);
 }
 
 .pdf-text-layer br {
