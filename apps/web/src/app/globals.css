@@ -92,7 +92,7 @@ body {
 }
 
 .reader-scroll {
-  touch-action: pan-y;
+  touch-action: auto;
 }
 
 /* Remove o highlight cinza ao tocar (iOS Safari / PWA). */
@@ -159,6 +159,31 @@ a {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+/* Lado esquerdo do topbar: logo + estante */
+.igot-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.igot-topbar-left .brand,
+.igot-topbar-left .shelf-icon-btn {
+  text-decoration: none;
+  color: var(--text);
+}
+.shelf-icon-btn {
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  transition: var(--transition);
+}
+.shelf-icon-btn:hover {
+  background: var(--accent-soft);
 }
 
 /* Ícones do topo — tamanho confortável pra touch (mínimo 44px Apple HIG). */
@@ -327,8 +352,6 @@ a {
 /* ── Renderização de páginas de PDF ───────────────────────────────── */
 
 .pdf-page-container {
-  /* position:relative pro spinner absoluto ter apoio. width/height 100%
-     pra fitScale medir a área visível de verdade. */
   position: relative;
   display: flex;
   flex-direction: column;
@@ -336,6 +359,7 @@ a {
   justify-content: flex-start;
   padding: 24px 16px 80px;
   min-height: 100%;
+  background: var(--bg); /* acompanha o tema — sem quadrado preto */
 }
 
 .pdf-page-wrapper {

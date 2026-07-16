@@ -176,14 +176,14 @@ function TopBar({
 }) {
   return (
     <div className="igot-topbar">
-      <a
-        href="/"
-        className="brand"
-        style={{ textDecoration: "none", cursor: "pointer" }}
-        title="Voltar pra estante"
-      >
-        💡 <span>igot</span>
-      </a>
+      <div className="igot-topbar-left">
+        <a href="/" className="brand" title="Estante">
+          💡 <span>igot</span>
+        </a>
+        <a href="/" className="shelf-icon-btn" title="Minha estante">
+          📚
+        </a>
+      </div>
       <div className="igot-topbar-actions">
         <AuthButton
           status={auth.status}

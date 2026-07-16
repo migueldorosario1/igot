@@ -368,6 +368,34 @@ export function Reader({
         )}
       </div>
 
+      {/* Barra de navegação rápida — slider horizontal pra pular páginas */}
+      {totalChapters > 1 && (
+        <div className="reader-nav-bar">
+          <button onClick={goPrev} disabled={chapterIdx === 0} aria-label="Anterior">
+            ‹
+          </button>
+          <input
+            type="range"
+            min={0}
+            max={totalChapters - 1}
+            value={chapterIdx}
+            onChange={(e) => setChapterIdx(Number(e.target.value))}
+            className="nav-slider"
+            aria-label="Navegar páginas"
+          />
+          <button
+            onClick={goNext}
+            disabled={chapterIdx >= totalChapters - 1}
+            aria-label="Próxima"
+          >
+            ›
+          </button>
+          <span className="nav-counter-bottom">
+            {chapterIdx + 1}/{totalChapters}
+          </span>
+        </div>
+      )}
+
       {menu && (
         <div
           className="selection-menu"
@@ -690,6 +718,51 @@ export function Reader({
           margin-top: 0;
           color: var(--text-muted);
           font-weight: 500;
+        }
+
+        /* Barra de navegação rápida (slider horizontal no rodapé) */
+        .reader-nav-bar {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 16px;
+          background: var(--surface);
+          border-top: 1px solid var(--border);
+          flex-shrink: 0;
+        }
+        .reader-nav-bar button {
+          width: 36px;
+          height: 36px;
+          border: 1px solid var(--border);
+          background: var(--bg);
+          color: var(--text);
+          border-radius: 8px;
+          font-size: 18px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .reader-nav-bar button:disabled {
+          opacity: 0.3;
+          cursor: not-allowed;
+        }
+        .reader-nav-bar button:not(:disabled):hover {
+          border-color: var(--accent);
+          color: var(--accent);
+        }
+        .nav-slider {
+          flex: 1;
+          height: 36px;
+          cursor: pointer;
+          accent-color: var(--accent);
+        }
+        .nav-counter-bottom {
+          font-size: var(--text-sm);
+          color: var(--text-muted);
+          min-width: 60px;
+          text-align: center;
+          flex-shrink: 0;
         }
         .selection-menu {
           position: absolute;
