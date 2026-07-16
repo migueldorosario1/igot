@@ -148,11 +148,13 @@ export function PdfPageCanvas({
 
         const baseViewport = page.getViewport({ scale: 1 });
 
-        // Mede a área realmente disponível no leitor (o .reader-scroll, pai
-        // deste container). Cai pra um padrão se não conseguir medir.
-        const parent = containerRef.current?.parentElement;
-        const availW = (parent?.clientWidth ?? window.innerWidth) - 32; // padding
-        const availH = (parent?.clientHeight ?? window.innerHeight) - 120; // header + padding
+        // Mede a área do PAI do PAI (o .reader-scroll) — não do container
+        // direto, porque esse cresce com o canvas e cria feedback loop.
+        // Usar o avô (.reader-scroll) dá dimensões estáveis que não mudam
+        // ao fazer zoom (ele tem altura fixa pelo flex/grid).
+        const scrollParent = containerRef.current?.parentElement?.parentElement;
+        const availW = (scrollParent?.clientWidth ?? window.innerWidth) - 32;
+        const availH = (scrollParent?.clientHeight ?? window.innerHeight) - 120;
         // fitScale ajusta à tela; zoom multiplica pra permitir +/− manual.
         const fit = fitScale(baseViewport.width, baseViewport.height, availW, availH);
         const scale = Math.max(0.2, fit * zoom);

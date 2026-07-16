@@ -158,7 +158,54 @@ a {
 .igot-topbar-actions {
   display: flex;
   align-items: center;
+  gap: 10px;
+}
+
+/* Ícones do topo — tamanho confortável pra touch (mínimo 44px Apple HIG). */
+.igot-topbar .gear {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: 10px;
+  font-size: 20px;
+  color: var(--text);
+  cursor: pointer;
+  position: relative;
+  transition: var(--transition);
+}
+.igot-topbar .gear:hover {
+  border-color: var(--accent);
+  transform: scale(1.05);
+}
+.igot-topbar .gear.unset::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 9px;
+  height: 9px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+.igot-topbar .brand {
+  display: flex;
+  align-items: center;
   gap: 8px;
+  font-weight: 700;
+  font-size: 20px;
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--text);
+}
+.igot-topbar .brand span {
+  background: linear-gradient(135deg, var(--accent), #e8a03d);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 /* Botão "Entrar" (deslogado) */
@@ -292,16 +339,17 @@ a {
 }
 
 .pdf-page-wrapper {
-  /* Wrapper relativo pra a text-layer se posicionar absolutamente sobre o canvas. */
+  /* Wrapper relativo pra a text-layer se posicionar absolutamente sobre o canvas.
+     Sem overflow:hidden (cortava o canvas ao fazer zoom). */
   position: relative;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
-  background: white;
+  background: white !important; /* sempre branco, mesmo em dark mode */
   border-radius: 2px;
-  overflow: hidden;
 }
 
 .pdf-canvas {
   display: block;
+  background: white; /* garante fundo branco se o PDF não pintar */
 }
 
 /*

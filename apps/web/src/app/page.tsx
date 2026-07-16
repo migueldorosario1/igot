@@ -8,9 +8,13 @@ import { SettingsModal } from "@/components/SettingsModal";
 import { AuthButton } from "@/components/AuthButton";
 import { hasConfig } from "@/lib/config";
 import { useAuth } from "@/lib/auth";
-import { listLibrary, saveToLibrary } from "@/lib/repository";
+import { listLibrary, saveToLibrary, removeFromLibrary } from "@/lib/repository";
+import {
+  migrateLegacyBook,
+  clearLibrary,
+  type Session,
+} from "@/lib/db";
 import { parseBook } from "@igot/parser";
-import type { Session } from "@/lib/db";
 
 /**
  * Home = ESTANTE.
@@ -29,8 +33,10 @@ export default function HomePage() {
   const [configReady, setConfigReady] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  // Carrega a estante.
+  // Carrega a estante (migrando livro legado primeiro).
   const refresh = useCallback(async () => {
+    // Migra livro antigo (store 'sessions') pro novo (store 'books') — 1 vez.
+    await migrateLegacyBook();
     const list = await listLibrary(auth.userId).catch(() => []);
     setBooks(list);
     setLoading(false);
@@ -41,7 +47,7 @@ export default function HomePage() {
     refresh();
   }, [refresh]);
 
-  // Abre um arquivo novo → salva na estante → navega pra /book/[id].
+  // Abre um arquivo novo → DEDUPLICA se já existe → navega pra /book/[id].
   const handleFile = useCallback(
     async (file: File) => {
       setAddingBook(true);
@@ -50,7 +56,13 @@ export default function HomePage() {
         const data = await file.arrayBuffer();
         const result = await parseBook({ data: data.slice(0), fileName: file.name });
         if (result.ok) {
-          const bookId = `b${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+          // DEDUPLICAÇÃO: se já existe um livro com mesmo nome+tamanho, reusa.
+          const existing = books.find(
+            (b) => b.fileName === file.name && b.fileSize === file.size,
+          );
+          const bookId =
+            existing?.id ??
+            `b${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
           const session: Session = {
             id: bookId,
             fileName: file.name,
@@ -74,7 +86,7 @@ export default function HomePage() {
         setAddingBook(false);
       }
     },
-    [auth.userId, router],
+    [auth.userId, router, books],
   );
 
   return (
@@ -119,9 +131,23 @@ export default function HomePage() {
         <div className="shelf-page">
           <div className="shelf-header">
             <h1>Minha estante</h1>
-            <button className="add-book-btn" onClick={() => document.getElementById("file-input")?.click()}>
-              + Adicionar livro
-            </button>
+            <div className="shelf-actions">
+              <button
+                className="clear-shelf-btn"
+                onClick={async () => {
+                  if (confirm("Remover todos os livros da estante?")) {
+                    await clearLibrary();
+                    setBooks([]);
+                  }
+                }}
+                title="Limpar estante"
+              >
+                🗑 Limpar tudo
+              </button>
+              <button className="add-book-btn" onClick={() => document.getElementById("file-input")?.click()}>
+                + Adicionar livro
+              </button>
+            </div>
             <input
               id="file-input"
               type="file"
@@ -147,33 +173,45 @@ export default function HomePage() {
 
           <div className="shelf-grid">
             {books.map((book) => (
-              <Link
-                key={book.id}
-                href={`/book/${book.id}`}
-                className="book-card"
-              >
-                <div className="book-cover">
-                  {book.coverImage ? (
-                    <img src={book.coverImage} alt="" />
-                  ) : (
-                    <div className="book-cover-placeholder">
-                      <span className="book-cover-icon">📖</span>
-                      <span className="book-cover-format">{book.book.sourceFormat.toUpperCase()}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="book-info">
-                  <h3 className="book-title">{book.book.title}</h3>
-                  {book.book.author && (
-                    <p className="book-author">{book.book.author}</p>
-                  )}
-                  <p className="book-progress">
-                    {book.book.sourceFormat === "pdf"
-                      ? `Página ${book.chapterIdx + 1}`
-                      : `Capítulo ${book.chapterIdx + 1}`}
-                  </p>
-                </div>
-              </Link>
+              <div key={book.id} className="book-card-wrapper">
+                <Link href={`/book/${book.id}`} className="book-card">
+                  <div className="book-cover">
+                    {book.coverImage ? (
+                      <img src={book.coverImage} alt="" />
+                    ) : (
+                      <div className="book-cover-placeholder">
+                        <span className="book-cover-icon">📖</span>
+                        <span className="book-cover-format">{book.book.sourceFormat.toUpperCase()}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="book-info">
+                    <h3 className="book-title">{book.book.title}</h3>
+                    {book.book.author && (
+                      <p className="book-author">{book.book.author}</p>
+                    )}
+                    <p className="book-progress">
+                      {book.book.sourceFormat === "pdf"
+                        ? `Página ${book.chapterIdx + 1}`
+                        : `Capítulo ${book.chapterIdx + 1}`}
+                    </p>
+                  </div>
+                </Link>
+                <button
+                  className="book-delete-btn"
+                  title="Remover da estante"
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (confirm(`Remover "${book.book.title}" da estante?`)) {
+                      await removeFromLibrary(book.id, auth.userId);
+                      setBooks((prev) => prev.filter((b) => b.id !== book.id));
+                    }
+                  }}
+                >
+                  🗑
+                </button>
+              </div>
             ))}
           </div>
         </div>
@@ -203,6 +241,11 @@ export default function HomePage() {
           font-size: var(--text-xl);
           font-weight: 700;
         }
+        .shelf-actions {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+        }
         .add-book-btn {
           padding: 8px 16px;
           border: 1px solid var(--accent);
@@ -217,6 +260,42 @@ export default function HomePage() {
         .add-book-btn:hover {
           background: var(--accent);
           color: white;
+        }
+        .clear-shelf-btn {
+          padding: 8px 14px;
+          border: 1px solid var(--border);
+          background: var(--surface);
+          color: var(--text-muted);
+          border-radius: 8px;
+          font-size: var(--text-sm);
+          cursor: pointer;
+          transition: var(--transition);
+        }
+        .clear-shelf-btn:hover {
+          border-color: #c0392b;
+          color: #c0392b;
+        }
+        .book-card-wrapper {
+          position: relative;
+        }
+        .book-delete-btn {
+          position: absolute;
+          top: 4px;
+          right: 4px;
+          width: 28px;
+          height: 28px;
+          border: none;
+          background: rgba(0, 0, 0, 0.5);
+          color: white;
+          border-radius: 50%;
+          font-size: 13px;
+          cursor: pointer;
+          opacity: 0;
+          transition: opacity var(--transition);
+          z-index: 5;
+        }
+        .book-card-wrapper:hover .book-delete-btn {
+          opacity: 1;
         }
         .shelf-error {
           padding: 10px 14px;

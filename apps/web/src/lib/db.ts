@@ -273,3 +273,77 @@ export async function deleteBookFromLibrary(id: string): Promise<void> {
     };
   });
 }
+
+/**
+ * Migra o livro legado (store 'sessions', chave 'current') pro novo store
+ * 'books' com um ID único. Roda uma vez automaticamente quando a estante
+ * carrega. Se já migrou antes (ou não tem livro antigo), não faz nada.
+ */
+export async function migrateLegacyBook(): Promise<void> {
+  try {
+    const db = await openDBWithBooks();
+    // Lê o livro antigo (store 'sessions', chave 'current').
+    const old = await new Promise<Session | null>((resolve) => {
+      const tx = db.transaction(STORE, "readonly");
+      const req = tx.objectStore(STORE).get(SESSION_KEY);
+      req.onsuccess = () => resolve((req.result as Session | undefined) ?? null);
+      req.onerror = () => resolve(null);
+    });
+    db.close();
+
+    if (!old || !old.book) return;
+
+    // Se já tem um livro com o mesmo nome na estante, não duplica.
+    const existing = await listAllBooks().catch(() => []);
+    const duplicate = existing.find(
+      (b) => b.fileName === old.fileName && b.fileSize === old.fileSize,
+    );
+    if (duplicate) {
+      // Já migrou antes. Limpa o legado.
+      const db2 = await openDBWithBooks();
+      await new Promise<void>((resolve) => {
+        const tx = db2.transaction(STORE, "readwrite");
+        tx.objectStore(STORE).delete(SESSION_KEY);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => resolve();
+      });
+      db2.close();
+      return;
+    }
+
+    // Transfere pro novo store com ID único.
+    const newId = `b${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+    const migrated: Session = { ...old, id: newId };
+    await saveBookToLibrary(migrated);
+
+    // Limpa o legado.
+    const db3 = await openDBWithBooks();
+    await new Promise<void>((resolve) => {
+      const tx = db3.transaction(STORE, "readwrite");
+      tx.objectStore(STORE).delete(SESSION_KEY);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    });
+    db3.close();
+    console.log("[igot] Livro legado migrado pra estante:", newId);
+  } catch (err) {
+    console.warn("[igot] Migração de livro legado falhou:", err);
+  }
+}
+
+/** Limpa TODOS os livros da estante. */
+export async function clearLibrary(): Promise<void> {
+  const db = await openDBWithBooks();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(BOOKS_STORE, "readwrite");
+    tx.objectStore(BOOKS_STORE).clear();
+    tx.oncomplete = () => {
+      db.close();
+      resolve();
+    };
+    tx.onerror = () => {
+      db.close();
+      reject(tx.error ?? new Error("Erro ao limpar estante."));
+    };
+  });
+}
