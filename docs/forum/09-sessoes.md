@@ -23,6 +23,20 @@
   - Lojas: Capacitor (Android primeiro, iOS depois sem Mac)
   - Premium: Free (BYOK) → Plus → Pro (RAG) → Lifetime
 
+### 16 de julho de 2026 — Estante, rotas e estabilização
+- **Duração**: 1 dia
+- **O que aconteceu**: estante de múltiplos livros (grid de capas), rotas com
+  URL própria (`/book/[id]`), redesign visual (onboarding, tipografia, progresso),
+  correções de bugs críticos (scroll, zoom, quadrado preto, migração), barra de
+  navegação rápida (slider)
+- **Fórum da sessão**: [igot-forum-2026-07-16_19h53.md](./igot-forum-2026-07-16_19h53.md)
+- **Decisões principais**:
+  - Home vira estante (grid de capas, como Kindle/Apple Books)
+  - Cada livro tem URL própria (`/book/[id]`)
+  - Migração automática de livros antigos (store `sessions` → `books`)
+  - Touch-action: auto (pan-y bloqueava scroll vertical)
+  - Medição estável no PdfPageCanvas (avô do container, não o pai)
+
 ---
 
 ## Como adicionar uma nova sessão
