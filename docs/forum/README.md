@@ -22,6 +22,7 @@
 | 7 | **Marketing** | Reddit, TikTok, Product Hunt, ASO, precificação | [`07-marketing.md`](./07-marketing.md) |
 | 8 | **Premium** | Modelo de negócio: Free → Plus → Pro → Lifetime | [`08-premium.md`](./08-premium.md) |
 | 9 | **Sessões** | Registro de conversas importantes (datas) | [`09-sessoes.md`](./09-sessoes.md) |
+| 10 | **Design** | Visual, polimento, seletor de texto, onboarding, tipografia | [`10-design.md`](./10-design.md) |
 
 ---
 
