@@ -581,6 +581,19 @@ export function Reader({
       ? "📖 Ver original"
       : "🧠 Explicar página";
 
+  /** Versão SÓ ÍCONE dos botões (cabe numa linha só).
+   *  O texto completo vai no `title` (tooltip ao passar o dedo/mouse). */
+  const translateIcon = translatingPage && overlayMode === "translate"
+    ? "⏳"
+    : pageTranslation && overlayMode === "translate"
+      ? showTranslation ? "📖" : "🌐"
+      : "🌐";
+  const explainIcon = translatingPage && overlayMode === "explain"
+    ? "⏳"
+    : overlayMode === "explain" && showTranslation
+      ? "📖"
+      : "🧠";
+
   // Detecta seleção dentro do conteúdo e, se houver texto, mostra o menu.
   const handleSelection = () => {
     const sel = window.getSelection();
@@ -868,18 +881,20 @@ export function Reader({
               <button
                 onClick={handleTranslatePage}
                 disabled={translatingPage || !currentPageText}
-                className="translate-page-btn"
-                title={pageTranslation ? "Alternar entre original e tradução" : "Traduzir a página inteira"}
+                className={`icon-btn page-action-btn ${overlayMode === "translate" && showTranslation ? "active" : ""}`}
+                title={translateBtnLabel}
+                aria-label={translateBtnLabel}
               >
-                {translateBtnLabel}
+                {translateIcon}
               </button>
               <button
                 onClick={() => handlePageAction("explain")}
                 disabled={(translatingPage && overlayMode !== "explain") || !currentPageText}
-                className="translate-page-btn"
-                title="Explicar a página inteira"
+                className={`icon-btn page-action-btn ${overlayMode === "explain" && showTranslation ? "active" : ""}`}
+                title={explainBtnLabel}
+                aria-label={explainBtnLabel}
               >
-                {explainBtnLabel}
+                {explainIcon}
               </button>
             </>
           )}
@@ -1193,6 +1208,12 @@ export function Reader({
         .translate-page-btn:disabled {
           opacity: 0.4;
           cursor: not-allowed;
+        }
+        /* Botões de ação da página (traduzir/explicar) — ícone compacto.
+           Fica destacado quando a página está traduzida/explicada (ativo). */
+        .page-action-btn.active {
+          background: var(--accent-soft);
+          border-color: var(--accent);
         }
         .open-other-btn,
         .notes-btn {

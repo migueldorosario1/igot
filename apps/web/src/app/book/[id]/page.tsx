@@ -208,9 +208,6 @@ function TopBar({
         <button onClick={goToEstante} className="brand" title="Estante" style={{ background: "none", border: "none", cursor: "pointer" }}>
           <CafezinhoLogo size={24} opacity={0.85} /> 💡 <span>igot</span>
         </button>
-        <button onClick={goToEstante} className="shelf-icon-btn" title="Minha estante">
-          📚
-        </button>
       </div>
       <div className="igot-topbar-actions">
         <AuthButton
