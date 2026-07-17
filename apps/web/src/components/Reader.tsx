@@ -270,9 +270,11 @@ export function Reader({
         }
         const rect = range.getBoundingClientRect();
         const containerRect = containerRef.current?.getBoundingClientRect();
+        // Posiciona ABAIXO da seleção (o menu nativo do iOS aparece acima,
+        // assim não se sobrepõem).
         setMenu({
           x: rect.left + rect.width / 2 - (containerRect?.left ?? 0),
-          y: rect.top - (containerRect?.top ?? 0) - 12,
+          y: rect.bottom - (containerRect?.top ?? 0) + 12,
           text,
         });
       }, 250);
@@ -310,7 +312,7 @@ export function Reader({
     if (text.length >= 2) {
       setMenu({
         x: rect.left + rect.width / 2 - (containerRect?.left ?? 0),
-        y: rect.top - (containerRect?.top ?? 0) - 12,
+        y: rect.bottom - (containerRect?.top ?? 0) + 12,
         text,
       });
     }

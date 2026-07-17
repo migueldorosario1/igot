@@ -391,14 +391,30 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
 
       {/* Doação */}
       <div className="donate-section">
-        <a
-          href="https://www.paypal.com/donate"
-          target="_blank"
-          rel="noreferrer"
-          className="donate-btn"
-        >
-          ☕ Apoie o igot
-        </a>
+        <p className="donate-title">Gostou do igot? Apoie o projeto!</p>
+        <div className="donate-options">
+          <a
+            href="https://www.paypal.com/donate?hosted_button_id=migueldorosario@gmail.com"
+            target="_blank"
+            rel="noreferrer"
+            className="donate-btn paypal"
+          >
+            💙 PayPal
+          </a>
+          <button
+            type="button"
+            className="donate-btn pix"
+            onClick={() => {
+              navigator.clipboard?.writeText("migueldorosario2@gmail.com").then(() => {
+                alert("PIX copiado: migueldorosario2@gmail.com");
+              }).catch(() => {
+                alert("PIX: migueldorosario2@gmail.com");
+              });
+            }}
+          >
+            🟢 PIX (copiar)
+          </button>
+        </div>
       </div>
 
       <style jsx>{`
@@ -648,23 +664,46 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
         /* Doação */
         .donate-section {
           text-align: center;
-          padding-top: 8px;
+          padding-top: 12px;
+          border-top: 1px solid var(--border);
+        }
+        .donate-title {
+          font-size: var(--text-sm);
+          color: var(--text-muted);
+          margin: 0 0 10px;
+        }
+        .donate-options {
+          display: flex;
+          gap: 10px;
+          justify-content: center;
+          flex-wrap: wrap;
         }
         .donate-btn {
           display: inline-block;
-          padding: 8px 20px;
-          background: var(--accent-soft);
-          color: var(--accent);
+          padding: 8px 18px;
           text-decoration: none;
           border-radius: 20px;
           font-size: var(--text-sm);
           font-weight: 600;
-          border: 1px solid var(--accent);
+          cursor: pointer;
           transition: var(--transition);
+          font-family: inherit;
         }
-        .donate-btn:hover {
-          background: var(--accent);
+        .donate-btn.paypal {
+          background: #0070ba;
           color: white;
+          border: 1px solid #0070ba;
+        }
+        .donate-btn.paypal:hover {
+          background: #005ea6;
+        }
+        .donate-btn.pix {
+          background: #32bcad;
+          color: white;
+          border: 1px solid #32bcad;
+        }
+        .donate-btn.pix:hover {
+          background: #25a89a;
         }
       `}</style>
     </form>

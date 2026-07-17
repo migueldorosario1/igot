@@ -123,7 +123,7 @@ export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
               📌 Salvar
             </button>
           )}
-          {action && (
+          {(action || state.result) && (
             <button className="ai-close" onClick={onClose} aria-label="Fechar">
               ×
             </button>
@@ -220,6 +220,8 @@ export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
         .ai-body {
           flex: 1;
           overflow-y: auto;
+          overscroll-behavior: contain;
+          min-height: 0;
           padding: 20px;
           display: flex;
           flex-direction: column;
