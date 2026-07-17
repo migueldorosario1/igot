@@ -281,6 +281,10 @@ export async function deleteBookFromLibrary(id: string): Promise<void> {
  */
 export async function migrateLegacyBook(): Promise<void> {
   try {
+    // Se já migrou (ou limpou a estante), não roda de novo.
+    if (typeof localStorage !== "undefined" && localStorage.getItem("igot.migrated") === "1") {
+      return;
+    }
     const db = await openDBWithBooks();
     // Lê o livro antigo (store 'sessions', chave 'current').
     const old = await new Promise<Session | null>((resolve) => {
@@ -325,25 +329,42 @@ export async function migrateLegacyBook(): Promise<void> {
       tx.onerror = () => resolve();
     });
     db3.close();
+    // Marca que migrou (não roda de novo).
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem("igot.migrated", "1");
+    }
     console.log("[igot] Livro legado migrado pra estante:", newId);
   } catch (err) {
     console.warn("[igot] Migração de livro legado falhou:", err);
   }
 }
 
-/** Limpa TODOS os livros da estante. */
+/**
+ * Limpa TODOS os livros da estante — de TODAS as fontes:
+ * - Store 'books' (estante nova)
+ * - Store 'sessions' (legado) — senão migração recria
+ * - Flag de migração (localStorage) — senão migração roda de novo
+ */
 export async function clearLibrary(): Promise<void> {
+  // 1. Limpa o store 'books' (estante).
   const db = await openDBWithBooks();
-  return new Promise((resolve, reject) => {
+  await new Promise<void>((resolve, reject) => {
     const tx = db.transaction(BOOKS_STORE, "readwrite");
     tx.objectStore(BOOKS_STORE).clear();
-    tx.oncomplete = () => {
-      db.close();
-      resolve();
-    };
-    tx.onerror = () => {
-      db.close();
-      reject(tx.error ?? new Error("Erro ao limpar estante."));
-    };
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error ?? new Error("Erro ao limpar books."));
   });
+  // 2. Limpa o store 'sessions' (legado) no MESMO db — senão a migração
+  //    detecta o livro antigo e recria na próxima carga.
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).clear();
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error ?? new Error("Erro ao limpar sessions."));
+  });
+  db.close();
+  // 3. Marca que a migração já terminou (não roda de novo).
+  if (typeof localStorage !== "undefined") {
+    localStorage.setItem("igot.migrated", "1");
+  }
 }

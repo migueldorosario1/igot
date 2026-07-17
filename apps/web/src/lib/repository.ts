@@ -221,9 +221,16 @@ export async function saveToLibrary(session: Session, userId?: string | null): P
   });
 }
 
-/** Remove livro da biblioteca (local + nuvem). */
+/**
+ * Remove livro da biblioteca (local + nuvem + legado).
+ * Marca flag de migração pra evitar recriação.
+ */
 export async function removeFromLibrary(id: string, userId?: string | null): Promise<void> {
   await deleteBookFromLibrary(id).catch(() => {});
+  // Marca migração como feita — senão o livro legado recria o que acabou de excluir.
+  if (typeof localStorage !== "undefined") {
+    localStorage.setItem("igot.migrated", "1");
+  }
   if (!userId) return;
   const supabase = createClient();
   await supabase.from("books").delete().eq("id", id);
