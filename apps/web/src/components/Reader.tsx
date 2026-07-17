@@ -870,6 +870,8 @@ export function Reader({
         onPointerUp={handleSelection}
         onDoubleClick={handleDoubleClick}
         onClick={handleInvisibleMark}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       >
         {book.sourceFormat === "pdf" && pdfSource ? (
           <PdfPageCanvas
