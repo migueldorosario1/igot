@@ -61,7 +61,16 @@ export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
           : await explainStream(action.text, bookCtx, onChunk);
 
       if (cancelled) return;
-      if (!res.ok) {
+      if (res.ok && res.text) {
+        setState({ loading: false, result: res.text, error: null });
+        // AUTO-SAVE: toda tradução/explicação é salva automaticamente nas notas.
+        onSaveNote?.({
+          kind: action.type,
+          source: action.text,
+          result: res.text,
+          chapterId: action.chapterId,
+        });
+      } else {
         setState({ loading: false, result: null, error: res.error ?? "Erro." });
       }
     };

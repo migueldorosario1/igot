@@ -78,25 +78,42 @@ export default function HomePage() {
     };
   }, [authResolved, auth.userId]);
 
-  // Abre um arquivo novo → DEDUPLICA se já existe → navega pra /book/[id].
+  // Abre um arquivo: se JÁ EXISTE na estante (mesmo título ou tamanho),
+  // abre o livro existente (com progresso salvo). Senão, cria novo.
   const handleFile = useCallback(
     async (file: File) => {
       setAddingBook(true);
       setUploadError(null);
       try {
         const data = await file.arrayBuffer();
+
+        // ANTES de parsear, checa se já existe pelo tamanho do arquivo
+        // (mais rápido que parsear tudo pra depois descartar).
+        const existingBySize = books.find(
+          (b) => b.fileName === file.name && b.fileSize === file.size,
+        );
+        if (existingBySize) {
+          // Livro já existe! Abre direto (com progresso salvo).
+          router.push(`/book/${existingBySize.id}`);
+          return;
+        }
+
         const result = await parseBook({ data: data.slice(0), fileName: file.name });
         if (result.ok) {
-          // DEDUPLICAÇÃO: se já existe um livro com mesmo título OU mesmo
-          // nome+tamanho de arquivo, reusa o ID (não cria duplicata na estante).
-          const existing = books.find(
-            (b) =>
-              b.book.title === result.book?.title ||
-              (b.fileName === file.name && b.fileSize === file.size),
+          // DEDUPLICAÇÃO por título (caso nome do arquivo seja diferente).
+          const existingByTitle = books.find(
+            (b) => b.book.title === result.book?.title,
           );
-          const bookId =
-            existing?.id ??
-            `b${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+          if (existingByTitle) {
+            // Atualiza o pdfSource (caso tenha sido perdido) e abre.
+            existingByTitle.pdfSource = result.book.sourceFormat === "pdf" ? new Uint8Array(data) : null;
+            await saveToLibrary(existingByTitle, auth.userId);
+            router.push(`/book/${existingByTitle.id}`);
+            return;
+          }
+
+          // Livro NOVO — cria entry na estante.
+          const bookId = `b${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
           const session: Session = {
             id: bookId,
             fileName: file.name,
