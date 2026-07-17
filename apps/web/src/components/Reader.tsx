@@ -84,6 +84,8 @@ export function Reader({
     x: number;
     y: number;
     text: string;
+    /** "above" = menu acima da seleção (padrão); "below" = quando não cabe em cima. */
+    placement: "above" | "below";
   } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -594,11 +596,15 @@ export function Reader({
     const range = sel.getRangeAt(0);
     const rect = range.getBoundingClientRect();
     const containerRect = containerRef.current?.getBoundingClientRect();
-    setMenu({
-      x: rect.left + rect.width / 2 - (containerRect?.left ?? 0),
-      y: rect.top - (containerRect?.top ?? 0) - 12,
-      text,
-    });
+    const menuW = 300;
+    const menuH = 52;
+    const contW = containerRect?.width ?? 800;
+    const rawX = rect.right - (containerRect?.left ?? 0);
+    const clampedX = Math.max(menuW / 2 + 8, Math.min(contW - menuW / 2 - 8, rawX - menuW / 2));
+    const relTop = rect.top - (containerRect?.top ?? 0);
+    const placement: "above" | "below" = relTop < menuH + 16 ? "below" : "above";
+    const y = placement === "above" ? relTop - 12 : rect.bottom - (containerRect?.top ?? 0) + 12;
+    setMenu({ x: clampedX, y: Math.max(20, y), text, placement });
   };
 
   /**
@@ -630,17 +636,18 @@ export function Reader({
         }
         const rect = range.getBoundingClientRect();
         const containerRect = containerRef.current?.getBoundingClientRect();
-        // Posiciona ACIMA da seleção com distância (não sobrepõe o texto).
-        // Clamp horizontal pra não sair da tela em seleções largas.
-        const menuW = 280; // largura aproximada do menu
-        const halfW = menuW / 2;
-        const rawX = rect.left + rect.width / 2 - (containerRect?.left ?? 0);
-        const clampedX = Math.max(halfW + 8, Math.min((containerRect?.width ?? 800) - halfW - 8, rawX));
-        setMenu({
-          x: clampedX,
-          y: Math.max(10, rect.top - (containerRect?.top ?? 0) - 56),
-          text,
-        });
+        // Menu ACIMA da seleção, alinhado à DIREITA (o menu nativo iOS aparece
+        // no centro horizontal — assim não se sobrepõem).
+        const menuW = 300;
+        const menuH = 52; // altura aproximada do menu
+        const rawX = rect.right - (containerRect?.left ?? 0);
+        const contW = containerRect?.width ?? 800;
+        const clampedX = Math.max(menuW / 2 + 8, Math.min(contW - menuW / 2 - 8, rawX - menuW / 2));
+        const relTop = rect.top - (containerRect?.top ?? 0);
+        // Se não cabe acima (topo da página), mostra ABAIXO da seleção.
+        const placement: "above" | "below" = relTop < menuH + 16 ? "below" : "above";
+        const y = placement === "above" ? relTop - 12 : rect.bottom - (containerRect?.top ?? 0) + 12;
+        setMenu({ x: clampedX, y: Math.max(20, y), text, placement });
       }, 180);
     };
     document.addEventListener("selectionchange", check);
@@ -674,11 +681,15 @@ export function Reader({
     const containerRect = containerRef.current?.getBoundingClientRect();
     const text = sel.toString().trim();
     if (text.length >= 2) {
-      setMenu({
-        x: rect.left + rect.width / 2 - (containerRect?.left ?? 0),
-        y: Math.max(10, rect.top - (containerRect?.top ?? 0) - 50),
-        text,
-      });
+      const menuW = 300;
+      const menuH = 52;
+      const contW = containerRect?.width ?? 800;
+      const rawX = rect.right - (containerRect?.left ?? 0);
+      const clampedX = Math.max(menuW / 2 + 8, Math.min(contW - menuW / 2 - 8, rawX - menuW / 2));
+      const relTop = rect.top - (containerRect?.top ?? 0);
+      const placement: "above" | "below" = relTop < menuH + 16 ? "below" : "above";
+      const y = placement === "above" ? relTop - 12 : rect.bottom - (containerRect?.top ?? 0) + 12;
+      setMenu({ x: clampedX, y: Math.max(20, y), text, placement });
     }
   };
 
@@ -938,7 +949,7 @@ export function Reader({
 
       {menu && (
         <div
-          className="selection-menu"
+          className={`selection-menu ${menu.placement === "below" ? "placement-below" : "placement-above"}`}
           style={{ left: menu.x, top: menu.y }}
           role="menu"
         >
@@ -1602,9 +1613,6 @@ export function Reader({
         }
         .selection-menu {
           position: absolute;
-          transform: translate(-50%, 0);
-          /* Fundo FORTE/destinto — sobressai da página e do menu nativo iOS.
-             Usa o accent (terracota) com leve transparência + blur. */
           background: var(--accent);
           border: 2px solid rgba(255, 255, 255, 0.4);
           border-radius: 14px;
@@ -1613,10 +1621,15 @@ export function Reader({
           align-items: center;
           gap: 2px;
           padding: 5px;
-          /* z-index MUITO alto — fica acima de qualquer overlay do app.
-             (O menu nativo iOS é system-level e não pode ser sobreposto por HTML,
-             mas assim nosso menu aparece claramente assim que o nativo some.) */
           z-index: 9999;
+        }
+        /* Acima: sobe o menu pra cima da coordenada (padrão). */
+        .selection-menu.placement-above {
+          transform: translate(-50%, -100%);
+        }
+        /* Abaixo: quando não cabe em cima (topo da página). */
+        .selection-menu.placement-below {
+          transform: translate(-50%, 0);
         }
         .selection-menu button {
           border: none;
