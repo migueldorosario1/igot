@@ -33,6 +33,8 @@ interface PdfPageCanvasProps {
   showTranslation?: boolean;
   /** Recebe o texto extraído da página atual (pra "Traduzir página"). */
   onPageText?: (text: string) => void;
+  /** Entrega o canvas renderizado ao pai (pra snapshot/foto da página). */
+  onCanvasReady?: (canvas: HTMLCanvasElement) => void;
 }
 
 type Status = "loading" | "ready" | "error";
@@ -78,6 +80,7 @@ export function PdfPageCanvas({
   translationOverlay = null,
   showTranslation = false,
   onPageText,
+  onCanvasReady,
 }: PdfPageCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -231,6 +234,8 @@ export function PdfPageCanvas({
 
         // PRONTO: só agora revelamos a página, já 100% alinhada.
         setPageReady(true);
+        // Entrega o canvas ao pai (pra snapshot/foto da página).
+        if (canvas) onCanvasReady?.(canvas);
       } catch (err) {
         if (cancelled) return;
         // RenderingCancelledException é esperada em re-renders; ignora.

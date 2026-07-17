@@ -84,6 +84,8 @@ export function Reader({
   } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Canvas do PDF renderizado (pra snapshot/foto da página).
+  const pdfCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [menuVisible, setMenuVisible] = useState(true);
   const [bookmarksOpen, setBookmarksOpen] = useState(false);
@@ -186,6 +188,217 @@ export function Reader({
       }, 300);
     }
   };
+
+  /**
+   * Salva a página atual como imagem PNG no dispositivo do usuário.
+   *
+   * PDF: reaproveita o canvas em alta resolução já renderizado pelo pdfjs
+   *      (inclui Retina/devicePixelRatio — fica nítido).
+   * EPUB: desenha um canvas novo com a tipografia serifada do livro, fundo
+   *       branco, título do capítulo e blocos de texto — uma "foto da página".
+   *
+   * O download usa um <a download> temporário (funciona em iOS Safari 14.5+
+   * e Android Chrome). Em iOS mais antigo, abre num blob URL pra o usuário
+   * segurar e salvar.
+   */
+  const savePageAsImage = () => {
+    const safeTitle = (book.title || "livro").replace(/[^\w\u00C0-\u017F\s-]/g, "").trim().replace(/\s+/g, "_");
+    const pageLabel = book.sourceFormat === "pdf" ? `pag${chapterIdx + 1}` : `cap${chapterIdx + 1}`;
+    const fileName = `igot-${safeTitle}-${pageLabel}.png`;
+
+    let canvas: HTMLCanvasElement | null = null;
+
+    if (book.sourceFormat === "pdf" && pdfCanvasRef.current) {
+      // PDF: usa o canvas já renderizado (inclui alta resolução Retina).
+      canvas = pdfCanvasRef.current;
+    } else {
+      // EPUB: desenha a página num canvas novo.
+      canvas = renderEpubToCanvas();
+    }
+
+    if (!canvas) return;
+
+    try {
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = fileName;
+        // Dica visual antes de baixar (iOS mostra nome do arquivo).
+        a.rel = "noopener";
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 2000);
+      }, "image/png");
+    } catch {
+      // Fallback: alguns navegadores bloqueiam toBlob em canvas grande.
+      alert("Não foi possível salvar a imagem desta página neste navegador.");
+    }
+  };
+
+  /**
+   * Desenha o conteúdo do capítulo EPUB num canvas (uma "foto da página").
+   * Usa tipografia serifada, fundo branco, quebra de linha por palavra.
+   * Mede o texto primeiro pra dimensionar o canvas na altura certa.
+   */
+  const renderEpubToCanvas = (): HTMLCanvasElement | null => {
+    const ch = chapter;
+    if (!ch) return null;
+
+    // Configurações tipográficas (espelham o .reader-text).
+    const PAGE_W = 1000; // largura fixa em px (depois escala no CSS)
+    const MARGIN = 64;
+    const FONT = "20px Georgia, 'Times New Roman', serif";
+    const LINE_H = 32;
+    const H1_SIZE = "bold 30px Georgia, serif";
+    const H1_LINE_H = 40;
+    const COLOR = "#1a1a1a";
+    const MUTED = "#777";
+
+    // Mede largura do texto pra quebrar linhas.
+    const measure = document.createElement("canvas").getContext("2d");
+    if (!measure) return null;
+    measure.font = FONT;
+
+    const wrapText = (text: string, maxWidth: number): string[] => {
+      const words = text.split(/\s+/);
+      const lines: string[] = [];
+      let line = "";
+      for (const w of words) {
+        const test = line ? `${line} ${w}` : w;
+        if (measure!.measureText(test).width > maxWidth && line) {
+          lines.push(line);
+          line = w;
+        } else {
+          line = test;
+        }
+      }
+      if (line) lines.push(line);
+      return lines;
+    };
+
+    const maxW = PAGE_W - MARGIN * 2;
+    // Constrói lista de blocos renderizáveis (tipo + linhas quebradas).
+    type Block = { type: string; lines: string[] };
+    const blocks: Block[] = [];
+    let totalLines = 0;
+
+    for (const b of ch.blocks) {
+      let lines: string[] = [];
+      let type = "p";
+      if (b.type === "heading") {
+        type = `h${b.level || 1}`;
+        lines = wrapText(b.text ?? "", maxW);
+        totalLines += lines.length + 1; // +1 espaçamento
+      } else if (b.type === "list") {
+        type = "li";
+        for (const it of b.items ?? []) {
+          const wrapped = wrapText(`• ${it}`, maxW);
+          lines.push(...wrapped);
+          totalLines += wrapped.length;
+        }
+        totalLines += 1;
+      } else if (b.type === "quote") {
+        type = "quote";
+        lines = wrapText(b.text ?? "", maxW);
+        totalLines += lines.length + 1;
+      } else if (b.type === "page-break") {
+        continue;
+      } else {
+        lines = wrapText(b.text ?? "", maxW);
+        totalLines += lines.length + 1;
+      }
+      blocks.push({ type, lines });
+    }
+
+    // Altura do canvas = linhas * altura da linha + margens + título.
+    const HEADER_H = 100; // título do livro + capítulo
+    const canvasH = Math.max(800, HEADER_H + totalLines * LINE_H + MARGIN * 2);
+
+    const canvas = document.createElement("canvas");
+    const SCALE = 2; // alta nitidez (x2)
+    canvas.width = PAGE_W * SCALE;
+    canvas.height = canvasH * SCALE;
+    canvas.style.width = `${PAGE_W}px`;
+    canvas.style.height = `${canvasH}px`;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.scale(SCALE, SCALE);
+
+    // Fundo branco.
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, PAGE_W, canvasH);
+
+    // Cabeçalho: título do livro (pequeno, cinza) + capítulo (maior).
+    let y = MARGIN;
+    ctx.fillStyle = MUTED;
+    ctx.font = "italic 14px Georgia, serif";
+    ctx.fillText(book.title.slice(0, 80), MARGIN, y);
+    y += 22;
+    ctx.fillStyle = COLOR;
+    ctx.font = H1_SIZE;
+    const chTitle = ch.title || `Capítulo ${chapterIdx + 1}`;
+    ctx.fillText(chTitle.slice(0, 90), MARGIN, y);
+    y += H1_LINE_H;
+    // Linha separadora.
+    ctx.strokeStyle = "#e0e0e0";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(MARGIN, y);
+    ctx.lineTo(PAGE_W - MARGIN, y);
+    ctx.stroke();
+    y += 32;
+
+    // Blocos de texto.
+    for (const blk of blocks) {
+      if (blk.type.startsWith("h")) {
+        ctx.fillStyle = COLOR;
+        ctx.font = blk.type === "h1" ? "bold 26px Georgia, serif" : "bold 22px Georgia, serif";
+        for (const ln of blk.lines) {
+          ctx.fillText(ln, MARGIN, y);
+          y += LINE_H;
+        }
+      } else if (blk.type === "quote") {
+        ctx.fillStyle = MUTED;
+        ctx.font = `italic ${FONT}`;
+        // Indentação pra quote.
+        for (const ln of blk.lines) {
+          ctx.fillText(ln, MARGIN + 20, y);
+          y += LINE_H;
+        }
+        ctx.fillStyle = COLOR;
+        ctx.font = FONT;
+      } else if (blk.type === "li") {
+        ctx.fillStyle = COLOR;
+        ctx.font = FONT;
+        for (const ln of blk.lines) {
+          ctx.fillText(ln, MARGIN + 16, y);
+          y += LINE_H;
+        }
+      } else {
+        ctx.fillStyle = COLOR;
+        ctx.font = FONT;
+        for (const ln of blk.lines) {
+          ctx.fillText(ln, MARGIN, y);
+          y += LINE_H;
+        }
+      }
+      y += 12; // espaçamento entre blocos.
+    }
+
+    // Rodapé discreto com marca.
+    ctx.fillStyle = "#bbb";
+    ctx.font = "12px Georgia, serif";
+    ctx.fillText("igot · Cafezinho Media Group", MARGIN, canvasH - 24);
+
+    return canvas;
+  };
+
   const [notesOpen, setNotesOpen] = useState(false);
 
   // --- Resultado de trecho em fullscreen (painel flutuante) ---
@@ -541,6 +754,15 @@ export function Reader({
           >
             🖨
           </button>
+          {/* Foto da página (salva PNG no dispositivo) */}
+          <button
+            onClick={savePageAsImage}
+            className="icon-btn"
+            title="Salvar foto desta página (PNG) no seu dispositivo"
+            aria-label="Salvar foto da página"
+          >
+            📸
+          </button>
           {/* Abrir outro livro */}
           <button
             onClick={onCloseBook}
@@ -651,6 +873,7 @@ export function Reader({
             translationOverlay={pageTranslation}
             showTranslation={showTranslation}
             onPageText={setCurrentPageText}
+            onCanvasReady={(c) => (pdfCanvasRef.current = c)}
           />
         ) : (
           <article className="reader-text">
