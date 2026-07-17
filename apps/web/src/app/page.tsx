@@ -8,10 +8,9 @@ import { SettingsModal } from "@/components/SettingsModal";
 import { AuthButton } from "@/components/AuthButton";
 import { hasConfig, loadConfigCache } from "@/lib/config";
 import { useAuth } from "@/lib/auth";
-import { listLibrary, saveToLibrary, removeFromLibrary } from "@/lib/repository";
+import { listLibrary, saveToLibrary, removeFromLibrary, clearAllBooks } from "@/lib/repository";
 import {
   migrateLegacyBook,
-  clearLibrary,
   type Session,
 } from "@/lib/db";
 import { parseBook } from "@igot/parser";
@@ -138,8 +137,8 @@ export default function HomePage() {
               <button
                 className="clear-shelf-btn"
                 onClick={async () => {
-                  if (confirm("Remover todos os livros da estante?")) {
-                    await clearLibrary();
+                  if (confirm("Remover TODOS os livros da estante? Esta ação não pode ser desfeita.")) {
+                    await clearAllBooks(auth.userId);
                     setBooks([]);
                   }
                 }}

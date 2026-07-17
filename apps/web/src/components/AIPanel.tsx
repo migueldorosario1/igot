@@ -157,9 +157,7 @@ export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
 
         {state.error && <p className="ai-error">⚠️ {state.error}</p>}
 
-        {state.result && (
-          <div className="ai-result">{renderMarkdownBold(state.result)}</div>
-        )}
+        {state.result && <div className="ai-result">{state.result}</div>}
       </div>
 
       <footer className="ai-footer">
@@ -337,24 +335,4 @@ export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
 
 function truncate(s: string, n: number): string {
   return s.length > n ? `${s.slice(0, n)}…` : s;
-}
-
-/**
- * Renderiza markdown MÍNIMO: só negrito (**texto**) e itálico (*texto*).
- * Não usa biblioteca — regex simples que converte pra <strong>/<em>.
- * Escapa HTML perigoso antes pra evitar XSS.
- */
-function renderMarkdownBold(text: string): React.ReactNode {
-  // Escapa HTML pra evitar injeção.
-  const escaped = text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-
-  // Converte **negrito** e *itálico*.
-  const html = escaped
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*(.+?)\*/g, "<em>$1</em>");
-
-  return <span dangerouslySetInnerHTML={{ __html: html }} />;
 }

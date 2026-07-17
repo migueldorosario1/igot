@@ -270,7 +270,8 @@ export async function explainPageStream(
     `Cubra: o sentido geral da página, termos ou conceitos importantes, ` +
     `possíveis dificuldades de tradução (idiotismos, referências culturais), ` +
     `e como este trecho se conecta com o resto da obra. ` +
-    `Organize em seções com **negrito** nos títulos. ` +
+    `Use quebras de linha para separar seções. ` +
+    `NÃO use asteriscos, negrito, itálico ou markdown — só texto puro. ` +
     `Não invente — se não souber algo, diga.`;
 
   try {

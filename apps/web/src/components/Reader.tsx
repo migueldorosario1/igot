@@ -67,6 +67,25 @@ export function Reader({
     text: string;
   } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  /** Entra/sai do modo tela cheia (só a página do livro visível). */
+  const toggleFullscreen = () => {
+    const el = containerRef.current;
+    if (!el) return;
+    if (!document.fullscreenElement) {
+      el.requestFullscreen?.().then(() => setIsFullscreen(true)).catch(() => {});
+    } else {
+      document.exitFullscreen?.().then(() => setIsFullscreen(false)).catch(() => {});
+    }
+  };
+
+  // Atualiza estado se sair do fullscreen via ESC.
+  useEffect(() => {
+    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => document.removeEventListener("fullscreenchange", onFsChange);
+  }, []);
   const [notesOpen, setNotesOpen] = useState(false);
 
   // Zoom e tradução de página (só fazem sentido pra PDF).
@@ -297,6 +316,14 @@ export function Reader({
         </div>
         <div className="reader-actions">
           <button
+            onClick={toggleFullscreen}
+            className="fullscreen-btn"
+            title={isFullscreen ? "Sair da tela cheia" : "Tela cheia"}
+            aria-label="Tela cheia"
+          >
+            {isFullscreen ? "🗗" : "⛶"}
+          </button>
+          <button
             onClick={() => setNotesOpen(true)}
             className="notes-btn"
             title="Minhas anotações"
@@ -481,6 +508,18 @@ export function Reader({
           background: var(--bg);
           border-right: 1px solid var(--border);
           position: relative;
+        }
+        /* Em tela cheia: ocupa toda a tela, mantém header + nav visíveis. */
+        .reader:fullscreen {
+          width: 100vw;
+          height: 100vh;
+          border-right: none;
+        }
+        .reader:fullscreen .reader-header {
+          padding: 8px 16px;
+        }
+        .reader:fullscreen .reader-scroll {
+          padding-top: 16px;
         }
         .reader-header {
           display: flex;

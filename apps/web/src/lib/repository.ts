@@ -15,6 +15,7 @@ import {
   saveSession,
   loadSession,
   clearSession,
+  clearLibrary,
   listAllBooks,
   getBookById,
   saveBookToLibrary,
@@ -234,4 +235,23 @@ export async function removeFromLibrary(id: string, userId?: string | null): Pro
   if (!userId) return;
   const supabase = createClient();
   await supabase.from("books").delete().eq("id", id);
+}
+
+/**
+ * Limpa TODA a estante — local (IndexedDB) + nuvem (Supabase) + legado.
+ * É a função que o botão "Limpar tudo" chama. Garante que nada volta.
+ */
+export async function clearAllBooks(userId?: string | null): Promise<void> {
+  // 1. Limpa IndexedDB (store 'books' + 'sessions' + flag migração).
+  await clearLibrary();
+
+  // 2. Limpa Supabase (nuvem) se logado.
+  if (userId) {
+    try {
+      const supabase = createClient();
+      await supabase.from("books").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    } catch (err) {
+      console.warn("Falha ao limpar nuvem:", err);
+    }
+  }
 }
