@@ -88,6 +88,24 @@ export function Reader({
   }, []);
   const [notesOpen, setNotesOpen] = useState(false);
 
+  // --- Swipe horizontal: passar página passando o dedo ---
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    touchStart.current = { x: t.clientX, y: t.clientY };
+  };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStart.current) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStart.current.x;
+    const dy = t.clientY - touchStart.current.y;
+    touchStart.current = null;
+    // Só conta como swipe horizontal se dx > 60px e mais horizontal que vertical.
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy)) return;
+    if (dx > 0) goPrev(); // dedo da esquerda pra direita = anterior
+    else goNext(); // dedo da direita pra esquerda = próxima
+  };
+
   // Zoom e tradução de página (só fazem sentido pra PDF).
   const [zoom, setZoomState] = useState(initialZoom);
   const [pageTranslation, setPageTranslation] = useState<string | null>(null);
