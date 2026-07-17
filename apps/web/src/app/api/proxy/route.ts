@@ -50,6 +50,9 @@ function isHostAllowed(hostname: string): boolean {
   return false;
 }
 
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 export async function POST(req: Request) {
   let payload: ProxyBody;
   try {

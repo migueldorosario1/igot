@@ -458,6 +458,10 @@ a {
   --scale-factor: 1;
   -webkit-user-select: text;
   user-select: text;
+  /* CRÍTICO pra seleção estável: só permite scroll vertical pro navegador.
+     O gesto horizontal (arrastar pra selecionar trechos longos) fica
+     delegado à camada de texto — o navegador não rouba o toque pra pan. */
+  touch-action: pan-y;
 }
 
 .pdf-text-layer span {

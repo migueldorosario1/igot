@@ -40,6 +40,15 @@ export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
     bookLanguage: book.language,
   };
 
+  // Quando o painel é fechado (action → null), limpa o estado interno pra
+  // não mostrar resultado/erro antigo na próxima abertura.
+  useEffect(() => {
+    if (action === null) {
+      setState({ loading: false, result: null, error: null });
+      setQuery("");
+    }
+  }, [action]);
+
   // Dispara a ação (traduzir/explicar) quando ela muda — com STREAMING.
   useEffect(() => {
     if (!action) return;
@@ -132,11 +141,16 @@ export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
               📌 Salvar
             </button>
           )}
-          {(action || state.result) && (
-            <button className="ai-close" onClick={onClose} aria-label="Fechar">
-              ×
-            </button>
-          )}
+          {/* ✕ SEMPRE visível — usuário pode desistir/fechar a qualquer momento,
+              inclusive durante o loading (não fica "presa"). */}
+          <button
+            className="ai-close"
+            onClick={onClose}
+            aria-label="Fechar painel"
+            title="Fechar"
+          >
+            ✕
+          </button>
         </div>
       </header>
 

@@ -85,7 +85,19 @@ function toMessage(err: unknown): string {
     }
   }
   if (err instanceof AIProviderError) return err.message;
-  if (err instanceof Error) return err.message;
+  if (err instanceof Error) {
+    const msg = err.message;
+    // "Failed to fetch" = rede caiu, CORS, OU timeout do serverless.
+    // Mensagem mais útil pro usuário entender o que aconteceu.
+    if (/failed to fetch|networkerror|load failed/i.test(msg)) {
+      return t(lang, "errNetwork");
+    }
+    // AbortError (timeout manual ou navegação durante fetch).
+    if (/abort/i.test(msg) && err.name === "AbortError") {
+      return t(lang, "errTimeout");
+    }
+    return msg;
+  }
   return String(err);
 }
 

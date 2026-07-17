@@ -436,7 +436,11 @@ export function Reader({
   };
 
   // --- Swipe horizontal: passar página passando o dedo ---
+  // Threshold GENEROSO pra evitar trocas acidentais durante scroll/seleção.
+  // Só vira "passar página" se o gesto for longo E claramente horizontal.
   const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const SWIPE_MIN = 110;        // mínimo de 110px pra contar como swipe
+  const SWIPE_MAX_VERTICAL = 50; // se scrollou >50px na vertical, ignora (era scroll)
   const handleTouchStart = (e: React.TouchEvent) => {
     const t = e.touches[0];
     touchStart.current = { x: t.clientX, y: t.clientY };
@@ -447,8 +451,13 @@ export function Reader({
     const dx = t.clientX - touchStart.current.x;
     const dy = t.clientY - touchStart.current.y;
     touchStart.current = null;
-    // Só conta como swipe horizontal se dx > 60px e mais horizontal que vertical.
-    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy)) return;
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
+    // Descarta se: gesto curto, OU scrollou muito na vertical, OU não é
+    // claramente horizontal (dx precisa ser pelo menos 2x o dy).
+    if (absDx < SWIPE_MIN) return;
+    if (absDy > SWIPE_MAX_VERTICAL) return;
+    if (absDx < absDy * 2) return;
     if (dx > 0) goPrev(); // dedo da esquerda pra direita = anterior
     else goNext(); // dedo da direita pra esquerda = próxima
   };
@@ -593,7 +602,8 @@ export function Reader({
    * Escuta mudanças de seleção no documento (funciona em mouse E touch).
    * No iPad/touch puro, o onMouseUp às vezes não dispara depois de arrastar
    * pra selecionar — o selectionchange é o evento confiável. Mostra o menu
-   * quando a seleção estabiliza (debounce de 250ms).
+   * quando a seleção estabiliza (debounce curto: 180ms pra aparecer antes do
+   * menu nativo do iOS, que costuma demorar ~300ms).
    */
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -618,12 +628,17 @@ export function Reader({
         const rect = range.getBoundingClientRect();
         const containerRect = containerRef.current?.getBoundingClientRect();
         // Posiciona ACIMA da seleção com distância (não sobrepõe o texto).
+        // Clamp horizontal pra não sair da tela em seleções largas.
+        const menuW = 280; // largura aproximada do menu
+        const halfW = menuW / 2;
+        const rawX = rect.left + rect.width / 2 - (containerRect?.left ?? 0);
+        const clampedX = Math.max(halfW + 8, Math.min((containerRect?.width ?? 800) - halfW - 8, rawX));
         setMenu({
-          x: rect.left + rect.width / 2 - (containerRect?.left ?? 0),
-          y: Math.max(10, rect.top - (containerRect?.top ?? 0) - 50),
+          x: clampedX,
+          y: Math.max(10, rect.top - (containerRect?.top ?? 0) - 56),
           text,
         });
-      }, 250);
+      }, 180);
     };
     document.addEventListener("selectionchange", check);
     return () => {
@@ -929,6 +944,15 @@ export function Reader({
           </button>
           <button onClick={() => fire("explain")} role="menuitem">
             🧠 Explicar
+          </button>
+          <button
+            className="selection-menu-close"
+            onClick={() => { setMenu(null); window.getSelection()?.removeAllRanges(); }}
+            role="menuitem"
+            aria-label="Fechar menu"
+            title="Fechar"
+          >
+            ✕
           </button>
         </div>
       )}
@@ -1560,27 +1584,49 @@ export function Reader({
         .selection-menu {
           position: absolute;
           transform: translate(-50%, 0);
-          background: var(--surface);
-          border: 1px solid var(--border);
-          border-radius: 10px;
-          box-shadow: var(--shadow);
+          /* Fundo FORTE/destinto — sobressai da página e do menu nativo iOS.
+             Usa o accent (terracota) com leve transparência + blur. */
+          background: var(--accent);
+          border: 2px solid rgba(255, 255, 255, 0.4);
+          border-radius: 14px;
+          box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28);
           display: flex;
+          align-items: center;
           gap: 2px;
-          padding: 4px;
-          z-index: 10;
+          padding: 5px;
+          /* z-index MUITO alto — fica acima de qualquer overlay do app.
+             (O menu nativo iOS é system-level e não pode ser sobreposto por HTML,
+             mas assim nosso menu aparece claramente assim que o nativo some.) */
+          z-index: 9999;
         }
         .selection-menu button {
           border: none;
           background: transparent;
-          color: var(--text);
-          padding: 8px 14px;
-          border-radius: 8px;
-          font-size: 14px;
+          color: white;
+          padding: 10px 16px;
+          border-radius: 10px;
+          font-size: 15px;
+          font-weight: 600;
           white-space: nowrap;
+          cursor: pointer;
         }
-        .selection-menu button:hover {
-          background: var(--accent-soft);
-          color: var(--accent);
+        .selection-menu button:hover,
+        .selection-menu button:active {
+          background: rgba(255, 255, 255, 0.25);
+        }
+        .selection-menu-close {
+          width: 36px !important;
+          height: 36px;
+          padding: 0 !important;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          opacity: 0.85;
+          font-size: 16px !important;
+        }
+        .selection-menu-close:hover {
+          opacity: 1;
+          background: rgba(0, 0, 0, 0.2) !important;
         }
       `}</style>
     </section>

@@ -15,6 +15,8 @@ export type MessageKey =
   | "errRateLimit"
   | "errServer"
   | "errGeneric"
+  | "errNetwork"
+  | "errTimeout"
   | "errNoConfig"
   | "errNoText";
 
@@ -29,6 +31,8 @@ const STRINGS: Record<string, Messages> = {
     errServer:
       "O provedor de IA está com problema no servidor dele. Não é falha do igot — tente de novo em alguns minutos, ou troque de provedor nas Configurações (⚙️).",
     errGeneric: "Erro ao contatar o provedor (código {code}).",
+    errNetwork: "Falha de conexão. Verifique sua internet ou tente novamente — o provedor demorou demais para responder.",
+    errTimeout: "A requisição demorou demais e foi cancelada. Tente novamente.",
     errNoConfig: "IA não configurada. Abra Configurações (⚙️) e escolha um provedor.",
     errNoText: "Página sem texto para traduzir.",
   },
@@ -40,6 +44,8 @@ const STRINGS: Record<string, Messages> = {
     errServer:
       "The AI provider is having server issues. This is not an igot problem — try again in a few minutes, or switch providers in Settings (⚙️).",
     errGeneric: "Error contacting the provider (code {code}).",
+    errNetwork: "Connection failed. Check your internet or try again — the provider took too long to respond.",
+    errTimeout: "The request took too long and was cancelled. Please try again.",
     errNoConfig: "AI not configured. Open Settings (⚙️) and choose a provider.",
     errNoText: "Page has no text to translate.",
   },
@@ -51,6 +57,8 @@ const STRINGS: Record<string, Messages> = {
     errServer:
       "El proveedor de IA tiene problemas en su servidor. No es un error de igot — inténtalo de nuevo en unos minutos, o cambia de proveedor en Configuración (⚙️).",
     errGeneric: "Error al contactar al proveedor (código {code}).",
+    errNetwork: "Fallo de conexión. Revisa tu internet o inténtalo de nuevo — el proveedor tardó demasiado en responder.",
+    errTimeout: "La solicitud tardó demasiado y se canceló. Inténtalo de nuevo.",
     errNoConfig: "IA no configurada. Abre Configuración (⚙️) y elige un proveedor.",
     errNoText: "La página no tiene texto para traducir.",
   },
@@ -62,6 +70,8 @@ const STRINGS: Record<string, Messages> = {
     errServer:
       "Le fournisseur d'IA a des problèmes de serveur. Ce n'est pas un problème igot — réessayez dans quelques minutes, ou changez de fournisseur dans les Paramètres (⚙️).",
     errGeneric: "Erreur lors du contact du fournisseur (code {code}).",
+    errNetwork: "Échec de connexion. Vérifiez votre internet ou réessayez — le fournisseur a mis trop de temps à répondre.",
+    errTimeout: "La requête a pris trop de temps et a été annulée. Veuillez réessayer.",
     errNoConfig: "IA non configurée. Ouvrez les Paramètres (⚙️) et choisissez un fournisseur.",
     errNoText: "La page n'a pas de texte à traduire.",
   },
@@ -71,6 +81,8 @@ const STRINGS: Record<string, Messages> = {
       "已达使用限额（请求过多）。您在短时间内调用过多，或已用完免费额度。请稍等几分钟再试，或在设置 (⚙️) 中更换提供商。",
     errServer: "AI 提供商服务器出现问题。这不是 igot 的故障——请几分钟后重试，或在设置 (⚙️) 中更换提供商。",
     errGeneric: "联系提供商时出错（代码 {code}）。",
+    errNetwork: "连接失败。请检查网络或重试——提供商响应超时。",
+    errTimeout: "请求超时已取消。请重试。",
     errNoConfig: "AI 未配置。打开设置 (⚙️) 并选择一个提供商。",
     errNoText: "页面没有可翻译的文本。",
   },
@@ -82,6 +94,8 @@ const STRINGS: Record<string, Messages> = {
     errServer:
       "У провайдера ИА проблемы с сервером. Это не ошибка igot — попробуйте через несколько минут или смените провайдера в Настройках (⚙️).",
     errGeneric: "Ошибка при обращении к провайдеру (код {code}).",
+    errNetwork: "Сбой подключения. Проверьте интернет или попробуйте снова — провайдер слишком долго отвечал.",
+    errTimeout: "Запрос занял слишком много времени и был отменён. Попробуйте снова.",
     errNoConfig: "ИА не настроена. Откройте Настройки (⚙️) и выберите провайдера.",
     errNoText: "На странице нет текста для перевода.",
   },
@@ -93,6 +107,8 @@ const STRINGS: Record<string, Messages> = {
     errServer:
       "Der KI-Anbieter hat Serverprobleme. Das ist kein igot-Fehler — versuchen Sie es in wenigen Minuten erneut oder wechseln Sie den Anbieter in den Einstellungen (⚙️).",
     errGeneric: "Fehler beim Kontaktieren des Anbieters (Code {code}).",
+    errNetwork: "Verbindung fehlgeschlagen. Prüfen Sie Ihr Internet oder versuchen Sie es erneut — der Anbieter brauchte zu lange.",
+    errTimeout: "Die Anfrage dauerte zu lange und wurde abgebrochen. Bitte versuchen Sie es erneut.",
     errNoConfig: "KI nicht konfiguriert. Öffnen Sie die Einstellungen (⚙️) und wählen Sie einen Anbieter.",
     errNoText: "Seite hat keinen Text zum Übersetzen.",
   },
@@ -103,6 +119,8 @@ const STRINGS: Record<string, Messages> = {
     errServer:
       "AIプロバイダーのサーバーに問題があります。これはigotの障害ではありません — 数分後に再試行するか、設定 (⚙️) でプロバイダーを変更してください。",
     errGeneric: "プロバイダーへの接続エラー（コード {code}）。",
+    errNetwork: "接続に失敗しました。インターネットを確認するか再試行してください — プロバイダーの応答がタイムアウトしました。",
+    errTimeout: "リクエストがタイムアウトし、キャンセルされました。再試行してください。",
     errNoConfig: "AIが設定されていません。設定 (⚙️) を開いてプロバイダーを選択してください。",
     errNoText: "ページに翻訳するテキストがありません。",
   },
