@@ -687,7 +687,7 @@ export function Reader({
   );
 
   return (
-    <section className="reader" ref={containerRef}>
+    <section className="reader" ref={containerRef} data-menu-hidden={!menuVisible}>
       <header className="reader-header" data-hidden={!menuVisible}>
         {/* Logo Cafezinho — sempre presente, canto esquerdo, vazada */}
         <a
@@ -1063,6 +1063,20 @@ export function Reader({
         }
         .reader:fullscreen .reader-header {
           padding: 8px 16px;
+          /* Header fica NO FLUXO NORMAL — empurra o texto pra baixo (não sobrepõe).
+             Quando oculto, colapsa a altura em vez de flutuar. */
+          flex-shrink: 0;
+          overflow: hidden;
+          transition: max-height 200ms ease, opacity 200ms ease, padding 200ms ease;
+          max-height: 200px;
+        }
+        .reader:fullscreen[data-menu-hidden="true"] .reader-header {
+          max-height: 0;
+          padding-top: 0;
+          padding-bottom: 0;
+          opacity: 0;
+          border-bottom-color: transparent;
+          pointer-events: none;
         }
         .reader:fullscreen .reader-scroll {
           padding-top: 16px;
@@ -1071,16 +1085,25 @@ export function Reader({
           display: flex;
           align-items: center;
           justify-content: space-between;
+          gap: 12px;
           padding: 14px 28px;
           border-bottom: 1px solid var(--border);
           background: var(--surface);
+          flex-shrink: 0;
         }
         .reader-actions {
           display: flex;
           align-items: center;
-          gap: 12px;
-          flex-wrap: wrap;
+          gap: 8px;
+          /* NÃO faz wrap — scroll horizontal quando cabe pouco (fullscreen mobile).
+             Antes o wrap empilhava botões e o 🗕 ficava fora do alcance do clique. */
+          flex-wrap: nowrap;
+          overflow-x: auto;
           justify-content: flex-end;
+          scrollbar-width: none;
+        }
+        .reader-actions::-webkit-scrollbar {
+          display: none;
         }
         .reader-zoom {
           display: flex;
@@ -1190,31 +1213,17 @@ export function Reader({
           border-color: var(--accent);
         }
 
-        /* Em fullscreen, esconde o header quando menu invisível */
-        .reader:fullscreen .reader-header[data-hidden="true"] {
-          transform: translateY(-100%);
-          opacity: 0;
-          pointer-events: none;
-        }
-        .reader:fullscreen .reader-header {
-          transition: transform 200ms ease, opacity 200ms ease;
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          z-index: 50;
-          background: rgba(var(--surface-rgb, 255, 255, 255), 0.96);
-          backdrop-filter: blur(8px);
-        }
-        /* Nav-bar também some quando menu invisível em fullscreen */
+        /* Nav-bar: colapsa quando menu invisível em fullscreen */
         .reader:fullscreen .reader-nav-bar {
-          transition: transform 200ms ease, opacity 200ms ease;
+          transition: max-height 200ms ease, opacity 200ms ease;
+          max-height: 80px;
+          overflow: hidden;
         }
-        .reader:fullscreen[data-menu-hidden="true"] .reader-nav-bar,
-        .reader:fullscreen .reader-nav-bar[data-hidden="true"] {
-          transform: translateY(100%);
+        .reader:fullscreen[data-menu-hidden="true"] .reader-nav-bar {
+          max-height: 0;
           opacity: 0;
           pointer-events: none;
+          border-top-color: transparent;
         }
 
         /* Botão flutuante pra re-mostrar menu em fullscreen (logo Cafezinho) */
@@ -1375,10 +1384,18 @@ export function Reader({
           white-space: pre-wrap;
           color: var(--text);
         }
+        .reader-title {
+          min-width: 0; /* permite encolher no flex */
+          flex-shrink: 1;
+          overflow: hidden;
+        }
         .reader-title h1 {
           margin: 0;
           font-size: 16px;
           font-weight: 600;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
         .reader-author {
           font-size: 13px;
