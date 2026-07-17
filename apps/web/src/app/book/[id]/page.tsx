@@ -97,11 +97,7 @@ export default function BookPage({ params }: { params: { id: string } }) {
 
   return (
     <main className="igot-shell">
-      <TopBar
-        configReady={configReady}
-        onOpenSettings={() => setSettingsOpen(true)}
-        auth={auth}
-      />
+      <TopBar auth={auth} />
       <div className="igot-workspace">
         <Reader
           book={session.book}
@@ -113,6 +109,7 @@ export default function BookPage({ params }: { params: { id: string } }) {
           onZoomChange={(z) => updateSession({ zoom: z })}
           onCloseBook={() => router.push("/")}
           onOpenSettings={() => setSettingsOpen(true)}
+          configReady={configReady}
           translations={session.translations ?? {}}
           onPageTranslation={(chapIdx, text) => {
             const key = String(chapIdx + 1);
@@ -193,14 +190,10 @@ export default function BookPage({ params }: { params: { id: string } }) {
   );
 }
 
-/** Barra superior reusada (igual à home). */
+/** Barra superior reusada (igual à home, mas sem ⚙️ — fica no Reader). */
 function TopBar({
-  configReady,
-  onOpenSettings,
   auth,
 }: {
-  configReady: boolean;
-  onOpenSettings: () => void;
   auth: ReturnType<typeof useAuth>;
 }) {
   const goToEstante = () => {
@@ -227,13 +220,6 @@ function TopBar({
           onSignIn={auth.signInWithGoogle}
           onSignOut={auth.signOut}
         />
-        <button
-          className={`gear ${configReady ? "" : "unset"}`}
-          onClick={onOpenSettings}
-          aria-label="Configurações de IA"
-        >
-          ⚙️
-        </button>
       </div>
     </div>
   );

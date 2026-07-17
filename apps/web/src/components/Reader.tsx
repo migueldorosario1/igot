@@ -24,6 +24,8 @@ interface ReaderProps {
   onCloseBook?: () => void;
   /** Abre as configurações de IA (pra acessar em fullscreen). */
   onOpenSettings?: () => void;
+  /** True se já tem configuração de IA salva (mostra indicador se falso). */
+  configReady?: boolean;
   /** Traduções já prontas (chave = String(chapterIdx+1)). */
   translations?: Record<string, string>;
   /** Persiste a tradução de uma página. */
@@ -67,6 +69,7 @@ export function Reader({
   onZoomChange,
   onCloseBook,
   onOpenSettings,
+  configReady = true,
   translations = {},
   onPageTranslation,
   notes = [],
@@ -747,7 +750,7 @@ export function Reader({
           {onOpenSettings && (
             <button
               onClick={onOpenSettings}
-              className="icon-btn"
+              className={`icon-btn settings-gear ${configReady ? "" : "unset"}`}
               title="Configurações de IA"
               aria-label="Configurações"
             >
@@ -1242,6 +1245,22 @@ export function Reader({
         .bookmark-btn.active {
           background: var(--accent-soft);
           border-color: var(--accent);
+        }
+        /* ⚙️ não configurado: ponto vermelho de alerta (igual ao TopBar antigo) */
+        .settings-gear.unset {
+          position: relative;
+          border-color: var(--accent);
+        }
+        .settings-gear.unset::after {
+          content: "";
+          position: absolute;
+          top: 5px;
+          right: 5px;
+          width: 9px;
+          height: 9px;
+          background: #e74c3c;
+          border-radius: 50%;
+          border: 2px solid var(--surface);
         }
 
         /* Nav-bar: colapsa quando menu invisível em fullscreen */
