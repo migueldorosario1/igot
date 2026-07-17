@@ -62,18 +62,21 @@ export default function HomePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Quando auth resolve (login/logout), recarrega a estante — mas sem piscar.
+  // Quando auth resolve (login/logout), recarrega a estante — mas só se
+  // mudou de 'loading' pra outro estado. NÃO zera books durante o carregamento.
+  const authResolved = auth.status !== "loading";
   useEffect(() => {
-    if (auth.status === "loading") return;
+    if (!authResolved) return;
     let cancelled = false;
     (async () => {
       const list = await listLibrary(auth.userId).catch(() => []);
-      if (!cancelled) setBooks(list);
+      if (!cancelled && list.length > 0) setBooks(list);
+      // Se a lista da nuvem for vazia, NÃO zera a local (evita flash).
     })();
     return () => {
       cancelled = true;
     };
-  }, [auth.status, auth.userId]);
+  }, [authResolved, auth.userId]);
 
   // Abre um arquivo novo → DEDUPLICA se já existe → navega pra /book/[id].
   const handleFile = useCallback(
