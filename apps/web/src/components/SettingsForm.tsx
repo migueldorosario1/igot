@@ -379,7 +379,7 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
               em qualquer idioma. Desenvolvido por:
             </p>
             <p>
-              <strong>Miguel do Rosário</strong><br />
+              <strong>Miguel Gomes Barbosa do Rosário</strong><br />
               Cafezinho Media Group<br />
               Produtora de conteúdo e aplicativos<br />
               Niterói, RJ — Brasil<br />
@@ -406,9 +406,9 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
             className="donate-btn pix"
             onClick={() => {
               navigator.clipboard?.writeText("migueldorosario2@gmail.com").then(() => {
-                alert("PIX copiado: migueldorosario2@gmail.com");
+                alert("PIX copiado!\n\nChave: migueldorosario2@gmail.com\nNome: Miguel Gomes Barbosa do Rosário\nBanco: Nubank");
               }).catch(() => {
-                alert("PIX: migueldorosario2@gmail.com");
+                alert("PIX: migueldorosario2@gmail.com\nNome: Miguel Gomes Barbosa do Rosário\nBanco: Nubank");
               });
             }}
           >
