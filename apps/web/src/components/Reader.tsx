@@ -110,6 +110,7 @@ export function Reader({
   const [zoom, setZoomState] = useState(initialZoom);
   const [pageTranslation, setPageTranslation] = useState<string | null>(null);
   const [showTranslation, setShowTranslation] = useState(false);
+  const [overlayMode, setOverlayMode] = useState<"translate" | "explain" | null>(null);
   const [translatingPage, setTranslatingPage] = useState(false);
   const [currentPageText, setCurrentPageText] = useState("");
 
@@ -148,6 +149,7 @@ export function Reader({
       setPageTranslation(null);
       setShowTranslation(false);
     }
+    setOverlayMode(null);
     setCurrentPageText("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chapterIdx]);
@@ -156,16 +158,24 @@ export function Reader({
   const zoomOut = () => setZoom((z) => Math.max(MIN_ZOOM, +(z - ZOOM_STEP).toFixed(2)));
   const zoomReset = () => setZoom(1);
 
-  // Traduz OU explica a página inteira com STREAMING.
-  // Persiste a tradução (não a explicação — explicação é efêmera).
+  // Traduz OU explica a página inteira. Estados SEPARADOS — um botão não
+  // ativa o outro. overlayMode rastreia qual ação está sendo mostrada.
   const handlePageAction = async (action: "translate" | "explain") => {
-    // Se já temos conteúdo e é tradução, toggle.
-    if (action === "translate" && pageTranslation) {
-      setShowTranslation((s) => !s);
+    // Se já estamos mostrando ESTA ação, toggle (esconde).
+    if (overlayMode === action && showTranslation) {
+      setShowTranslation(false);
+      return;
+    }
+    // Se tem tradução salva e é translate, mostra ela sem re-traduzir.
+    if (action === "translate" && pageTranslation && overlayMode !== "explain") {
+      setOverlayMode("translate");
+      setShowTranslation(true);
       return;
     }
     if (!currentPageText || translatingPage) return;
+
     setTranslatingPage(true);
+    setOverlayMode(action);
     setPageTranslation("");
     setShowTranslation(true);
 
@@ -184,7 +194,6 @@ export function Reader({
     setTranslatingPage(false);
     if (result.ok && result.text) {
       setPageTranslation(result.text);
-      // Só persiste tradução (não explicação).
       if (action === "translate") {
         onPageTranslation?.(chapterIdx, result.text);
       }
@@ -193,17 +202,23 @@ export function Reader({
     }
   };
 
-  /** Atalho pra traduzir (compatibilidade). */
+  /** Atalho pra traduzir. */
   const handleTranslatePage = () => handlePageAction("translate");
 
   /** Rótulo dinâmico do botão conforme o estado. */
-  const translateBtnLabel = translatingPage
+  const translateBtnLabel = translatingPage && overlayMode === "translate"
     ? "⏳ Traduzindo…"
-    : pageTranslation
+    : pageTranslation && overlayMode === "translate"
       ? showTranslation
         ? "📖 Ver original"
         : "🌐 Ver tradução"
       : "🌐 Traduzir página";
+
+  const explainBtnLabel = translatingPage && overlayMode === "explain"
+    ? "⏳ Explicando…"
+    : overlayMode === "explain" && showTranslation
+      ? "📖 Ver original"
+      : "🧠 Explicar página";
 
   // Detecta seleção dentro do conteúdo e, se houver texto, mostra o menu.
   const handleSelection = () => {
@@ -378,11 +393,11 @@ export function Reader({
               </button>
               <button
                 onClick={() => handlePageAction("explain")}
-                disabled={translatingPage || !currentPageText}
+                disabled={(translatingPage && overlayMode !== "explain") || !currentPageText}
                 className="translate-page-btn"
                 title="Explicar a página inteira"
               >
-                {translatingPage ? "⏳…" : "🧠 Explicar página"}
+                {explainBtnLabel}
               </button>
             </>
           )}

@@ -174,22 +174,45 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
         </p>
       </div>
 
-      {/* Idioma-alvo */}
+      {/* Idioma das respostas */}
       <div className="field">
-        <label htmlFor="lang">Idioma das respostas</label>
+        <label htmlFor="lang">Idioma das traduções e explicações</label>
+        <p className="hint" style={{ marginBottom: "8px" }}>
+          A IA vai traduzir e explicar os textos neste idioma.
+        </p>
         <select
           id="lang"
           value={targetLang}
           onChange={(e) => setLang(e.target.value)}
         >
-          <option value="pt-BR">Português (Brasil)</option>
-          <option value="en">English</option>
-          <option value="es">Español</option>
-          <option value="fr">Français</option>
-          <option value="zh">中文 (Mandarim)</option>
-          <option value="ru">Русский</option>
-          <option value="de">Deutsch</option>
-          <option value="ja">日本語</option>
+          <optgroup label="Mais comuns">
+            <option value="pt-BR">🇧🇷 Português (Brasil)</option>
+            <option value="en">🇺🇸 English</option>
+            <option value="es">🇪🇸 Español</option>
+            <option value="fr">🇫🇷 Français</option>
+          </optgroup>
+          <optgroup label="Asiáticos">
+            <option value="zh">🇨🇳 中文 (Chinês)</option>
+            <option value="ja">🇯🇵 日本語 (Japonês)</option>
+            <option value="ko">🇰🇷 한국어 (Coreano)</option>
+            <option value="hi">🇮🇳 हिन्दी (Hindi)</option>
+            <option value="ar">🇸🇦 العربية (Árabe)</option>
+          </optgroup>
+          <optgroup label="Europeus">
+            <option value="de">🇩🇪 Deutsch (Alemão)</option>
+            <option value="it">🇮🇹 Italiano</option>
+            <option value="nl">🇳🇱 Nederlands (Holandês)</option>
+            <option value="ru">🇷🇺 Русский (Russo)</option>
+            <option value="pl">🇵🇱 Polski (Polonês)</option>
+            <option value="tr">🇹🇷 Türkçe (Turco)</option>
+            <option value="uk">🇺🇦 Українська (Ucraniano)</option>
+          </optgroup>
+          <optgroup label="Outros">
+            <option value="he">🇮🇱 עברית (Hebraico)</option>
+            <option value="id">🇮🇩 Bahasa Indonesia</option>
+            <option value="vi">🇻🇳 Tiếng Việt (Vietnamita)</option>
+            <option value="th">🇹🇭 ไทย (Tailandês)</option>
+          </optgroup>
         </select>
       </div>
 
