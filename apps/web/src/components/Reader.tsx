@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ParsedBook } from "@igot/parser";
 import type { SelectionAction } from "@/lib/types";
 import { PdfPageCanvas } from "./PdfPageCanvas";
-import { translatePageStream, explainPageStream } from "@/lib/ai-client";
+import { translatePageStream, explainPageStream, translateStream, explainStream } from "@/lib/ai-client";
 
 interface ReaderProps {
   book: ParsedBook;
@@ -21,6 +21,8 @@ interface ReaderProps {
   onZoomChange?: (z: number) => void;
   /** Fecha o livro atual (volta pro uploader). */
   onCloseBook?: () => void;
+  /** Abre as configurações de IA (pra acessar em fullscreen). */
+  onOpenSettings?: () => void;
   /** Traduções já prontas (chave = String(chapterIdx+1)). */
   translations?: Record<string, string>;
   /** Persiste a tradução de uma página. */
@@ -55,6 +57,7 @@ export function Reader({
   onChapterChange,
   onZoomChange,
   onCloseBook,
+  onOpenSettings,
   translations = {},
   onPageTranslation,
   notes = [],
@@ -87,6 +90,33 @@ export function Reader({
     return () => document.removeEventListener("fullscreenchange", onFsChange);
   }, []);
   const [notesOpen, setNotesOpen] = useState(false);
+
+  // --- Resultado de trecho em fullscreen (painel flutuante) ---
+  const [fsResult, setFsResult] = useState<string | null>(null);
+  const [fsLoading, setFsLoading] = useState(false);
+  const [fsAction, setFsAction] = useState<"translate" | "explain" | null>(null);
+
+  /** Em fullscreen, processa seleção de trecho internamente (sem ir pro AIPanel externo). */
+  const handleFsSelectionAction = async (
+    action: "translate" | "explain",
+    text: string,
+  ) => {
+    setFsAction(action);
+    setFsLoading(true);
+    setFsResult("");
+    const ctx = { bookTitle: book.title, bookAuthor: book.author, bookLanguage: book.language };
+    const onChunk = (full: string) => setFsResult(full);
+    const res =
+      action === "translate"
+        ? await translateStream(text, ctx, onChunk)
+        : await explainStream(text, ctx, onChunk);
+    setFsLoading(false);
+    if (res.ok && res.text) {
+      setFsResult(res.text);
+    } else {
+      setFsResult(`⚠️ ${res.error ?? "Erro."}`);
+    }
+  };
 
   // --- Swipe horizontal: passar página passando o dedo ---
   const touchStart = useRef<{ x: number; y: number } | null>(null);
@@ -320,12 +350,17 @@ export function Reader({
 
   const fire = (type: SelectionAction["type"]) => {
     if (!menu) return;
-    // targetLang é resolvido pelo ai-client a partir da config do usuário.
-    onSelection({
-      type,
-      text: menu.text,
-      chapterId: chapter?.id,
-    });
+    if (isFullscreen) {
+      // Em fullscreen, processa internamente (painel flutuante).
+      handleFsSelectionAction(type, menu.text);
+    } else {
+      // Normal: manda pro AIPanel externo.
+      onSelection({
+        type,
+        text: menu.text,
+        chapterId: chapter?.id,
+      });
+    }
     setMenu(null);
     window.getSelection()?.removeAllRanges();
   };
@@ -350,6 +385,16 @@ export function Reader({
           )}
         </div>
         <div className="reader-actions">
+          {isFullscreen && onOpenSettings && (
+            <button
+              onClick={onOpenSettings}
+              className="fullscreen-btn"
+              title="Configurações de IA"
+              aria-label="Configurações"
+            >
+              ⚙️
+            </button>
+          )}
           <button
             onClick={toggleFullscreen}
             className="fullscreen-btn"
@@ -489,6 +534,20 @@ export function Reader({
           <button onClick={() => fire("explain")} role="menuitem">
             🧠 Explicar
           </button>
+        </div>
+      )}
+
+      {/* Painel flutuante de resultado em FULLSCREEN (tradução/explicação de trecho) */}
+      {isFullscreen && (fsResult !== null || fsLoading) && (
+        <div className="fs-result-panel">
+          <div className="fs-result-header">
+            <span>{fsAction === "translate" ? "🌐 Tradução" : "🧠 Explicação"}</span>
+            <button onClick={() => { setFsResult(null); setFsAction(null); }}>✕</button>
+          </div>
+          <div className="fs-result-body">
+            {fsLoading && !fsResult && <p>Processando…</p>}
+            {fsResult && <p>{fsResult}</p>}
+          </div>
         </div>
       )}
 
@@ -805,6 +864,47 @@ export function Reader({
           background: var(--accent);
           transition: width 200ms ease;
           border-radius: 0 2px 2px 0;
+        }
+
+        /* Painel flutuante de resultado em fullscreen */
+        .fs-result-panel {
+          position: absolute;
+          bottom: 80px;
+          right: 20px;
+          width: 380px;
+          max-width: 90vw;
+          max-height: 50vh;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+          z-index: 100;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+        .fs-result-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 10px 14px;
+          border-bottom: 1px solid var(--border);
+          font-weight: 600;
+          font-size: var(--text-sm);
+        }
+        .fs-result-header button {
+          border: none;
+          background: transparent;
+          font-size: 18px;
+          cursor: pointer;
+          color: var(--text-muted);
+        }
+        .fs-result-body {
+          padding: 14px;
+          overflow-y: auto;
+          font-size: var(--text-base);
+          line-height: 1.7;
+          white-space: pre-wrap;
         }
         .reader-text h2 {
           font-size: 22px;

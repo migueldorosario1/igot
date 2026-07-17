@@ -111,6 +111,7 @@ export default function BookPage({ params }: { params: { id: string } }) {
           onChapterChange={(n) => updateSession({ chapterIdx: n })}
           onZoomChange={(z) => updateSession({ zoom: z })}
           onCloseBook={() => router.push("/")}
+          onOpenSettings={() => setSettingsOpen(true)}
           translations={session.translations ?? {}}
           onPageTranslation={(chapIdx, text) => {
             const key = String(chapIdx + 1);
