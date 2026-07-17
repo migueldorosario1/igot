@@ -33,18 +33,47 @@ export default function HomePage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Carrega a estante (migrando livro legado primeiro).
+  // Só roda UMA VEZ no boot — não re-roda quando auth muda de estado.
   const refresh = useCallback(async () => {
-    // Migra livro antigo (store 'sessions') pro novo (store 'books') — 1 vez.
     await migrateLegacyBook();
     const list = await listLibrary(auth.userId).catch(() => []);
     setBooks(list);
     setLoading(false);
   }, [auth.userId]);
 
+  // Boot: carrega config + estante. SÓ UMA VEZ (não depende de refresh).
   useEffect(() => {
-    loadConfigCache().then(() => setConfigReady(hasConfig()));
-    refresh();
-  }, [refresh]);
+    let cancelled = false;
+    loadConfigCache().then(() => {
+      if (!cancelled) setConfigReady(hasConfig());
+    });
+    // Carrega estante local imediatamente (sem esperar auth resolver).
+    (async () => {
+      await migrateLegacyBook();
+      const list = await listLibrary(null).catch(() => []);
+      if (!cancelled) {
+        setBooks(list);
+        setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Quando auth resolve (login/logout), recarrega a estante — mas sem piscar.
+  useEffect(() => {
+    if (auth.status === "loading") return;
+    let cancelled = false;
+    (async () => {
+      const list = await listLibrary(auth.userId).catch(() => []);
+      if (!cancelled) setBooks(list);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [auth.status, auth.userId]);
 
   // Abre um arquivo novo → DEDUPLICA se já existe → navega pra /book/[id].
   const handleFile = useCallback(
