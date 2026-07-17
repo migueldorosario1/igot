@@ -31,6 +31,8 @@ interface ReaderProps {
   notes?: Array<{ id: string; kind: string; source: string; result: string; savedAt: number }>;
   /** Remove uma anotação. */
   onRemoveNote?: (id: string) => void;
+  /** Salva uma nota (auto-save de tradução/explicação em fullscreen). */
+  onSaveNote?: (entry: { kind: "translate" | "explain" | "ask"; source: string; result: string; chapterId?: string }) => void;
 }
 
 const MIN_ZOOM = 0.5;
@@ -62,6 +64,7 @@ export function Reader({
   onPageTranslation,
   notes = [],
   onRemoveNote,
+  onSaveNote,
 }: ReaderProps) {
   const [chapterIdx, setChapterIdxState] = useState(initialChapterIdx);
   const [menu, setMenu] = useState<{
@@ -113,6 +116,13 @@ export function Reader({
     setFsLoading(false);
     if (res.ok && res.text) {
       setFsResult(res.text);
+      // AUTO-SAVE: salva a tradução/explicação nas notas automaticamente.
+      onSaveNote?.({
+        kind: action,
+        source: text,
+        result: res.text,
+        chapterId: chapter?.id,
+      });
     } else {
       setFsResult(`⚠️ ${res.error ?? "Erro."}`);
     }
@@ -300,11 +310,10 @@ export function Reader({
         }
         const rect = range.getBoundingClientRect();
         const containerRect = containerRef.current?.getBoundingClientRect();
-        // Posiciona ABAIXO da seleção (o menu nativo do iOS aparece acima,
-        // assim não se sobrepõem).
+        // Posiciona ACIMA da seleção com distância (não sobrepõe o texto).
         setMenu({
           x: rect.left + rect.width / 2 - (containerRect?.left ?? 0),
-          y: rect.bottom - (containerRect?.top ?? 0) + 12,
+          y: Math.max(10, rect.top - (containerRect?.top ?? 0) - 50),
           text,
         });
       }, 250);
@@ -342,7 +351,7 @@ export function Reader({
     if (text.length >= 2) {
       setMenu({
         x: rect.left + rect.width / 2 - (containerRect?.left ?? 0),
-        y: rect.bottom - (containerRect?.top ?? 0) + 12,
+        y: Math.max(10, rect.top - (containerRect?.top ?? 0) - 50),
         text,
       });
     }
@@ -959,7 +968,7 @@ export function Reader({
         }
         .selection-menu {
           position: absolute;
-          transform: translate(-50%, -100%);
+          transform: translate(-50%, 0);
           background: var(--surface);
           border: 1px solid var(--border);
           border-radius: 10px;

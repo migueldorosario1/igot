@@ -125,6 +125,18 @@ export default function BookPage({ params }: { params: { id: string } }) {
               notes: (session.notes ?? []).filter((n) => n.id !== id),
             })
           }
+          onSaveNote={(entry) =>
+            updateSession({
+              notes: [
+                {
+                  ...entry,
+                  id: `note-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                  savedAt: Date.now(),
+                },
+                ...(session.notes ?? []),
+              ],
+            })
+          }
         />
         <AIPanel
           action={action}
@@ -175,15 +187,21 @@ function TopBar({
   onOpenSettings: () => void;
   auth: ReturnType<typeof useAuth>;
 }) {
+  const goToEstante = () => {
+    if (typeof sessionStorage !== "undefined") {
+      sessionStorage.setItem("igot.backToEstante", "1");
+    }
+    window.location.href = "/";
+  };
   return (
     <div className="igot-topbar">
       <div className="igot-topbar-left">
-        <a href="/" className="brand" title="Estante">
+        <button onClick={goToEstante} className="brand" title="Estante" style={{ background: "none", border: "none", cursor: "pointer" }}>
           💡 <span>igot</span>
-        </a>
-        <a href="/" className="shelf-icon-btn" title="Minha estante">
+        </button>
+        <button onClick={goToEstante} className="shelf-icon-btn" title="Minha estante">
           📚
-        </a>
+        </button>
       </div>
       <div className="igot-topbar-actions">
         <AuthButton

@@ -42,18 +42,29 @@ export default function HomePage() {
   }, [auth.userId]);
 
   // Boot: carrega config + estante. SÓ UMA VEZ (não depende de refresh).
+  // Se tem livros, abre automaticamente o último lido (savedAt mais recente).
   useEffect(() => {
     let cancelled = false;
     loadConfigCache().then(() => {
       if (!cancelled) setConfigReady(hasConfig());
     });
-    // Carrega estante local imediatamente (sem esperar auth resolver).
     (async () => {
       await migrateLegacyBook();
       const list = await listLibrary(null).catch(() => []);
-      if (!cancelled) {
-        setBooks(list);
-        setLoading(false);
+      if (cancelled) return;
+      setBooks(list);
+      setLoading(false);
+
+      // Se tem livros e o usuário não veio clicando em "estante" (voltar),
+      // abre automaticamente o último lido.
+      const cameFromEstante = sessionStorage.getItem("igot.backToEstante") === "1";
+      if (cameFromEstante) {
+        sessionStorage.removeItem("igot.backToEstante");
+      } else if (list.length > 0) {
+        const lastRead = list.reduce((a, b) =>
+          (b.savedAt ?? 0) > (a.savedAt ?? 0) ? b : a,
+        );
+        router.replace(`/book/${lastRead.id}`);
       }
     })();
     return () => {
