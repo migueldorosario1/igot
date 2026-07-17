@@ -193,14 +193,14 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
         </select>
       </div>
 
-      {/* Avançado */}
+      {/* Escolher modelos (antes "Avançado") */}
       <button
         type="button"
         className="advanced-toggle"
         onClick={() => setAdvancedOpen((o) => !o)}
         aria-expanded={advancedOpen}
       >
-        {advancedOpen ? "▾" : "▸"} Avançado
+        {advancedOpen ? "▾" : "▸"} Escolher modelo
       </button>
       {advancedOpen && (
         <div className="advanced">
@@ -314,6 +314,69 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
           {test.message}
         </p>
       )}
+
+      {/* Ajuda: o que é API, ranking de preços, link do provedor */}
+      <details className="help-section">
+        <summary>Precisa de ajuda? O que é uma chave de API?</summary>
+        <div className="help-content">
+          <p>
+            Uma <strong>chave de API</strong> é como uma senha que te permite usar
+            a inteligência artificial do provedor escolhido (Z.ai, OpenAI, DeepSeek, etc.).
+            Você cria a chave no site do provedor, cola aqui, e o igot usa ela pra
+            traduzir e explicar os textos. Sua chave fica <strong>só no seu dispositivo</strong>.
+          </p>
+          <p>
+            <strong>Como conseguir uma chave (grátis):</strong>
+          </p>
+          <ul>
+            <li>Clique no link "Obter uma →" acima (ao lado do nome do provedor)</li>
+            <li>Crie uma conta no site do provedor</li>
+            <li>Gere uma chave de API (API Key)</li>
+            <li>Copie a chave e cole aqui no campo acima</li>
+          </ul>
+          <p>
+            <strong>Comparação de preços dos provedores:</strong>{" "}
+            <a href="https://openrouter.ai/pricing" target="_blank" rel="noreferrer">
+              Ver ranking de preços (OpenRouter) →
+            </a>
+          </p>
+        </div>
+      </details>
+
+      {/* Quem somos */}
+      <div className="about-section">
+        <details>
+          <summary>Quem somos</summary>
+          <div className="about-content">
+            <p>
+              <strong>igot</strong> — "Leia qualquer coisa. Entenda tudo."
+            </p>
+            <p>
+              Um leitor de e-books com IA que traduz e explica qualquer trecho,
+              em qualquer idioma. Desenvolvido por:
+            </p>
+            <p>
+              <strong>Miguel do Rosário</strong><br />
+              Cafezinho Media Group<br />
+              Produtora de conteúdo e aplicativos<br />
+              Niterói, RJ — Brasil<br />
+              migueldorosario@gmail.com
+            </p>
+          </div>
+        </details>
+      </div>
+
+      {/* Doação */}
+      <div className="donate-section">
+        <a
+          href="https://www.paypal.com/donate"
+          target="_blank"
+          rel="noreferrer"
+          className="donate-btn"
+        >
+          ☕ Apoie o igot
+        </a>
+      </div>
 
       <style jsx>{`
         .settings-form {
@@ -492,6 +555,93 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
           background: #fdecea;
           color: #c0392b;
           border: 1px solid #f5b7b1;
+        }
+
+        /* Seção de ajuda */
+        .help-section {
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          background: var(--surface-alt);
+          padding: 0;
+        }
+        .help-section summary {
+          padding: 12px 14px;
+          cursor: pointer;
+          font-size: var(--text-sm);
+          font-weight: 600;
+          color: var(--text-muted);
+          list-style: none;
+        }
+        .help-section summary::-webkit-details-marker {
+          display: none;
+        }
+        .help-section summary::before {
+          content: "▸ ";
+        }
+        .help-section[open] summary::before {
+          content: "▾ ";
+        }
+        .help-content {
+          padding: 0 14px 14px;
+          font-size: var(--text-sm);
+          line-height: 1.6;
+          color: var(--text-muted);
+        }
+        .help-content p {
+          margin: 0 0 8px;
+        }
+        .help-content ul {
+          margin: 0 0 8px;
+          padding-left: 20px;
+        }
+        .help-content a {
+          color: var(--accent);
+        }
+
+        /* Quem somos */
+        .about-section {
+          border-top: 1px solid var(--border);
+          padding-top: 12px;
+        }
+        .about-section summary {
+          cursor: pointer;
+          font-size: var(--text-xs);
+          color: var(--text-muted);
+          list-style: none;
+        }
+        .about-section summary::-webkit-details-marker {
+          display: none;
+        }
+        .about-content {
+          padding-top: 10px;
+          font-size: var(--text-xs);
+          line-height: 1.7;
+          color: var(--text-muted);
+        }
+        .about-content p {
+          margin: 0 0 8px;
+        }
+
+        /* Doação */
+        .donate-section {
+          text-align: center;
+          padding-top: 8px;
+        }
+        .donate-btn {
+          display: inline-block;
+          padding: 8px 20px;
+          background: var(--accent-soft);
+          color: var(--accent);
+          text-decoration: none;
+          border-radius: 20px;
+          font-size: var(--text-sm);
+          font-weight: 600;
+          border: 1px solid var(--accent);
+          transition: var(--transition);
+        }
+        .donate-btn:hover {
+          background: var(--accent);
+          color: white;
         }
       `}</style>
     </form>

@@ -447,16 +447,17 @@ a {
  * Camada de texto selecionável (TextLayer do pdfjs 4.x).
  * Os <span>s são transparentes mas selecionáveis; o pdfjs os posiciona
  * usando a variável --scale-factor (setada via JS no componente).
- * Deixamos os spans invisíveis e só o destaque de seleção aparece.
  */
 .pdf-text-layer {
   position: absolute;
   inset: 0;
   overflow: hidden;
   line-height: 1;
-  opacity: 0.25;
-  /* Required by pdfjs 4.x text layer */
+  opacity: 1; /* opacity:0.25 reduzisse a seleção. Agora visível. */
+  z-index: 2; /* acima do canvas (z-index:1 implícito) */
   --scale-factor: 1;
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 .pdf-text-layer span {
@@ -465,6 +466,9 @@ a {
   white-space: pre;
   transform-origin: 0 0;
   cursor: text;
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: none; /* suprime menu nativo iOS */
 }
 
 .pdf-text-layer br {
