@@ -92,6 +92,11 @@ body {
 }
 
 .reader-scroll {
+  touch-action: pan-y; /* melhor pro seletor de texto (EPUB) */
+}
+/* No modo PDF, o conteúdo pode ser mais alto que a tela — precisa de
+   scroll vertical livre. Aplicado via JS quando é PDF. */
+.reader-scroll.pdf-mode {
   touch-action: auto;
 }
 
@@ -103,10 +108,16 @@ button,
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Seleção de texto funciona bem dentro do leitor, inclusive em PWA iOS. */
+/* Seleção de texto funciona bem dentro do leitor, inclusive em PWA iOS.
+   -webkit-touch-callout: none SUPRIME o menu nativo do iOS (copiar/
+   traduzir/compartilhar) pra não duplicar com o nosso menu Traduzir/Explicar. */
 .reader-text {
   -webkit-user-select: text;
   user-select: text;
+  -webkit-touch-callout: none;
+}
+.pdf-text-layer {
+  -webkit-touch-callout: none;
 }
 
 button {

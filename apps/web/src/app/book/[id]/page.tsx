@@ -6,7 +6,7 @@ import { Reader } from "@/components/Reader";
 import { AIPanel } from "@/components/AIPanel";
 import { SettingsModal } from "@/components/SettingsModal";
 import { AuthButton } from "@/components/AuthButton";
-import { hasConfig } from "@/lib/config";
+import { hasConfig, loadConfigCache } from "@/lib/config";
 import { useAuth } from "@/lib/auth";
 import { getBook } from "@/lib/repository";
 import { saveToLibrary } from "@/lib/repository";
@@ -29,7 +29,7 @@ export default function BookPage({ params }: { params: { id: string } }) {
 
   // Carrega o livro pelo ID da URL.
   useEffect(() => {
-    setConfigReady(hasConfig());
+    loadConfigCache().then(() => setConfigReady(hasConfig()));
     let cancelled = false;
     (async () => {
       const book = await getBook(params.id);

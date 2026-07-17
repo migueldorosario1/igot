@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ParsedBook } from "@igot/parser";
 import type { SelectionAction } from "@/lib/types";
 import { PdfPageCanvas } from "./PdfPageCanvas";
-import { translatePageStream } from "@/lib/ai-client";
+import { translatePageStream, explainPageStream } from "@/lib/ai-client";
 
 interface ReaderProps {
   book: ParsedBook;
@@ -119,38 +119,45 @@ export function Reader({
   const zoomOut = () => setZoom((z) => Math.max(MIN_ZOOM, +(z - ZOOM_STEP).toFixed(2)));
   const zoomReset = () => setZoom(1);
 
-  // Traduz a página inteira com STREAMING — o texto vai aparecendo aos poucos.
-  // Persiste a tradução ao final pra não re-traduzir ao navegar de volta.
-  const handleTranslatePage = async () => {
-    // Se já temos a tradução, só alterna a visibilidade (toggle).
-    if (pageTranslation) {
+  // Traduz OU explica a página inteira com STREAMING.
+  // Persiste a tradução (não a explicação — explicação é efêmera).
+  const handlePageAction = async (action: "translate" | "explain") => {
+    // Se já temos conteúdo e é tradução, toggle.
+    if (action === "translate" && pageTranslation) {
       setShowTranslation((s) => !s);
       return;
     }
     if (!currentPageText || translatingPage) return;
     setTranslatingPage(true);
-    // Mostra o overlay imediatamente (vazio) pra já ir revelando os chunks.
     setPageTranslation("");
     setShowTranslation(true);
 
-    const result = await translatePageStream(
-      currentPageText,
-      {
-        bookTitle: book.title,
-        bookAuthor: book.author,
-        bookLanguage: book.language,
-      },
-      // onChunk: atualiza o overlay a cada pedaço que chega.
-      (full) => setPageTranslation(full),
-    );
+    const ctx = {
+      bookTitle: book.title,
+      bookAuthor: book.author,
+      bookLanguage: book.language,
+    };
+    const onChunk = (full: string) => setPageTranslation(full);
+
+    const result =
+      action === "translate"
+        ? await translatePageStream(currentPageText, ctx, onChunk)
+        : await explainPageStream(currentPageText, ctx, onChunk);
+
     setTranslatingPage(false);
     if (result.ok && result.text) {
       setPageTranslation(result.text);
-      onPageTranslation?.(chapterIdx, result.text); // persiste
+      // Só persiste tradução (não explicação).
+      if (action === "translate") {
+        onPageTranslation?.(chapterIdx, result.text);
+      }
     } else {
-      setPageTranslation(`⚠️ ${result.error ?? "Erro ao traduzir."}`);
+      setPageTranslation(`⚠️ ${result.error ?? "Erro."}`);
     }
   };
+
+  /** Atalho pra traduzir (compatibilidade). */
+  const handleTranslatePage = () => handlePageAction("translate");
 
   /** Rótulo dinâmico do botão conforme o estado. */
   const translateBtnLabel = translatingPage
@@ -324,6 +331,14 @@ export function Reader({
               >
                 {translateBtnLabel}
               </button>
+              <button
+                onClick={() => handlePageAction("explain")}
+                disabled={translatingPage || !currentPageText}
+                className="translate-page-btn"
+                title="Explicar a página inteira"
+              >
+                {translatingPage ? "⏳…" : "🧠 Explicar página"}
+              </button>
             </>
           )}
           <div className="reader-nav">
@@ -351,7 +366,11 @@ export function Reader({
         </div>
       </header>
 
-      <div className="reader-scroll" onPointerUp={handleSelection} onDoubleClick={handleDoubleClick}>
+      <div
+        className={`reader-scroll ${book.sourceFormat === "pdf" ? "pdf-mode" : ""}`}
+        onPointerUp={handleSelection}
+        onDoubleClick={handleDoubleClick}
+      >
         {book.sourceFormat === "pdf" && pdfSource ? (
           <PdfPageCanvas
             data={pdfSource}

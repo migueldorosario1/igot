@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Uploader } from "@/components/Uploader";
 import { SettingsModal } from "@/components/SettingsModal";
 import { AuthButton } from "@/components/AuthButton";
-import { hasConfig } from "@/lib/config";
+import { hasConfig, loadConfigCache } from "@/lib/config";
 import { useAuth } from "@/lib/auth";
 import { listLibrary, saveToLibrary, removeFromLibrary } from "@/lib/repository";
 import {
@@ -43,7 +43,7 @@ export default function HomePage() {
   }, [auth.userId]);
 
   useEffect(() => {
-    setConfigReady(hasConfig());
+    loadConfigCache().then(() => setConfigReady(hasConfig()));
     refresh();
   }, [refresh]);
 

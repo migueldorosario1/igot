@@ -16,7 +16,7 @@ import {
   ProxyStreamError,
   type AIConfig,
 } from "@igot/ai-providers";
-import { getConfig, getTargetLang } from "./config";
+import { getConfigSync, getTargetLang } from "./config";
 import { t } from "./messages";
 
 /** Contexto da obra relevante para as ações. */
@@ -48,7 +48,7 @@ function buildContext(ctx: BookContext): string | undefined {
 
 /** Instancia o provider a partir da config do usuário (ou lança erro legível). */
 function resolveProvider() {
-  const config = getConfig();
+  const config = getConfigSync();
   if (!config) {
     throw new Error(
       "IA não configurada. Abra Configurações e escolha um provedor.",
@@ -242,6 +242,53 @@ export async function translatePageStream(
       systemPrompt,
       context: buildContext(ctx),
       temperature: 0.3,
+    })) {
+      full += chunk;
+      onChunk(full, chunk);
+    }
+    return { ok: true, text: full };
+  } catch (err) {
+    return { ok: false, error: toMessage(err) };
+  }
+}
+
+/**
+ * Explica a página INTEIRA com streaming.
+ * Diferente do explain (trecho), aqui cobre a página toda: sentido geral,
+ * contexto, termos-chave, dificuldades de tradução.
+ */
+export async function explainPageStream(
+  text: string,
+  ctx: BookContext,
+  onChunk: StreamCallback,
+): Promise<AIActionResult> {
+  if (!text.trim()) return { ok: false, error: "Página sem texto." };
+  const targetLang = getTargetLang();
+  const systemPrompt =
+    `Você é um assistente de leitura. Explique o texto completo da página ` +
+    `a seguir em ${targetLang}, de forma clara e didática. ` +
+    `Cubra: o sentido geral da página, termos ou conceitos importantes, ` +
+    `possíveis dificuldades de tradução (idiotismos, referências culturais), ` +
+    `e como este trecho se conecta com o resto da obra. ` +
+    `Organize em seções com **negrito** nos títulos. ` +
+    `Não invente — se não souber algo, diga.`;
+
+  try {
+    const { provider } = resolveProvider();
+    if (!provider.stream) {
+      const result = await provider.complete(text, {
+        systemPrompt,
+        context: buildContext(ctx),
+        temperature: 0.4,
+      });
+      onChunk(result.text, result.text);
+      return { ok: true, text: result.text };
+    }
+    let full = "";
+    for await (const chunk of provider.stream(text, {
+      systemPrompt,
+      context: buildContext(ctx),
+      temperature: 0.4,
     })) {
       full += chunk;
       onChunk(full, chunk);
