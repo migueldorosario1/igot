@@ -689,28 +689,80 @@ export function Reader({
   return (
     <section className="reader" ref={containerRef} data-menu-hidden={!menuVisible}>
       <header className="reader-header" data-hidden={!menuVisible}>
-        {/* Logo Cafezinho — sempre presente, canto esquerdo, vazada */}
-        <a
-          href="/"
-          onClick={(e) => { if (onGoToShelf) { e.preventDefault(); onGoToShelf(); } }}
-          className="cafezinho-mark"
-          title="Cafezinho Media Group — Voltar à estante"
-          aria-label="Voltar à estante"
-        >
-          <CafezinhoLogo size={28} opacity={0.85} />
-        </a>
-        <div className="reader-title">
-          <h1>{book.title}</h1>
-          {book.sourceFormat === "pdf" ? (
-            book.author && <span className="reader-author">{book.author}</span>
-          ) : (
-            <span className="reader-author">
-              {chapter?.title || `Capítulo ${chapterIdx + 1}`}
-              {book.author && ` · ${book.author}`}
+        {/* ── Linha 1: logo + título + navegação + controles de tela ── */}
+        <div className="reader-row reader-row-main">
+          {/* Logo Cafezinho — sempre presente, canto esquerdo, vazada */}
+          <a
+            href="/"
+            onClick={(e) => { if (onGoToShelf) { e.preventDefault(); onGoToShelf(); } }}
+            className="cafezinho-mark"
+            title="Cafezinho Media Group — Voltar à estante"
+            aria-label="Voltar à estante"
+          >
+            <CafezinhoLogo size={26} opacity={0.85} />
+          </a>
+          <div className="reader-title">
+            <h1>{book.title}</h1>
+            {book.sourceFormat === "pdf" ? (
+              book.author && <span className="reader-author">{book.author}</span>
+            ) : (
+              <span className="reader-author">
+                {chapter?.title || `Capítulo ${chapterIdx + 1}`}
+                {book.author && ` · ${book.author}`}
+              </span>
+            )}
+          </div>
+          {/* Navegação ‹ N/M › */}
+          <div className="reader-nav">
+            <button onClick={goPrev} disabled={chapterIdx === 0} aria-label={book.sourceFormat === "pdf" ? "Página anterior" : "Capítulo anterior"}>
+              ‹
+            </button>
+            <span className="reader-counter">
+              {chapterIdx + 1} / {totalChapters}
             </span>
+            <button
+              onClick={goNext}
+              disabled={chapterIdx >= totalChapters - 1}
+              aria-label={book.sourceFormat === "pdf" ? "Próxima página" : "Próximo capítulo"}
+            >
+              ›
+            </button>
+          </div>
+          {/* ⚙️ Configurações — depois da numeração (como pedido) */}
+          {onOpenSettings && (
+            <button
+              onClick={onOpenSettings}
+              className="icon-btn"
+              title="Configurações de IA"
+              aria-label="Configurações"
+            >
+              ⚙️
+            </button>
+          )}
+          {/* Tela cheia */}
+          <button
+            onClick={toggleFullscreen}
+            className="icon-btn"
+            title={isFullscreen ? "Sair da tela cheia" : "Tela cheia"}
+            aria-label="Tela cheia"
+          >
+            {isFullscreen ? "🗗" : "⛶"}
+          </button>
+          {/* Ocultar/mostrar menu (só em fullscreen) */}
+          {isFullscreen && (
+            <button
+              onClick={() => setMenuVisible((v) => !v)}
+              className="icon-btn menu-toggle-btn"
+              title={menuVisible ? "Ocultar menu" : "Mostrar menu"}
+              aria-label="Alternar menu"
+            >
+              {menuVisible ? "👁" : "🙈"}
+            </button>
           )}
         </div>
-        <div className="reader-actions">
+
+        {/* ── Linha 2: ações de conteúdo (quebra limpo quando cabe pouco) ── */}
+        <div className="reader-row reader-row-actions">
           <button
             onClick={() => setNotesOpen(true)}
             className="notes-btn"
@@ -801,52 +853,6 @@ export function Reader({
                 {explainBtnLabel}
               </button>
             </>
-          )}
-          <div className="reader-nav">
-            <button onClick={goPrev} disabled={chapterIdx === 0} aria-label={book.sourceFormat === "pdf" ? "Página anterior" : "Capítulo anterior"}>
-              ‹
-            </button>
-            <span className="reader-counter">
-              {chapterIdx + 1} / {totalChapters}
-            </span>
-            <button
-              onClick={goNext}
-              disabled={chapterIdx >= totalChapters - 1}
-              aria-label={book.sourceFormat === "pdf" ? "Próxima página" : "Próximo capítulo"}
-            >
-              ›
-            </button>
-          </div>
-          {/* ⚙️ Configurações — no final, depois da numeração (como pedido) */}
-          {onOpenSettings && (
-            <button
-              onClick={onOpenSettings}
-              className="icon-btn"
-              title="Configurações de IA"
-              aria-label="Configurações"
-            >
-              ⚙️
-            </button>
-          )}
-          {/* Tela cheia */}
-          <button
-            onClick={toggleFullscreen}
-            className="icon-btn"
-            title={isFullscreen ? "Sair da tela cheia" : "Tela cheia"}
-            aria-label="Tela cheia"
-          >
-            {isFullscreen ? "🗗" : "⛶"}
-          </button>
-          {/* Ocultar/mostrar menu (só visível em fullscreen, canto direito) */}
-          {isFullscreen && (
-            <button
-              onClick={() => setMenuVisible((v) => !v)}
-              className="icon-btn menu-toggle-btn"
-              title={menuVisible ? "Ocultar menu" : "Mostrar menu"}
-              aria-label="Alternar menu"
-            >
-              {menuVisible ? "👁" : "🙈"}
-            </button>
           )}
         </div>
         {/* Barra de progresso de leitura (estilo Kindle) */}
@@ -1063,12 +1069,12 @@ export function Reader({
         }
         .reader:fullscreen .reader-header {
           padding: 8px 16px;
-          /* Header fica NO FLUXO NORMAL — empurra o texto pra baixo (não sobrepõe).
+          /* Header NO FLUXO NORMAL — empurra o texto pra baixo (não sobrepõe).
              Quando oculto, colapsa a altura em vez de flutuar. */
           flex-shrink: 0;
           overflow: hidden;
           transition: max-height 200ms ease, opacity 200ms ease, padding 200ms ease;
-          max-height: 200px;
+          max-height: 300px; /* duas linhas de botões */
         }
         .reader:fullscreen[data-menu-hidden="true"] .reader-header {
           max-height: 0;
@@ -1083,27 +1089,26 @@ export function Reader({
         }
         .reader-header {
           display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-          padding: 14px 28px;
+          flex-direction: column;
+          gap: 8px;
+          padding: 10px 16px;
           border-bottom: 1px solid var(--border);
           background: var(--surface);
           flex-shrink: 0;
         }
-        .reader-actions {
+        /* Linhas do header — cada uma NUNCA corta botões (wrap em vez de scroll). */
+        .reader-row {
           display: flex;
           align-items: center;
           gap: 8px;
-          /* NÃO faz wrap — scroll horizontal quando cabe pouco (fullscreen mobile).
-             Antes o wrap empilhava botões e o 🗕 ficava fora do alcance do clique. */
-          flex-wrap: nowrap;
-          overflow-x: auto;
-          justify-content: flex-end;
-          scrollbar-width: none;
+          flex-wrap: wrap;
         }
-        .reader-actions::-webkit-scrollbar {
-          display: none;
+        .reader-row-main {
+          justify-content: flex-start;
+        }
+        .reader-row-actions {
+          justify-content: flex-start;
+          row-gap: 6px;
         }
         .reader-zoom {
           display: flex;
@@ -1385,8 +1390,8 @@ export function Reader({
           color: var(--text);
         }
         .reader-title {
-          min-width: 0; /* permite encolher no flex */
-          flex-shrink: 1;
+          min-width: 0;
+          flex: 1 1 0;
           overflow: hidden;
         }
         .reader-title h1 {
