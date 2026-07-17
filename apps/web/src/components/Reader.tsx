@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ParsedBook } from "@igot/parser";
 import type { SelectionAction } from "@/lib/types";
 import { PdfPageCanvas } from "./PdfPageCanvas";
+import { CafezinhoLogo } from "./CafezinhoLogo";
 import { translatePageStream, explainPageStream, translateStream, explainStream } from "@/lib/ai-client";
 
 interface ReaderProps {
@@ -33,6 +34,12 @@ interface ReaderProps {
   onRemoveNote?: (id: string) => void;
   /** Salva uma nota (auto-save de tradução/explicação em fullscreen). */
   onSaveNote?: (entry: { kind: "translate" | "explain" | "ask"; source: string; result: string; chapterId?: string }) => void;
+  /** Marcadores salvos (chapterIdx + timestamp). */
+  bookmarks?: Array<{ chapterIdx: number; savedAt: number }>;
+  /** Adiciona/remove um marcador da página atual. */
+  onToggleBookmark?: (chapterIdx: number) => void;
+  /** Volta pra estante (home). */
+  onGoToShelf?: () => void;
 }
 
 const MIN_ZOOM = 0.5;
@@ -65,6 +72,9 @@ export function Reader({
   notes = [],
   onRemoveNote,
   onSaveNote,
+  bookmarks = [],
+  onToggleBookmark,
+  onGoToShelf,
 }: ReaderProps) {
   const [chapterIdx, setChapterIdxState] = useState(initialChapterIdx);
   const [menu, setMenu] = useState<{
@@ -73,7 +83,10 @@ export function Reader({
     text: string;
   } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(true);
+  const [bookmarksOpen, setBookmarksOpen] = useState(false);
 
   /** Entra/sai do modo tela cheia (só a página do livro visível). */
   const toggleFullscreen = () => {
@@ -92,6 +105,87 @@ export function Reader({
     document.addEventListener("fullscreenchange", onFsChange);
     return () => document.removeEventListener("fullscreenchange", onFsChange);
   }, []);
+
+  /** Esta página já está marcada? (lookup rápido no array de bookmarks). */
+  const isBookmarked = bookmarks.some((b) => b.chapterIdx === chapterIdx);
+
+  /** Marca/desmarca a página atual. */
+  const toggleBookmark = () => onToggleBookmark?.(chapterIdx);
+
+  /**
+   * Marcador invisível: clica no canto superior direito da página do livro
+   * pra marcar/desmarcar. Zona de 60×60px discreta. Não interfere no texto.
+   */
+  const handleInvisibleMark = (e: React.MouseEvent) => {
+    const scrollEl = scrollRef.current;
+    if (!scrollEl) return;
+    const rect = scrollEl.getBoundingClientRect();
+    // Canto superior direito (60×60px).
+    const inCorner =
+      e.clientX > rect.right - 60 && e.clientY < rect.top + 60;
+    if (inCorner) {
+      e.preventDefault();
+      toggleBookmark();
+    }
+  };
+
+  /**
+   * Print da página atual: abre um iframe escondido com o texto do capítulo
+   * e dispara o diálogo de impressão do navegador. Funciona em PDF (texto
+   * extraído) e EPUB (conteúdo renderizado).
+   */
+  const printPage = () => {
+    const titleText = `${book.title} — ${
+      book.sourceFormat === "pdf"
+        ? `Página ${chapterIdx + 1}`
+        : chapter?.title || `Capítulo ${chapterIdx + 1}`
+    }`;
+    // Coleta o texto: do currentPageText (PDF extraído) ou dos blocos (EPUB).
+    const textContent =
+      book.sourceFormat === "pdf"
+        ? currentPageText ||
+          chapter?.blocks.map((b) => b.text ?? b.items?.join(" ") ?? "").join("\n\n") ||
+          ""
+        : chapter?.blocks
+            .map((b) => {
+              if (b.type === "heading") return `${"#".repeat(b.level || 1)} ${b.text}`;
+              if (b.type === "list") return (b.items ?? []).map((i) => `• ${i}`).join("\n");
+              if (b.type === "quote") return `> ${b.text}`;
+              if (b.type === "page-break") return "---";
+              return b.text ?? "";
+            })
+            .join("\n\n") ?? "";
+
+    const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>${titleText}</title>
+      <style>
+        body{font-family:Georgia,serif;max-width:680px;margin:40px auto;padding:0 24px;line-height:1.7;color:#222}
+        h1{font-size:18px;margin:0 0 4px}h2,h3,h4{margin:18px 0 6px}
+        blockquote{border-left:3px solid #ccc;padding-left:12px;color:#555;font-style:italic}
+        @media print{body{margin:0}}
+      </style></head><body><h1>${titleText}</h1>${
+        book.author ? `<p style="color:#888;font-size:13px">${book.author}</p>` : ""
+      }<hr><div style="white-space:pre-wrap">${escapeHtml(textContent)}</div></body></html>`;
+
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    document.body.appendChild(iframe);
+    const doc = iframe.contentWindow?.document;
+    if (doc) {
+      doc.open();
+      doc.write(html);
+      doc.close();
+      iframe.contentWindow?.focus();
+      setTimeout(() => {
+        iframe.contentWindow?.print();
+        setTimeout(() => document.body.removeChild(iframe), 1000);
+      }, 300);
+    }
+  };
   const [notesOpen, setNotesOpen] = useState(false);
 
   // --- Resultado de trecho em fullscreen (painel flutuante) ---
@@ -381,7 +475,17 @@ export function Reader({
 
   return (
     <section className="reader" ref={containerRef}>
-      <header className="reader-header">
+      <header className="reader-header" data-hidden={!menuVisible}>
+        {/* Logo Cafezinho — sempre presente, canto esquerdo, vazada */}
+        <a
+          href="/"
+          onClick={(e) => { if (onGoToShelf) { e.preventDefault(); onGoToShelf(); } }}
+          className="cafezinho-mark"
+          title="Cafezinho Media Group — Voltar à estante"
+          aria-label="Voltar à estante"
+        >
+          <CafezinhoLogo size={28} opacity={0.85} />
+        </a>
         <div className="reader-title">
           <h1>{book.title}</h1>
           {book.sourceFormat === "pdf" ? (
@@ -394,24 +498,6 @@ export function Reader({
           )}
         </div>
         <div className="reader-actions">
-          {isFullscreen && onOpenSettings && (
-            <button
-              onClick={onOpenSettings}
-              className="fullscreen-btn"
-              title="Configurações de IA"
-              aria-label="Configurações"
-            >
-              ⚙️
-            </button>
-          )}
-          <button
-            onClick={toggleFullscreen}
-            className="fullscreen-btn"
-            title={isFullscreen ? "Sair da tela cheia" : "Tela cheia"}
-            aria-label="Tela cheia"
-          >
-            {isFullscreen ? "🗗" : "⛶"}
-          </button>
           <button
             onClick={() => setNotesOpen(true)}
             className="notes-btn"
@@ -419,6 +505,43 @@ export function Reader({
           >
             📓 <span className="btn-label">{notes.length > 0 ? notes.length : ""}</span>
           </button>
+          {/* Lista de marcadores */}
+          <button
+            onClick={() => setBookmarksOpen(true)}
+            className="notes-btn"
+            title="Meus marcadores"
+          >
+            🔖 <span className="btn-label">{bookmarks.length > 0 ? bookmarks.length : ""}</span>
+          </button>
+          {/* Marcador de página (bookmark) */}
+          <button
+            onClick={toggleBookmark}
+            className={`icon-btn bookmark-btn ${isBookmarked ? "active" : ""}`}
+            title={isBookmarked ? "Remover marcador desta página" : "Marcar esta página"}
+            aria-label="Marcador"
+            aria-pressed={isBookmarked}
+          >
+            {isBookmarked ? "🔖" : "🏷"}
+          </button>
+          {/* Estante — volta pra home */}
+          <button
+            onClick={() => onGoToShelf?.()}
+            className="icon-btn"
+            title="Minha estante"
+            aria-label="Estante"
+          >
+            📚
+          </button>
+          {/* Print da página */}
+          <button
+            onClick={printPage}
+            className="icon-btn"
+            title="Imprimir / salvar esta página em PDF"
+            aria-label="Imprimir página"
+          >
+            🖨
+          </button>
+          {/* Abrir outro livro */}
           <button
             onClick={onCloseBook}
             className="open-other-btn"
@@ -472,6 +595,37 @@ export function Reader({
               ›
             </button>
           </div>
+          {/* ⚙️ Configurações — no final, depois da numeração (como pedido) */}
+          {onOpenSettings && (
+            <button
+              onClick={onOpenSettings}
+              className="icon-btn"
+              title="Configurações de IA"
+              aria-label="Configurações"
+            >
+              ⚙️
+            </button>
+          )}
+          {/* Tela cheia */}
+          <button
+            onClick={toggleFullscreen}
+            className="icon-btn"
+            title={isFullscreen ? "Sair da tela cheia" : "Tela cheia"}
+            aria-label="Tela cheia"
+          >
+            {isFullscreen ? "🗗" : "⛶"}
+          </button>
+          {/* Ocultar/mostrar menu (só visível em fullscreen, canto direito) */}
+          {isFullscreen && (
+            <button
+              onClick={() => setMenuVisible((v) => !v)}
+              className="icon-btn menu-toggle-btn"
+              title={menuVisible ? "Ocultar menu" : "Mostrar menu"}
+              aria-label="Alternar menu"
+            >
+              {menuVisible ? "👁" : "🙈"}
+            </button>
+          )}
         </div>
         {/* Barra de progresso de leitura (estilo Kindle) */}
         <div className="reader-progress" aria-hidden>
@@ -483,9 +637,11 @@ export function Reader({
       </header>
 
       <div
+        ref={scrollRef}
         className={`reader-scroll ${book.sourceFormat === "pdf" ? "pdf-mode" : ""}`}
         onPointerUp={handleSelection}
         onDoubleClick={handleDoubleClick}
+        onClick={handleInvisibleMark}
       >
         {book.sourceFormat === "pdf" && pdfSource ? (
           <PdfPageCanvas
@@ -556,6 +712,70 @@ export function Reader({
           <div className="fs-result-body">
             {fsLoading && !fsResult && <p>Processando…</p>}
             {fsResult && <p>{fsResult}</p>}
+          </div>
+        </div>
+      )}
+
+      {/* Botão flutuante pra re-mostrar o menu quando oculto em fullscreen */}
+      {isFullscreen && !menuVisible && (
+        <button
+          onClick={() => setMenuVisible(true)}
+          className="fs-show-menu-btn"
+          title="Mostrar menu"
+          aria-label="Mostrar menu"
+        >
+          <CafezinhoLogo size={22} opacity={0.9} />
+        </button>
+      )}
+
+      {/* Modal de marcadores (bookmarks) */}
+      {bookmarksOpen && (
+        <div className="notes-overlay" onClick={() => setBookmarksOpen(false)}>
+          <div className="notes-modal" onClick={(e) => e.stopPropagation()}>
+            <header className="notes-header">
+              <h2>🔖 Marcadores</h2>
+              <button onClick={() => setBookmarksOpen(false)} aria-label="Fechar">✕</button>
+            </header>
+            <div className="notes-body">
+              {bookmarks.length === 0 ? (
+                <p className="notes-empty">
+                  Você ainda não marcou nenhuma página.
+                  <br />
+                  Toque em <strong>🔖</strong> ou no canto superior direito da
+                  página para marcar.
+                </p>
+              ) : (
+                [...bookmarks]
+                  .sort((a, b) => b.savedAt - a.savedAt)
+                  .map((bm) => {
+                    const ch = book.chapters[bm.chapterIdx];
+                    const label =
+                      book.sourceFormat === "pdf"
+                        ? `Página ${bm.chapterIdx + 1}`
+                        : ch?.title || `Capítulo ${bm.chapterIdx + 1}`;
+                    return (
+                      <button
+                        key={`${bm.chapterIdx}-${bm.savedAt}`}
+                        className="bookmark-item"
+                        onClick={() => {
+                          setChapterIdx(bm.chapterIdx);
+                          setBookmarksOpen(false);
+                        }}
+                      >
+                        <span className="bookmark-label">{label}</span>
+                        <span className="bookmark-date">
+                          {new Date(bm.savedAt).toLocaleDateString("pt-BR", {
+                            day: "2-digit",
+                            month: "short",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </button>
+                    );
+                  })
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -701,6 +921,130 @@ export function Reader({
         .notes-btn .btn-label {
           font-size: 11px;
           opacity: 0.7;
+        }
+
+        /* Logo Cafezinho no header do reader (canto esquerdo, vazada) */
+        .cafezinho-mark {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 40px;
+          height: 40px;
+          border-radius: 8px;
+          color: var(--text-muted);
+          transition: var(--transition);
+          flex-shrink: 0;
+          text-decoration: none;
+        }
+        .cafezinho-mark:hover {
+          background: var(--accent-soft);
+          color: var(--accent);
+        }
+
+        /* Botões de ícone reutilizáveis (44px touch target) */
+        .icon-btn {
+          width: 44px;
+          height: 44px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid var(--border);
+          background: var(--surface);
+          color: var(--text);
+          border-radius: 10px;
+          font-size: 18px;
+          cursor: pointer;
+          transition: var(--transition);
+          flex-shrink: 0;
+        }
+        .icon-btn:hover {
+          border-color: var(--accent);
+          transform: scale(1.05);
+        }
+        /* Marcador ativo: destaque dourado */
+        .bookmark-btn.active {
+          background: var(--accent-soft);
+          border-color: var(--accent);
+        }
+
+        /* Em fullscreen, esconde o header quando menu invisível */
+        .reader:fullscreen .reader-header[data-hidden="true"] {
+          transform: translateY(-100%);
+          opacity: 0;
+          pointer-events: none;
+        }
+        .reader:fullscreen .reader-header {
+          transition: transform 200ms ease, opacity 200ms ease;
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          z-index: 50;
+          background: rgba(var(--surface-rgb, 255, 255, 255), 0.96);
+          backdrop-filter: blur(8px);
+        }
+        /* Nav-bar também some quando menu invisível em fullscreen */
+        .reader:fullscreen .reader-nav-bar {
+          transition: transform 200ms ease, opacity 200ms ease;
+        }
+        .reader:fullscreen[data-menu-hidden="true"] .reader-nav-bar,
+        .reader:fullscreen .reader-nav-bar[data-hidden="true"] {
+          transform: translateY(100%);
+          opacity: 0;
+          pointer-events: none;
+        }
+
+        /* Botão flutuante pra re-mostrar menu em fullscreen (logo Cafezinho) */
+        .fs-show-menu-btn {
+          position: absolute;
+          top: 16px;
+          right: 16px;
+          width: 48px;
+          height: 48px;
+          border: 1px solid var(--border);
+          background: var(--surface);
+          color: var(--text-muted);
+          border-radius: 12px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+          z-index: 60;
+          transition: var(--transition);
+        }
+        .fs-show-menu-btn:hover {
+          border-color: var(--accent);
+          color: var(--accent);
+        }
+
+        /* Itens do modal de marcadores */
+        .bookmark-item {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 2px;
+          width: 100%;
+          text-align: left;
+          padding: 12px 14px;
+          border: 1px solid var(--border);
+          background: var(--surface);
+          border-radius: 10px;
+          cursor: pointer;
+          transition: var(--transition);
+          color: var(--text);
+        }
+        .bookmark-item:hover {
+          border-color: var(--accent);
+          background: var(--accent-soft);
+        }
+        .bookmark-label {
+          font-weight: 600;
+          font-size: var(--text-sm);
+        }
+        .bookmark-date {
+          font-size: 11px;
+          color: var(--text-muted);
         }
 
         /* Modal de Notas */
@@ -994,6 +1338,14 @@ export function Reader({
       `}</style>
     </section>
   );
+}
+
+/** Escapa HTML pra injetar com segurança no iframe de print. */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 /** Renderiza um bloco conforme seu tipo. */

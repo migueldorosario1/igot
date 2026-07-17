@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Reader } from "@/components/Reader";
+import { CafezinhoLogo } from "@/components/CafezinhoLogo";
 import { AIPanel } from "@/components/AIPanel";
 import { SettingsModal } from "@/components/SettingsModal";
 import { AuthButton } from "@/components/AuthButton";
@@ -137,6 +138,21 @@ export default function BookPage({ params }: { params: { id: string } }) {
               ],
             })
           }
+          bookmarks={session.bookmarks ?? []}
+          onToggleBookmark={(chapIdx) => {
+            const existing = session.bookmarks ?? [];
+            const has = existing.some((b) => b.chapterIdx === chapIdx);
+            updateSession({
+              bookmarks: has
+                ? existing.filter((b) => b.chapterIdx !== chapIdx)
+                : [...existing, { chapterIdx: chapIdx, savedAt: Date.now() }],
+            });
+          }}
+          onGoToShelf={() => {
+            // Avisa a home que viemos clicando em "estante" (não auto-abre livro).
+            sessionStorage.setItem("igot.backToEstante", "1");
+            router.push("/");
+          }}
         />
         <AIPanel
           action={action}
@@ -197,7 +213,7 @@ function TopBar({
     <div className="igot-topbar">
       <div className="igot-topbar-left">
         <button onClick={goToEstante} className="brand" title="Estante" style={{ background: "none", border: "none", cursor: "pointer" }}>
-          💡 <span>igot</span>
+          <CafezinhoLogo size={24} opacity={0.85} /> 💡 <span>igot</span>
         </button>
         <button onClick={goToEstante} className="shelf-icon-btn" title="Minha estante">
           📚

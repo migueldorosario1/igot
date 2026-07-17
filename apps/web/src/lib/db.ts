@@ -54,6 +54,11 @@ export interface Session {
   notes?: SavedNote[];
   /** Capa do livro (data URL) pra mostrar na estante. */
   coverImage?: string;
+  /**
+   * Marcadores (bookmarks) de página. Cada um guarda o chapterIdx e o
+   * timestamp de criação, pra lista ordenada no painel de marcadores.
+   */
+  bookmarks?: Array<{ chapterIdx: number; savedAt: number }>;
 }
 
 /**

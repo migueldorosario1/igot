@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Uploader } from "@/components/Uploader";
+import { CafezinhoLogo } from "@/components/CafezinhoLogo";
 import { SettingsModal } from "@/components/SettingsModal";
 import { AuthButton } from "@/components/AuthButton";
 import { hasConfig, loadConfigCache } from "@/lib/config";
@@ -156,7 +157,7 @@ export default function HomePage() {
       {/* TopBar com logo clicável */}
       <div className="igot-topbar">
         <div className="brand" title="Estante">
-          💡 <span>igot</span>
+          <CafezinhoLogo size={26} opacity={0.85} /> 💡 <span>igot</span>
         </div>
         <div className="igot-topbar-actions">
           <AuthButton
