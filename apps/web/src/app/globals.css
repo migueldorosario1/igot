@@ -153,6 +153,62 @@ a {
   color: var(--selection-color);
 }
 
+/* ── Layout principal (shell + workspace) ────────────────────────────── */
+/* Estes eram style jsx scoped da home original; agora são globais porque
+   a rota /book/[id] também os usa. Sem height:100vh + overflow:hidden,
+   o conteúdo cresce indefinidamente e o scroll interno não funciona. */
+.igot-shell {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.igot-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+.igot-workspace {
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  flex: 1;
+  min-height: 0;
+}
+.igot-workspace > * {
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.igot-loading {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: var(--text-muted);
+}
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@media (max-width: 900px) {
+  .igot-workspace {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ── TopBar actions + Auth ─────────────────────────────────────────── */
 
 .igot-topbar-actions {

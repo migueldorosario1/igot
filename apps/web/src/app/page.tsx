@@ -56,9 +56,12 @@ export default function HomePage() {
         const data = await file.arrayBuffer();
         const result = await parseBook({ data: data.slice(0), fileName: file.name });
         if (result.ok) {
-          // DEDUPLICAÇÃO: se já existe um livro com mesmo nome+tamanho, reusa.
+          // DEDUPLICAÇÃO: se já existe um livro com mesmo título OU mesmo
+          // nome+tamanho de arquivo, reusa o ID (não cria duplicata na estante).
           const existing = books.find(
-            (b) => b.fileName === file.name && b.fileSize === file.size,
+            (b) =>
+              b.book.title === result.book?.title ||
+              (b.fileName === file.name && b.fileSize === file.size),
           );
           const bookId =
             existing?.id ??
@@ -280,22 +283,26 @@ export default function HomePage() {
         }
         .book-delete-btn {
           position: absolute;
-          top: 4px;
-          right: 4px;
-          width: 28px;
-          height: 28px;
+          top: 6px;
+          right: 6px;
+          width: 32px;
+          height: 32px;
           border: none;
-          background: rgba(0, 0, 0, 0.5);
+          background: rgba(0, 0, 0, 0.55);
           color: white;
           border-radius: 50%;
-          font-size: 13px;
+          font-size: 14px;
           cursor: pointer;
-          opacity: 0;
+          opacity: 0.7; /* sempre visível em touch (sem hover no iPad) */
           transition: opacity var(--transition);
           z-index: 5;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
-        .book-card-wrapper:hover .book-delete-btn {
+        .book-delete-btn:hover {
           opacity: 1;
+          background: rgba(192, 57, 43, 0.85);
         }
         .shelf-error {
           padding: 10px 14px;
