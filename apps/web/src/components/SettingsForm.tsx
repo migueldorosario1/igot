@@ -5,6 +5,7 @@ import { PRESETS, type AIConfig } from "@igot/ai-providers";
 import {
   setConfig, setActiveEntry, removeEntry, updateEntryLabel,
   clearConfig, getTargetLang, setTargetLang,
+  getAudioLang, setAudioLang,
   listAllEntriesSync, getConfigById,
 } from "@/lib/config";
 import { testConnection, listModels } from "@/lib/ai-client";
@@ -28,7 +29,7 @@ interface TestState {
  * modelo/baseUrl), testa a conexão e salva. Tudo no navegador.
  */
 export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
-  const { t } = useI18n();
+  const { t, lang: uiLang, setLang: setUILang } = useI18n();
   const [providerId, setProviderId] = useState(initial?.providerId ?? "zai");
   const [apiKey, setApiKey] = useState(initial?.apiKey ?? "");
   const [model, setModel] = useState(initial?.model ?? "");
@@ -37,6 +38,7 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
   // ID da entry que tá sendo editada (null = criando nova).
   const [editingId, setEditingId] = useState<string | null>(null);
   const [targetLang, setLang] = useState(getTargetLang());
+  const [audioLang, setAudioLangState] = useState(getAudioLang());
   const [showKey, setShowKey] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [test, setTest] = useState<TestState>({
@@ -132,6 +134,7 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
     // Passa editingId se tá editando uma entry existente.
     await setConfig(config, { entryId: editingId ?? undefined, label: label.trim() || undefined });
     setTargetLang(targetLang);
+    setAudioLang(audioLang);
     setSaved(true);
     setEntries(listAllEntriesSync()); // atualiza a lista
     // Limpa o formulário pra próxima entrada.
@@ -347,46 +350,108 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
         </p>
       </div>
 
-      {/* Idioma das respostas */}
-      <div className="field">
-        <label htmlFor="lang">{t("set_ai_lang")}</label>
-        <p className="hint" style={{ marginBottom: "8px" }}>
-          {t("set_ai_lang_hint")}
-        </p>
-        <select
-          id="lang"
-          value={targetLang}
-          onChange={(e) => setLang(e.target.value)}
-        >
-          <optgroup label="Mais comuns">
-            <option value="pt-BR">🇧🇷 Português (Brasil)</option>
+      {/* ═══ 3 IDIOMAS SEPARADOS ═══ */}
+      <div className="lang-section">
+        {/* 1. Idioma da INTERFACE */}
+        <div className="field">
+          <label htmlFor="ui-lang">🖥️ {t("set_ui_lang")}</label>
+          <p className="hint" style={{ marginBottom: "6px" }}>
+            {t("set_ui_lang_hint")}
+          </p>
+          <select
+            id="ui-lang"
+            value={uiLang}
+            onChange={(e) => setUILang(e.target.value)}
+          >
+            <option value="pt-BR">🇧🇷 Português</option>
             <option value="en">🇺🇸 English</option>
             <option value="es">🇪🇸 Español</option>
             <option value="fr">🇫🇷 Français</option>
-          </optgroup>
-          <optgroup label="Asiáticos">
-            <option value="zh">🇨🇳 中文 (Chinês)</option>
-            <option value="ja">🇯🇵 日本語 (Japonês)</option>
-            <option value="ko">🇰🇷 한국어 (Coreano)</option>
-            <option value="hi">🇮🇳 हिन्दी (Hindi)</option>
-            <option value="ar">🇸🇦 العربية (Árabe)</option>
-          </optgroup>
-          <optgroup label="Europeus">
-            <option value="de">🇩🇪 Deutsch (Alemão)</option>
+            <option value="de">🇩🇪 Deutsch</option>
             <option value="it">🇮🇹 Italiano</option>
-            <option value="nl">🇳🇱 Nederlands (Holandês)</option>
-            <option value="ru">🇷🇺 Русский (Russo)</option>
-            <option value="pl">🇵🇱 Polski (Polonês)</option>
-            <option value="tr">🇹🇷 Türkçe (Turco)</option>
-            <option value="uk">🇺🇦 Українська (Ucraniano)</option>
-          </optgroup>
-          <optgroup label="Outros">
-            <option value="he">🇮🇱 עברית (Hebraico)</option>
-            <option value="id">🇮🇩 Bahasa Indonesia</option>
-            <option value="vi">🇻🇳 Tiếng Việt (Vietnamita)</option>
-            <option value="th">🇹🇭 ไทย (Tailandês)</option>
-          </optgroup>
-        </select>
+            <option value="ru">🇷🇺 Русский</option>
+            <option value="zh">🇨🇳 中文</option>
+            <option value="ja">🇯🇵 日本語</option>
+            <option value="ko">🇰🇷 한국어</option>
+            <option value="ar">🇸🇦 العربية</option>
+            <option value="hi">🇮🇳 हिन्दी</option>
+          </select>
+        </div>
+
+        {/* 2. Idioma das TRADUÇÕES e EXPLICAÇÕES (texto escrito) */}
+        <div className="field">
+          <label htmlFor="lang">📝 {t("set_ai_lang")}</label>
+          <p className="hint" style={{ marginBottom: "6px" }}>
+            {t("set_ai_lang_hint")}
+          </p>
+          <select
+            id="lang"
+            value={targetLang}
+            onChange={(e) => setLang(e.target.value)}
+          >
+            <optgroup label="Mais comuns">
+              <option value="pt-BR">🇧🇷 Português (Brasil)</option>
+              <option value="en">🇺🇸 English</option>
+              <option value="es">🇪🇸 Español</option>
+              <option value="fr">🇫🇷 Français</option>
+            </optgroup>
+            <optgroup label="Asiáticos">
+              <option value="zh">🇨🇳 中文 (Chinês)</option>
+              <option value="ja">🇯🇵 日本語 (Japonês)</option>
+              <option value="ko">🇰🇷 한국어 (Coreano)</option>
+              <option value="hi">🇮🇳 हिन्दी (Hindi)</option>
+              <option value="ar">🇸🇦 العربية (Árabe)</option>
+            </optgroup>
+            <optgroup label="Europeus">
+              <option value="de">🇩🇪 Deutsch (Alemão)</option>
+              <option value="it">🇮🇹 Italiano</option>
+              <option value="nl">🇳🇱 Nederlands (Holandês)</option>
+              <option value="ru">🇷🇺 Русский (Russo)</option>
+              <option value="pl">🇵🇱 Polski (Polonês)</option>
+              <option value="tr">🇹🇷 Türkçe (Turco)</option>
+              <option value="uk">🇺🇦 Українська (Ucraniano)</option>
+            </optgroup>
+            <optgroup label="Outros">
+              <option value="he">🇮🇱 עברית (Hebraico)</option>
+              <option value="id">🇮🇩 Bahasa Indonesia</option>
+              <option value="vi">🇻🇳 Tiếng Việt (Vietnamita)</option>
+              <option value="th">🇹🇭 ไทย (Tailandês)</option>
+            </optgroup>
+          </select>
+        </div>
+
+        {/* 3. Idioma do ÁUDIO FALADO (leitura em voz alta) */}
+        <div className="field">
+          <label htmlFor="audio-lang">🔊 {t("set_audio_lang")}</label>
+          <p className="hint" style={{ marginBottom: "6px" }}>
+            {t("set_audio_lang_hint")}
+          </p>
+          <select
+            id="audio-lang"
+            value={audioLang}
+            onChange={(e) => {
+              setAudioLangState(e.target.value);
+              setAudioLang(e.target.value);
+            }}
+          >
+            {/* "Original" em primeiro, separado, destacado */}
+            <option value="original">📖 {t("set_audio_original")}</option>
+            <optgroup label={t("set_audio_specific")}>
+              <option value="pt-BR">🇧🇷 Português</option>
+              <option value="en">🇺🇸 English</option>
+              <option value="es">🇪🇸 Español</option>
+              <option value="fr">🇫🇷 Français</option>
+              <option value="de">🇩🇪 Deutsch</option>
+              <option value="it">🇮🇹 Italiano</option>
+              <option value="ru">🇷🇺 Русский</option>
+              <option value="zh">🇨🇳 中文</option>
+              <option value="ja">🇯🇵 日本語</option>
+              <option value="ko">🇰🇷 한국어</option>
+              <option value="ar">🇸🇦 العربية</option>
+              <option value="hi">🇮🇳 हिन्दी</option>
+            </optgroup>
+          </select>
+        </div>
       </div>
 
       {/* Modelo — SEMPRE VISÍVEL (é o que diferencia múltiplas entries) */}
@@ -911,6 +976,16 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
         }
 
         /* Separador de seção */
+        /* Seção de 3 idiomas */
+        .lang-section {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          padding: 16px;
+          background: var(--surface-alt);
+          border-radius: 10px;
+          border: 1px solid var(--border);
+        }
         .section-divider {
           display: flex;
           align-items: center;

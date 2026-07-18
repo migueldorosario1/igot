@@ -8,7 +8,7 @@ import { CafezinhoLogo } from "./CafezinhoLogo";
 import { AuthButton } from "./AuthButton";
 import { useI18n } from "./I18nProvider";
 import { useTTS } from "@/hooks/useTTS";
-import { getTargetLang } from "@/lib/config";
+import { getTargetLang, getAudioLang } from "@/lib/config";
 import { SettingsModal } from "./SettingsModal";
 import { translatePageStream, explainPageStream, translateStream, explainStream } from "@/lib/ai-client";
 
@@ -105,13 +105,15 @@ export function Reader({
       tts.stop();
       return;
     }
-    // Idioma-alvo das traduções (ex: português). Esse é o idioma que a pessoa
-    // ESCOLHEU pra traduzir/explicar — é nele que vamos ler.
-    const targetLang = getTargetLang();
+    // Idioma do áudio falado — "original" = língua do livro, senão o escolhido.
+    const audioLang = getAudioLang();
 
-    // PRIORIDADE 1: se tem tradução visível na tela, lê ELA (no idioma-alvo).
+    // PRIORIDADE 1: se tem tradução visível E o áudio é "original", lê a
+    // tradução (porque o usuário quer ouvir no idioma-alvo). Se o áudio é
+    // um idioma específico, lê naquele idioma.
     if (showTranslation && pageTranslation && overlayMode === "translate") {
-      tts.speak(pageTranslation, targetLang);
+      // Se tem tradução na tela, lê ela no idioma-alvo.
+      tts.speak(pageTranslation, audioLang === "original" ? getTargetLang() : audioLang);
       return;
     }
 
@@ -129,8 +131,9 @@ export function Reader({
         .join(". ") ?? "";
     }
     if (!text.trim()) return;
-    // Lê o texto original na língua dele (auto-detectada do livro).
-    tts.speak(text, book.language || targetLang);
+    // Lê o texto original: no idioma do livro (se "original") ou no escolhido.
+    const speakLang = audioLang === "original" ? (book.language || "en") : audioLang;
+    tts.speak(text, speakLang);
   };
   const [chapterIdx, setChapterIdxState] = useState(initialChapterIdx);
   const [menu, setMenu] = useState<{

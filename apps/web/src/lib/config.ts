@@ -424,6 +424,8 @@ export function listAllProvidersSync(): Array<{
 
 // ─── Idioma ─────────────────────────────────────────────────────────────
 
+const AUDIO_LANG_KEY = "igot.audioLang";
+
 /** Idioma-alvo das respostas da IA (default pt-BR). */
 export function getTargetLang(): string {
   if (typeof window === "undefined") return "pt-BR";
@@ -433,4 +435,19 @@ export function getTargetLang(): string {
 export function setTargetLang(lang: string): void {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(LANG_KEY, lang);
+}
+
+/**
+ * Idioma da leitura em voz alta (TTS). Valor especial "original" = lê
+ * na língua original do livro (auto-detectada). Senão, lê no idioma
+ * escolhido (ex: "pt-BR", "en").
+ */
+export function getAudioLang(): string {
+  if (typeof window === "undefined") return "original";
+  return window.localStorage.getItem(AUDIO_LANG_KEY) ?? "original";
+}
+
+export function setAudioLang(lang: string): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(AUDIO_LANG_KEY, lang);
 }
