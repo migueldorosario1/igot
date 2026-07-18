@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ParsedBook } from "@igot/parser";
 import type { SelectionAction } from "@/lib/types";
+import { useI18n } from "./I18nProvider";
 import { translateStream, explainStream, ask, type BookContext } from "@/lib/ai-client";
 
 interface AIPanelProps {
@@ -26,6 +27,7 @@ interface PanelState {
  * fala com o provedor escolhido pelo usuário, via proxy) e mostra o resultado.
  */
 export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
+  const { t } = useI18n();
   const [state, setState] = useState<PanelState>({
     loading: false,
     result: null,
@@ -115,15 +117,15 @@ export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
 
   const title =
     action?.type === "translate"
-      ? "🌐 Tradução"
+      ? t("reader_note_translate")
       : action?.type === "explain"
-        ? "🧠 Explicação"
-        : "❓ Resposta";
+        ? t("reader_note_explain")
+        : t("reader_note_question");
 
   return (
     <aside className="ai-panel">
       <header className="ai-header">
-        <span className="ai-title">{action ? title : "🧠 Assistente igot"}</span>
+        <span className="ai-title">{action ? title : t("ai_assistant")}</span>
         <div className="ai-header-actions">
           {state.result && action && (
             <button
@@ -136,9 +138,9 @@ export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
                   chapterId: action.chapterId,
                 })
               }
-              title="Salvar esta resposta nas suas anotações"
+              title={t("ai_save_tooltip")}
             >
-              📌 Salvar
+              {t("ai_save")}
             </button>
           )}
           {/* ✕ SEMPRE visível — usuário pode desistir/fechar a qualquer momento,
@@ -146,8 +148,8 @@ export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
           <button
             className="ai-close"
             onClick={onClose}
-            aria-label="Fechar painel"
-            title="Fechar"
+            aria-label={t("close")}
+            title={t("close")}
           >
             ✕
           </button>
@@ -157,11 +159,8 @@ export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
       <div className="ai-body" ref={resultRef}>
         {!action && !state.result && (
           <div className="ai-empty">
-            <p>
-              Selecione um trecho do texto e escolha{" "}
-              <strong>Traduzir</strong> ou <strong>Explicar</strong>.
-            </p>
-            <p className="ai-empty-sub">Ou faça uma pergunta sobre o livro abaixo.</p>
+            <p>{t("ai_empty_hint")}</p>
+            <p className="ai-empty-sub">{t("ai_empty_sub")}</p>
           </div>
         )}
 
@@ -173,7 +172,7 @@ export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
               <span className="dot" />
             </div>
             <span className="ai-loading-label">
-              {action?.type === "translate" ? "Traduzindo…" : "Explicando…"}
+              {action?.type === "translate" ? t("reader_translating") : t("reader_explaining")}
             </span>
           </div>
         )}
@@ -189,7 +188,7 @@ export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && askBook()}
-          placeholder={`Pergunte sobre "${truncate(book.title, 28)}"…`}
+          placeholder={t("ai_ask_placeholder", { title: truncate(book.title, 28) })}
         />
         <button onClick={askBook} disabled={!query.trim()}>
           ➤

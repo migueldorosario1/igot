@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { useI18n } from "./I18nProvider";
 
 interface UploaderProps {
   onFile: (file: File) => void;
@@ -17,6 +18,7 @@ interface UploaderProps {
  * e aceita .epub/.pdf por arrastar-soltar ou clique.
  */
 export function Uploader({ onFile, error, configReady = true, onOpenSettings }: UploaderProps) {
+  const { t } = useI18n();
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -45,26 +47,23 @@ export function Uploader({ onFile, error, configReady = true, onOpenSettings }: 
         <div className="hero">
           <div className="logo">💡</div>
           <h1 className="brand-name">igot</h1>
-          <p className="tagline">Leia qualquer coisa. Entenda tudo.</p>
-          <p className="subtitle">
-            Leitor de livros com IA que <strong>traduz</strong> e <strong>explica</strong>{" "}
-            qualquer trecho — em qualquer idioma.
-          </p>
+          <p className="tagline">{t("app_tagline")}</p>
+          <p className="subtitle">{t("upload_hero_desc")}</p>
         </div>
 
         {/* Features */}
         <div className="features">
           <div className="feature">
             <span className="feature-icon">🌐</span>
-            <span className="feature-text">Traduz</span>
+            <span className="feature-text">{t("upload_feat_translate")}</span>
           </div>
           <div className="feature">
             <span className="feature-icon">🧠</span>
-            <span className="feature-text">Explica</span>
+            <span className="feature-text">{t("upload_feat_explain")}</span>
           </div>
           <div className="feature">
             <span className="feature-icon">📄</span>
-            <span className="feature-text">PDF & EPUB</span>
+            <span className="feature-text">{t("upload_feat_formats")}</span>
           </div>
         </div>
 
@@ -73,8 +72,8 @@ export function Uploader({ onFile, error, configReady = true, onOpenSettings }: 
           <div className="setup-warning" onClick={onOpenSettings} role="button">
             <span className="setup-icon">⚠️</span>
             <div className="setup-content">
-              <strong>Configure sua IA primeiro</strong>
-              <span>Escolha um provedor e cole sua chave pra traduzir e explicar.</span>
+              <strong>{t("upload_config_needed")}</strong>
+              <span>{t("upload_config_desc")}</span>
             </div>
             <span className="setup-arrow">⚙️ →</span>
           </div>
@@ -102,9 +101,9 @@ export function Uploader({ onFile, error, configReady = true, onOpenSettings }: 
               📖
             </div>
             <p className="dropzone-title">
-              Arraste um livro aqui ou <span>clique pra escolher</span>
+              {t("upload_dropzone")} <span>{t("upload_click")}</span>
             </p>
-            <p className="dropzone-formats">EPUB ou PDF</p>
+            <p className="dropzone-formats">{t("upload_format_hint")}</p>
           </div>
         </label>
 
@@ -116,7 +115,7 @@ export function Uploader({ onFile, error, configReady = true, onOpenSettings }: 
 
         {/* Badge de privacidade */}
         <div className="privacy-badge">
-          🔒 <span>Suas chaves de IA nunca saem do seu dispositivo.</span>
+          🔒 <span>{t("upload_privacy")}</span>
         </div>
       </div>
 
