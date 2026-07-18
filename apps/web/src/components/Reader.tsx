@@ -944,17 +944,6 @@ export function Reader({
           >
             🎤
           </button>
-          {/* 💬 Reabrir painel da IA (quando oculto mas tem ação) */}
-          {onTogglePanel && !panelVisible && (
-            <button
-              onClick={() => onTogglePanel()}
-              className="icon-btn active"
-              title={t("reader_show_panel")}
-              aria-label={t("reader_show_panel")}
-            >
-              💬
-            </button>
-          )}
           {/* 🌐/🧠 Traduzir/Explicar página (PDF) */}
           {book.sourceFormat === "pdf" && pdfSource && (
             <>

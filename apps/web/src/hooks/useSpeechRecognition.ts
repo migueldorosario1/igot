@@ -31,6 +31,9 @@ export function useSpeechRecognition(onFinalResult?: (text: string) => void): Sp
     typeof window !== "undefined" &&
     ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
 
+  // Ref pra sinalizar parada manual (do botão stop externo).
+  const stoppedManuallyRef = useRef(false);
+
   const [listening, setListening] = useState(false);
   const [transcript, setTranscript] = useState("");
   const recognitionRef = useRef<any>(null);
@@ -46,22 +49,31 @@ export function useSpeechRecognition(onFinalResult?: (text: string) => void): Sp
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     const recognition = new SR();
     recognition.lang = lang;
-    recognition.interimResults = true;   // resultados parciais (enquanto fala)
-    recognition.continuous = true;        // continua ouvindo até parar manualmente
+    recognition.interimResults = true;
+    recognition.continuous = true;
 
-    // Timeout de segurança: 2 minutos no máximo (evita ficar ouvindo pra sempre).
+    // Timeout de segurança: 2 minutos no máximo.
     const MAX_MS = 120_000;
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    // Flag: se o usuário parou manualmente, não reinicia.
+    stoppedManuallyRef.current = false;
 
-    recognition.onstart = () => {
-      setListening(true);
-      setTranscript("");
+    const startTimeout = () => {
+      if (timeoutId) clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
+        stoppedManuallyRef.current = true;
         try { recognition.stop(); } catch { /* ignora */ }
       }, MAX_MS);
     };
 
+    recognition.onstart = () => {
+      setListening(true);
+      startTimeout();
+    };
+
     recognition.onresult = (event: any) => {
+      // Renova o timeout a cada resultado (enquanto fala, segue ouvindo).
+      startTimeout();
       let interim = "";
       let final = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -80,12 +92,26 @@ export function useSpeechRecognition(onFinalResult?: (text: string) => void): Sp
       }
     };
 
-    recognition.onerror = () => {
-      if (timeoutId) clearTimeout(timeoutId);
-      setListening(false);
+    recognition.onerror = (event: any) => {
+      // "no-speech" e "aborted" são normais — não desligam.
+      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        stoppedManuallyRef.current = true;
+        if (timeoutId) clearTimeout(timeoutId);
+        setListening(false);
+      }
     };
 
     recognition.onend = () => {
+      // iOS/Safari para o reconhecimento ao detectar silêncio, mesmo com
+      // continuous=true. Se não foi o usuário que parou, REINICIA.
+      if (!stoppedManuallyRef.current) {
+        try {
+          recognition.start();
+          return;
+        } catch {
+          // Se falhar ao reiniciar, desliga.
+        }
+      }
       if (timeoutId) clearTimeout(timeoutId);
       setListening(false);
     };
@@ -95,6 +121,7 @@ export function useSpeechRecognition(onFinalResult?: (text: string) => void): Sp
   }, [supported]);
 
   const stop = useCallback(() => {
+    stoppedManuallyRef.current = true;
     if (recognitionRef.current) {
       try { recognitionRef.current.stop(); } catch { /* ignora */ }
     }
