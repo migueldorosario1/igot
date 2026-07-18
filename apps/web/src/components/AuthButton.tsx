@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import type { AuthStatus } from "@/lib/auth";
+import { useI18n } from "./I18nProvider";
 
 interface AuthButtonProps {
   status: AuthStatus;
@@ -25,6 +26,7 @@ export function AuthButton({
   onSignIn,
   onSignOut,
 }: AuthButtonProps) {
+  const { t } = useI18n();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -41,7 +43,7 @@ export function AuthButton({
 
   if (status === "loading") {
     return (
-      <div className="auth-loading" aria-label="Verificando login">
+      <div className="auth-loading" aria-label={t("auth_checking")}>
         <div className="auth-spinner" />
       </div>
     );
@@ -56,7 +58,7 @@ export function AuthButton({
           <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
           <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
         </svg>
-        <span>Entrar</span>
+        <span>{t("auth_signin")}</span>
       </button>
     );
   }
@@ -67,7 +69,7 @@ export function AuthButton({
       <button
         className="auth-avatar-btn"
         onClick={() => setMenuOpen((o) => !o)}
-        aria-label="Menu da conta"
+        aria-label={t("auth_account_menu")}
       >
         {avatarUrl ? (
           <img src={avatarUrl} alt="" className="auth-avatar" />
@@ -79,9 +81,9 @@ export function AuthButton({
       </button>
       {menuOpen && (
         <div className="auth-dropdown" role="menu">
-          <div className="auth-dropdown-name">{userName ?? "Usuário"}</div>
+          <div className="auth-dropdown-name">{userName ?? t("auth_user")}</div>
           <button className="auth-signout" onClick={onSignOut} role="menuitem">
-            Sair
+            {t("auth_signout")}
           </button>
         </div>
       )}

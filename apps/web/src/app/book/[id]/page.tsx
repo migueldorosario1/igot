@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Reader } from "@/components/Reader";
+import { useI18n } from "@/components/I18nProvider";
 import { AIPanel } from "@/components/AIPanel";
 import { SettingsModal } from "@/components/SettingsModal";
 import { hasConfig, loadConfigCache } from "@/lib/config";
@@ -19,6 +20,7 @@ import type { SelectionAction } from "@/lib/types";
 export default function BookPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const auth = useAuth();
+  const { t } = useI18n();
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -66,7 +68,7 @@ export default function BookPage({ params }: { params: { id: string } }) {
       <main className="igot-shell">
         <div className="igot-loading">
           <div className="spinner" />
-          <p>Abrindo livro…</p>
+          <p>{t("err_opening_book")}</p>
         </div>
       </main>
     );
@@ -76,9 +78,9 @@ export default function BookPage({ params }: { params: { id: string } }) {
     return (
       <main className="igot-shell">
         <div className="igot-loading">
-          <p>Livro não encontrado na sua estante.</p>
+          <p>{t("err_book_not_found")}</p>
           <button onClick={() => router.push("/")} className="back-btn">
-            ← Voltar pra estante
+            {t("err_back_shelf")}
           </button>
         </div>
       </main>

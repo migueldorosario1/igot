@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { AIConfig } from "@igot/ai-providers";
 import { getConfigSync, loadConfigCache, invalidateConfigCache } from "@/lib/config";
+import { useI18n } from "./I18nProvider";
 import { SettingsForm } from "./SettingsForm";
 
 interface SettingsModalProps {
@@ -20,6 +21,7 @@ interface SettingsModalProps {
  * A config inicial é lida FRESCA a cada abertura (pra refletir um save anterior).
  */
 export function SettingsModal({ onClose, onSaved }: SettingsModalProps) {
+  const { t } = useI18n();
   const [config, setConfig] = useState<AIConfig | null>(null);
 
   // Lê a config FRESCA a cada abertura do modal.
@@ -45,15 +47,15 @@ export function SettingsModal({ onClose, onSaved }: SettingsModalProps) {
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label="Configurações de IA"
+      aria-label={t("set_title")}
     >
       <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
         <header className="settings-modal-header">
-          <h2>⚙️ Configurações de IA</h2>
+          <h2>{t("set_title")}</h2>
           <button
             className="settings-modal-close"
             onClick={onClose}
-            aria-label="Fechar"
+            aria-label={t("close")}
           >
             ✕
           </button>

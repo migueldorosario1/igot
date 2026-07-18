@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Uploader } from "@/components/Uploader";
 import { CafezinhoLogo } from "@/components/CafezinhoLogo";
 import { LangSwitcher } from "@/components/LangSwitcher";
+import { useI18n } from "@/components/I18nProvider";
 import { SettingsModal } from "@/components/SettingsModal";
 import { AuthButton } from "@/components/AuthButton";
 import { hasConfig, loadConfigCache } from "@/lib/config";
@@ -27,6 +28,7 @@ import { parseBook } from "@igot/parser";
 export default function HomePage() {
   const router = useRouter();
   const auth = useAuth();
+  const { t } = useI18n();
   const [books, setBooks] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [addingBook, setAddingBook] = useState(false);
@@ -183,7 +185,7 @@ export default function HomePage() {
       {loading ? (
         <div className="igot-loading">
           <div className="spinner" />
-          <p>Carregando sua estante…</p>
+          <p>{t("shelf_loading")}</p>
         </div>
       ) : books.length === 0 && !addingBook ? (
         <Uploader
@@ -195,22 +197,22 @@ export default function HomePage() {
       ) : (
         <div className="shelf-page">
           <div className="shelf-header">
-            <h1>Minha estante</h1>
+            <h1>{t("shelf_title")}</h1>
             <div className="shelf-actions">
               <button
                 className="clear-shelf-btn"
                 onClick={async () => {
-                  if (confirm("Remover TODOS os livros da estante? Esta ação não pode ser desfeita.")) {
+                  if (confirm(t("shelf_clear_confirm"))) {
                     await clearAllBooks(auth.userId);
                     setBooks([]);
                   }
                 }}
-                title="Limpar estante"
+                title={t("shelf_clear_all")}
               >
-                🗑 Limpar tudo
+                {t("shelf_clear_all")}
               </button>
               <button className="add-book-btn" onClick={() => document.getElementById("file-input")?.click()}>
-                + Adicionar livro
+                {t("shelf_add_book")}
               </button>
             </div>
             <input
@@ -228,7 +230,7 @@ export default function HomePage() {
           {addingBook && (
             <div className="igot-loading">
               <div className="spinner" />
-              <p>Adicionando livro…</p>
+              <p>{t("shelf_adding")}</p>
             </div>
           )}
 
@@ -257,18 +259,18 @@ export default function HomePage() {
                     )}
                     <p className="book-progress">
                       {book.book.sourceFormat === "pdf"
-                        ? `Página ${book.chapterIdx + 1}`
-                        : `Capítulo ${book.chapterIdx + 1}`}
+                        ? t("shelf_page_n", { n: book.chapterIdx + 1 })
+                        : t("shelf_chapter_n", { n: book.chapterIdx + 1 })}
                     </p>
                   </div>
                 </Link>
                 <button
                   className="book-delete-btn"
-                  title="Remover da estante"
+                  title={t("shelf_remove_book")}
                   onClick={async (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    if (confirm(`Remover "${book.book.title}" da estante?`)) {
+                    if (confirm(t("shelf_remove_confirm", { title: book.book.title }))) {
                       await removeFromLibrary(book.id, auth.userId);
                       setBooks((prev) => prev.filter((b) => b.id !== book.id));
                     }
