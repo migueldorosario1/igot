@@ -46,12 +46,19 @@ export function useSpeechRecognition(onFinalResult?: (text: string) => void): Sp
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     const recognition = new SR();
     recognition.lang = lang;
-    recognition.interimResults = true;  // resultados parciais (enquanto fala)
-    recognition.continuous = false;      // para sozinho após uma pausa
+    recognition.interimResults = true;   // resultados parciais (enquanto fala)
+    recognition.continuous = true;        // continua ouvindo até parar manualmente
+
+    // Timeout de segurança: 2 minutos no máximo (evita ficar ouvindo pra sempre).
+    const MAX_MS = 120_000;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
     recognition.onstart = () => {
       setListening(true);
       setTranscript("");
+      timeoutId = setTimeout(() => {
+        try { recognition.stop(); } catch { /* ignora */ }
+      }, MAX_MS);
     };
 
     recognition.onresult = (event: any) => {
@@ -74,10 +81,12 @@ export function useSpeechRecognition(onFinalResult?: (text: string) => void): Sp
     };
 
     recognition.onerror = () => {
+      if (timeoutId) clearTimeout(timeoutId);
       setListening(false);
     };
 
     recognition.onend = () => {
+      if (timeoutId) clearTimeout(timeoutId);
       setListening(false);
     };
 
