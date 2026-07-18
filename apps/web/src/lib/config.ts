@@ -354,6 +354,22 @@ export function listAllEntriesSync(): Array<{
   }));
 }
 
+/**
+ * Pega a config COMPLETA (chave real descriptografada) de uma entry específica.
+ * Usado pra testar conexão de uma entry cadastrada sem precisar re-digitar a chave.
+ */
+export function getConfigById(entryId: string): AIConfig | null {
+  if (!cachedEntries) return null;
+  const entry = cachedEntries.find((e) => e.id === entryId);
+  if (!entry) return null;
+  return {
+    providerId: entry.providerId,
+    apiKey: entry.apiKey,
+    model: entry.model,
+    baseUrl: entry.baseUrl,
+  };
+}
+
 /** True se há pelo menos uma entrada com ativa definida. */
 export function hasConfig(): boolean {
   return cachedEntries != null

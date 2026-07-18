@@ -5,7 +5,7 @@ import { PRESETS, type AIConfig } from "@igot/ai-providers";
 import {
   setConfig, setActiveEntry, removeEntry, updateEntryLabel,
   clearConfig, getTargetLang, setTargetLang,
-  listAllEntriesSync,
+  listAllEntriesSync, getConfigById,
 } from "@/lib/config";
 import { testConnection, listModels } from "@/lib/ai-client";
 
@@ -49,6 +49,8 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
   const [modelSearch, setModelSearch] = useState("");
   // Lista de entradas cadastradas (com chave mascarada + modelo).
   const [entries, setEntries] = useState(listAllEntriesSync());
+  // Estado de teste por entry: entryId → 'testing' | 'ok' | 'fail'.
+  const [entryTest, setEntryTest] = useState<Record<string, "testing" | "ok" | "fail">>({});
 
   const preset = PRESETS.find((p) => p.id === providerId);
 
@@ -93,6 +95,26 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
         ? { status: "ok", message: result.message }
         : { status: "fail", message: result.message },
     );
+  };
+
+  /** Testa uma entry JÁ CADASTRADA (da lista) — sem precisar digitar a chave. */
+  const handleTestEntry = async (entryId: string) => {
+    const config = getConfigById(entryId);
+    if (!config) return;
+    setEntryTest((prev) => ({ ...prev, [entryId]: "testing" }));
+    const result = await testConnection(config);
+    setEntryTest((prev) => ({
+      ...prev,
+      [entryId]: result.ok ? "ok" : "fail",
+    }));
+    // Limpa o status depois de 4s.
+    setTimeout(() => {
+      setEntryTest((prev) => {
+        const copy = { ...prev };
+        delete copy[entryId];
+        return copy;
+      });
+    }, 4000);
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -206,6 +228,15 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
                         Usar
                       </button>
                     )}
+                    <button
+                      type="button"
+                      className={`mini-btn test-btn ${entryTest[e.id] ? `test-${entryTest[e.id]}` : ""}`}
+                      onClick={() => handleTestEntry(e.id)}
+                      title="Testar conexão"
+                      disabled={entryTest[e.id] === "testing"}
+                    >
+                      {entryTest[e.id] === "testing" ? "⏳" : entryTest[e.id] === "ok" ? "✅" : entryTest[e.id] === "fail" ? "❌" : "🔌"}
+                    </button>
                     <button
                       type="button"
                       className="mini-btn edit-btn"
@@ -392,13 +423,24 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
         )}
         {modelsList && modelsList.length > 0 && (
           <div className="models-list">
-            <input
-              type="text"
-              className="model-search"
-              placeholder="Filtrar modelos…"
-              value={modelSearch}
-              onChange={(e) => setModelSearch(e.target.value)}
-            />
+            <div className="models-list-header">
+              <input
+                type="text"
+                className="model-search"
+                placeholder="Filtrar modelos…"
+                value={modelSearch}
+                onChange={(e) => setModelSearch(e.target.value)}
+              />
+              <button
+                type="button"
+                className="models-close-btn"
+                onClick={() => setModelsList(null)}
+                title="Fechar lista"
+                aria-label="Fechar"
+              >
+                ✕
+              </button>
+            </div>
             <div className="models-scroll">
               {modelsList
                 .filter((m) =>
@@ -652,11 +694,15 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
           border-radius: 8px;
           overflow: hidden;
         }
+        .models-list-header {
+          display: flex;
+          align-items: stretch;
+          border-bottom: 1px solid var(--border);
+        }
         .model-search {
-          width: 100%;
+          flex: 1;
           padding: 8px 10px;
           border: none;
-          border-bottom: 1px solid var(--border);
           background: var(--surface);
           color: var(--text);
           font-size: 13px;
@@ -664,6 +710,32 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
         .model-search:focus {
           outline: none;
           background: var(--bg);
+        }
+        .models-close-btn {
+          border: none;
+          border-left: 1px solid var(--border);
+          background: var(--surface);
+          color: var(--text-muted);
+          padding: 0 12px;
+          font-size: 14px;
+          cursor: pointer;
+        }
+        .models-close-btn:hover {
+          background: #fdecea;
+          color: #c0392b;
+        }
+        /* Botão de teste (🔌) — feedback visual por estado. */
+        .test-btn.test-ok {
+          background: #e6f4ea;
+          border-color: #1e7e34;
+        }
+        .test-btn.test-fail {
+          background: #fdecea;
+          border-color: #c0392b;
+        }
+        .test-btn:disabled {
+          opacity: 0.6;
+          cursor: wait;
         }
         .models-scroll {
           max-height: 200px;
