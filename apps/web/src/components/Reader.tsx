@@ -140,7 +140,10 @@ export function Reader({
       speakLang = audioLang === "original" ? (book.language || "en") : audioLang;
     }
 
-    if (!text.trim()) return;
+    if (!text.trim()) {
+      alert(t("reader_no_text"));
+      return;
+    }
 
     // Tenta voz NEURAL primeiro (se o provedor ativo for OpenAI — tem TTS).
     const config = getConfigSync();
@@ -1281,9 +1284,12 @@ export function Reader({
           display: flex;
           flex-direction: column;
           height: 100%;
+          min-height: 0;
           background: var(--bg);
           border-right: 1px solid var(--border);
           position: relative;
+          /* overflow: visible — NÃO corta o header (era o bug do menu cortado). */
+          overflow: visible;
         }
         /* Em tela cheia: ocupa toda a tela, mantém header + nav visíveis. */
         .reader:fullscreen {
@@ -1314,11 +1320,15 @@ export function Reader({
         .reader-header {
           display: flex;
           flex-direction: column;
-          gap: 4px; /* entrelinha menor */
+          gap: 4px;
           padding: 6px 14px;
           border-bottom: 1px solid var(--border);
           background: var(--surface);
           flex-shrink: 0;
+          /* NUNCA corta o header — sempre visível, sempre com altura mínima. */
+          min-height: 50px;
+          overflow: visible;
+          z-index: 10;
           box-shadow: 0 1px 3px rgba(0,0,0,0.04);
         }
         /* Linhas do header — distribuem bem os elementos (sem espaço vazio). */
@@ -1348,6 +1358,9 @@ export function Reader({
         .reader-row-right {
           display: flex;
           align-items: center;
+          gap: 6px;
+          flex-shrink: 0;
+          margin-left: auto;
           gap: 6px;
           flex-shrink: 0;
           margin-left: auto; /* empurra tudo pra direita */

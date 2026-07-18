@@ -73,6 +73,7 @@ export type UIStringKey =
   | "reader_read_aloud"
   | "reader_stop_reading"
   | "reader_preparing_audio"
+  | "reader_no_text"
   | "reader_translate_page"
   | "reader_translating"
   | "reader_view_original"
@@ -246,6 +247,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     reader_read_aloud: "Ler em voz alta",
     reader_stop_reading: "Parar leitura",
     reader_preparing_audio: "Preparando áudio…",
+    reader_no_text: "Ainda não há texto nesta página. Aguarde o carregamento.",
     reader_translate_page: "🌐 Traduzir página",
     reader_translating: "⏳ Traduzindo…",
     reader_view_original: "📖 Ver original",
@@ -411,6 +413,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     reader_read_aloud: "Ler em voz alta",
     reader_stop_reading: "Parar leitura",
     reader_preparing_audio: "Preparando áudio…",
+    reader_no_text: "Ainda não há texto nesta página. Aguarde o carregamento.",
     reader_translate_page: "🌐 Translate page",
     reader_translating: "⏳ Translating…",
     reader_view_original: "📖 View original",
@@ -572,6 +575,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     reader_read_aloud: "Ler em voz alta",
     reader_stop_reading: "Parar leitura",
     reader_preparing_audio: "Preparando áudio…",
+    reader_no_text: "Ainda não há texto nesta página. Aguarde o carregamento.",
     reader_translate_page: "🌐 Traducir página",
     reader_translating: "⏳ Traduciendo…",
     reader_view_original: "📖 Ver original",
@@ -733,6 +737,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     reader_read_aloud: "Ler em voz alta",
     reader_stop_reading: "Parar leitura",
     reader_preparing_audio: "Preparando áudio…",
+    reader_no_text: "Ainda não há texto nesta página. Aguarde o carregamento.",
     reader_translate_page: "🌐 Traduire la page",
     reader_translating: "⏳ Traduction…",
     reader_view_original: "📖 Voir l'original",
@@ -894,6 +899,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     reader_read_aloud: "Ler em voz alta",
     reader_stop_reading: "Parar leitura",
     reader_preparing_audio: "Preparando áudio…",
+    reader_no_text: "Ainda não há texto nesta página. Aguarde o carregamento.",
     reader_translate_page: "🌐 Seite übersetzen",
     reader_translating: "⏳ Übersetzen…",
     reader_view_original: "📖 Original anzeigen",
@@ -1055,6 +1061,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     reader_read_aloud: "Ler em voz alta",
     reader_stop_reading: "Parar leitura",
     reader_preparing_audio: "Preparando áudio…",
+    reader_no_text: "Ainda não há texto nesta página. Aguarde o carregamento.",
     reader_translate_page: "🌐 Traduci pagina",
     reader_translating: "⏳ Traduzione…",
     reader_view_original: "📖 Vedi originale",
@@ -1216,6 +1223,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     reader_read_aloud: "Ler em voz alta",
     reader_stop_reading: "Parar leitura",
     reader_preparing_audio: "Preparando áudio…",
+    reader_no_text: "Ainda não há texto nesta página. Aguarde o carregamento.",
     reader_translate_page: "🌐 Перевести страницу",
     reader_translating: "⏳ Перевод…",
     reader_view_original: "📖 Показать оригинал",
@@ -1377,6 +1385,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     reader_read_aloud: "Ler em voz alta",
     reader_stop_reading: "Parar leitura",
     reader_preparing_audio: "Preparando áudio…",
+    reader_no_text: "Ainda não há texto nesta página. Aguarde o carregamento.",
     reader_translate_page: "🌐 翻译本页",
     reader_translating: "⏳ 翻译中…",
     reader_view_original: "📖 查看原文",
@@ -1538,6 +1547,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     reader_read_aloud: "Ler em voz alta",
     reader_stop_reading: "Parar leitura",
     reader_preparing_audio: "Preparando áudio…",
+    reader_no_text: "Ainda não há texto nesta página. Aguarde o carregamento.",
     reader_translate_page: "🌐 ページを翻訳",
     reader_translating: "⏳ 翻訳中…",
     reader_view_original: "📖 原文を見る",
@@ -1699,6 +1709,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     reader_read_aloud: "Ler em voz alta",
     reader_stop_reading: "Parar leitura",
     reader_preparing_audio: "Preparando áudio…",
+    reader_no_text: "Ainda não há texto nesta página. Aguarde o carregamento.",
     reader_translate_page: "🌐 페이지 번역",
     reader_translating: "⏳ 번역 중…",
     reader_view_original: "📖 원문 보기",
@@ -1860,6 +1871,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     reader_read_aloud: "Ler em voz alta",
     reader_stop_reading: "Parar leitura",
     reader_preparing_audio: "Preparando áudio…",
+    reader_no_text: "Ainda não há texto nesta página. Aguarde o carregamento.",
     reader_translate_page: "🌐 ترجمة الصفحة",
     reader_translating: "⏳ جارٍ الترجمة…",
     reader_view_original: "📖 عرض الأصل",
@@ -2021,6 +2033,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     reader_read_aloud: "Ler em voz alta",
     reader_stop_reading: "Parar leitura",
     reader_preparing_audio: "Preparando áudio…",
+    reader_no_text: "Ainda não há texto nesta página. Aguarde o carregamento.",
     reader_translate_page: "🌐 पृष्ठ का अनुवाद करें",
     reader_translating: "⏳ अनुवाद हो रहा है…",
     reader_view_original: "📖 मूल देखें",
