@@ -163,6 +163,7 @@ export default function HomePage() {
           <CafezinhoLogo size={26} opacity={0.85} /> <span>Moka</span>
         </div>
         <div className="igot-topbar-actions">
+          <a href="/premium" className="premium-link" title="Moka Premium">⭐</a>
           <LangSwitcher />
           <AuthButton
             status={auth.status}
@@ -292,6 +293,20 @@ export default function HomePage() {
       )}
 
       <style jsx>{`
+        .premium-link {
+          font-size: 22px;
+          text-decoration: none;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 44px;
+          height: 44px;
+          border-radius: 10px;
+          transition: all 150ms ease;
+        }
+        .premium-link:hover {
+          transform: scale(1.15);
+        }
         .shelf-page {
           flex: 1;
           overflow-y: auto;

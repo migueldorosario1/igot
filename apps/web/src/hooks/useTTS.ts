@@ -58,6 +58,9 @@ export function useTTS() {
   const [state, setState] = useState<"idle" | "playing" | "paused">("idle");
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const supported = typeof window !== "undefined" && "speechSynthesis" in window;
+  // Áudio neural (TTS via IA) — guardamos num <audio> element.
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   // Carrega as vozes (assíncrono em alguns navegadores).
   useEffect(() => {
@@ -135,10 +138,90 @@ export function useTTS() {
   }, [supported]);
 
   const stop = useCallback(() => {
-    if (!supported) return;
-    window.speechSynthesis.cancel();
+    // Para voz nativa.
+    if (supported) window.speechSynthesis.cancel();
+    // Para voz neural.
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
+    }
     setState("idle");
   }, [supported]);
 
-  return { state, speak, pause, resume, stop, supported, voices };
+  /**
+   * Leitura neural via IA (OpenAI TTS).
+   * Recebe config com baseUrl, apiKey, model e voice.
+   * Gera áudio MP3 natural e toca.
+   * Se falhar, cai pra voz nativa automaticamente.
+   */
+  const speakNeural = useCallback(
+    async (
+      text: string,
+      lang: string,
+      ttsConfig: {
+        baseUrl: string;
+        apiKey: string;
+        model?: string;
+        voice?: string;
+      },
+    ) => {
+      if (!text.trim()) return;
+      // Para qualquer leitura anterior.
+      stop();
+
+      try {
+        setState("playing");
+        const controller = new AbortController();
+        abortRef.current = controller;
+
+        const response = await fetch("/api/tts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text: text.slice(0, 4000),
+            voice: ttsConfig.voice || "nova",
+            model: ttsConfig.model || "tts-1",
+            baseUrl: ttsConfig.baseUrl,
+            apiKey: ttsConfig.apiKey,
+          }),
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`TTS falhou: ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audioRef.current = audio;
+        audio.onended = () => {
+          setState("idle");
+          URL.revokeObjectURL(url);
+          audioRef.current = null;
+        };
+        audio.onerror = () => {
+          setState("idle");
+          URL.revokeObjectURL(url);
+          audioRef.current = null;
+        };
+        await audio.play();
+      } catch (err) {
+        // Se falhou (cancelado, erro de rede, provedor sem TTS), cai pra voz nativa.
+        if ((err as Error).name === "AbortError") {
+          setState("idle");
+          return;
+        }
+        console.warn("TTS neural falhou, usando voz nativa:", err);
+        speak(text, lang);
+      }
+    },
+    [stop, speak],
+  );
+
+  return { state, speak, speakNeural, pause, resume, stop, supported, voices };
 }

@@ -681,6 +681,11 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
         </details>
       </div>
 
+      {/* Premium */}
+      <a href="/premium" className="premium-banner">
+        ⭐ Moka Premium — IA inclusa, voz neural, biblioteca na nuvem. Saiba mais →
+      </a>
+
       {/* Doação */}
       <div className="donate-section">
         <p className="donate-title">{t("donate_title")}</p>
@@ -1115,6 +1120,23 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
         }
 
         /* Doação */
+        /* Banner Premium */
+        .premium-banner {
+          display: block;
+          text-align: center;
+          padding: 14px 18px;
+          background: linear-gradient(135deg, var(--accent), var(--gold, #c89968));
+          color: white !important;
+          border-radius: 12px;
+          font-size: 14px;
+          font-weight: 600;
+          text-decoration: none;
+          transition: all 150ms ease;
+        }
+        .premium-banner:hover {
+          transform: scale(1.02);
+          box-shadow: 0 4px 16px rgba(176, 106, 59, 0.3);
+        }
         .donate-section {
           text-align: center;
           padding-top: 12px;
