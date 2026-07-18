@@ -218,6 +218,18 @@ a {
   .igot-workspace {
     grid-template-columns: 1fr;
   }
+  /* Em telas estreitas, o AIPanel vira OVERLAY flutuante (drawer na direita)
+     em vez de empilhar embaixo do Reader. Assim não trava o menu do Reader. */
+  .igot-workspace > .ai-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: 420px;
+    z-index: 500;
+    box-shadow: -4px 0 24px rgba(0,0,0,0.2);
+  }
 }
 
 /* ── TopBar actions + Auth ─────────────────────────────────────────── */
