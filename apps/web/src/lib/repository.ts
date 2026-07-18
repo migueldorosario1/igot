@@ -187,6 +187,7 @@ export async function listLibrary(userId: string | null): Promise<Session[]> {
     savedAt: row.saved_at as number,
     translations: (row.translations as Record<string, string>) ?? {},
     notes: (row.notes as SavedNote[]) ?? [],
+    bookmarks: (row.bookmarks as Array<{ chapterIdx: number; savedAt: number }>) ?? [],
     coverImage: row.cover_image as string | undefined,
   }));
 }
@@ -218,6 +219,7 @@ export async function saveToLibrary(session: Session, userId?: string | null): P
     zoom: session.zoom,
     translations: session.translations ?? {},
     notes: session.notes ?? [],
+    bookmarks: session.bookmarks ?? [],
     saved_at: session.savedAt,
   });
 }
