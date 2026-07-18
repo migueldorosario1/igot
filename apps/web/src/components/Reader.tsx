@@ -156,6 +156,17 @@ export function Reader({
       return;
     }
 
+    // Aviso: voz neural só com OpenAI. Avisa UMA VEZ (não enche toda hora).
+    const warned = typeof window !== "undefined" && sessionStorage.getItem("moka.ttsWarned") === "1";
+    if (!warned) {
+      sessionStorage.setItem("moka.ttsWarned", "1");
+      alert(
+        "🔊 Para a voz mais natural (qualidade de pessoa lendo), " +
+        "configure a OpenAI como provedor nas Configurações (⚙️).\n\n" +
+        "Por enquanto, será usada a voz do seu dispositivo."
+      );
+    }
+
     // Senão, usa voz NATIVA do dispositivo.
     tts.speak(text, speakLang);
   };
