@@ -1,69 +1,58 @@
 /**
  * Logo do Cafezinho Media Group.
  *
- * Xícara de café estilizada em SVG vetorial (escalável, nítida em qualquer
- * DPI). Usa `currentColor` pra herdar a cor do texto — funciona em light/dark.
+ * Usa a IMAGEM REAL da logo (cafezinho-logo.jpg) — uma xícara de café
+ * minimalista preto e branco, com um rosto sorridente integrado no corpo.
  *
- * Modo "vazada" (padrão): só o contorno, sutil, como marca d'água.
- * Modo "cheia": preenchido, pra usar em cabeçalhos com destaque.
+ * A imagem é carregada de /cafezinho-logo.jpg (pasta public/).
+ * O parâmetro `opacity` controla o quão "vazada" ela aparece (marca d'água).
  *
- * Inspirado na arte oficial do Cafezinho Media Group (Niterói, RJ).
+ * O filtro CSS adapta a logo ao tema:
+ *  - Light mode: mix-blend-mode multiply (branco fica transparente)
+ *  - Dark mode: brightness(0) invert(1) + screen blend (preto vira branco)
  */
 export function CafezinhoLogo({
   size = 24,
-  filled = false,
   opacity = 1,
   title = "Cafezinho Media Group",
 }: {
   size?: number;
-  filled?: boolean;
   opacity?: number;
   title?: string;
 }) {
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 64 64"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      role="img"
-      aria-label={title}
-      style={{ opacity, display: "block" }}
-    >
-      <title>{title}</title>
-      {/* Vapor: três linhas onduladas acima da xícara */}
-      <path
-        d="M24 10c-1.5 2-1.5 4 0 6M32 8c-1.5 2-1.5 4 0 6M40 10c-1.5 2-1.5 4 0 6"
-        stroke="currentColor"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        fill="none"
-        opacity="0.7"
+    <>
+      <img
+        src="/cafezinho-logo.jpg"
+        width={size}
+        height={size}
+        alt={title}
+        role="img"
+        aria-label={title}
+        className="cafezinho-logo-img"
+        style={{
+          opacity,
+          display: "block",
+          width: size,
+          height: size,
+          objectFit: "contain",
+          borderRadius: 4,
+        }}
+        draggable={false}
       />
-      {/* Corpo da xícara (caneca) — traço arredondado */}
-      <path
-        d="M16 22h28v18a14 14 0 0 1-28 0V22z"
-        fill={filled ? "currentColor" : "none"}
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinejoin="round"
-      />
-      {/* Asa (ala) da xícara */}
-      <path
-        d="M44 26h4a6 6 0 0 1 0 12h-4"
-        fill={filled ? "currentColor" : "none"}
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinejoin="round"
-      />
-      {/* Pires sob a xícara */}
-      <path
-        d="M12 58h36"
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinecap="round"
-      />
-    </svg>
+      <style jsx>{`
+        .cafezinho-logo-img {
+          /* Light mode: branco vira transparente (multiply). */
+          mix-blend-mode: multiply;
+        }
+        @media (prefers-color-scheme: dark) {
+          .cafezinho-logo-img {
+            /* Dark mode: inverte (preto→branco) e usa screen pra transparentar o fundo. */
+            mix-blend-mode: screen;
+            filter: brightness(0) invert(1);
+          }
+        }
+      `}</style>
+    </>
   );
 }

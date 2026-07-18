@@ -735,7 +735,7 @@ export function Reader({
   return (
     <section className="reader" ref={containerRef} data-menu-hidden={!menuVisible}>
       <header className="reader-header" data-hidden={!menuVisible}>
-        {/* ── Linha 1: logo + título + navegação + controles de tela ── */}
+        {/* ── Linha 1: logo + título + estante + zoom + ⚙️ + auth + fullscreen ── */}
         <div className="reader-row reader-row-main">
           {/* Logo Cafezinho — sempre presente, canto esquerdo, vazada */}
           <a
@@ -745,7 +745,7 @@ export function Reader({
             title="Cafezinho Media Group — Voltar à estante"
             aria-label="Voltar à estante"
           >
-            <CafezinhoLogo size={26} opacity={0.85} />
+            <CafezinhoLogo size={28} opacity={0.85} />
           </a>
           <div className="reader-title">
             <h1>{book.title}</h1>
@@ -758,6 +758,29 @@ export function Reader({
               </span>
             )}
           </div>
+          {/* Estante — volta pra home */}
+          <button
+            onClick={() => onGoToShelf?.()}
+            className="icon-btn"
+            title="Minha estante"
+            aria-label="Estante"
+          >
+            📚
+          </button>
+          {/* Zoom (só PDF) */}
+          {book.sourceFormat === "pdf" && pdfSource && (
+            <div className="reader-zoom" title="Zoom">
+              <button onClick={zoomOut} disabled={zoom <= MIN_ZOOM} aria-label="Diminuir zoom">
+                −
+              </button>
+              <button onClick={zoomReset} className="zoom-value" aria-label="Restaurar zoom">
+                {Math.round(zoom * 100)}%
+              </button>
+              <button onClick={zoomIn} disabled={zoom >= MAX_ZOOM} aria-label="Aumentar zoom">
+                +
+              </button>
+            </div>
+          )}
           {/* ⚙️ Configurações */}
           {onOpenSettings && (
             <button
@@ -831,15 +854,6 @@ export function Reader({
           >
             🔖 {bookmarks.length > 0 && <span className="badge">{bookmarks.length}</span>}
           </button>
-          {/* Estante — volta pra home */}
-          <button
-            onClick={() => onGoToShelf?.()}
-            className="icon-btn"
-            title="Minha estante"
-            aria-label="Estante"
-          >
-            📚
-          </button>
           {/* Print da página */}
           <button
             onClick={printPage}
@@ -869,17 +883,6 @@ export function Reader({
           </button>
           {book.sourceFormat === "pdf" && pdfSource && (
             <>
-              <div className="reader-zoom" title="Zoom">
-                <button onClick={zoomOut} disabled={zoom <= MIN_ZOOM} aria-label="Diminuir zoom">
-                  −
-                </button>
-                <button onClick={zoomReset} className="zoom-value" aria-label="Restaurar zoom">
-                  {Math.round(zoom * 100)}%
-                </button>
-                <button onClick={zoomIn} disabled={zoom >= MAX_ZOOM} aria-label="Aumentar zoom">
-                  +
-                </button>
-              </div>
               <button
                 onClick={handleTranslatePage}
                 disabled={translatingPage || !currentPageText}
@@ -1147,34 +1150,36 @@ export function Reader({
         .reader-header {
           display: flex;
           flex-direction: column;
-          gap: 8px;
-          padding: 10px 16px;
+          gap: 6px;
+          padding: 8px 14px;
           border-bottom: 1px solid var(--border);
           background: var(--surface);
           flex-shrink: 0;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.04);
         }
-        /* Linhas do header — cada uma NUNCA corta botões (wrap em vez de scroll). */
+        /* Linhas do header — distribuem bem os elementos (sem espaço vazio). */
         .reader-row {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 6px;
           flex-wrap: wrap;
         }
-        /* Linha 1: espaço entre — título à esquerda (max-width), controles à direita.
-           Sem 'flex:1' no título, pra não criar espaços vazios. */
+        /* Linha 1: space-between preenche os dois lados (logo+título esq, controles dir). */
         .reader-row-main {
           justify-content: space-between;
         }
         .reader-row-main .reader-title {
-          max-width: min(50%, 360px);
+          flex: 1 1 auto;
+          min-width: 0;
+          max-width: 100%;
         }
-        /* Agrupa navegação + ⚙️ + fullscreen no canto direito da linha 1. */
-        .reader-row-main > .reader-nav,
-        .reader-row-main > .icon-btn {
+        .reader-row-main > .icon-btn,
+        .reader-row-main > .reader-zoom {
           flex-shrink: 0;
         }
+        /* Linha 2: space-between distribui as ações por toda a largura. */
         .reader-row-actions {
-          justify-content: flex-start;
+          justify-content: space-between;
           row-gap: 6px;
         }
         .reader-zoom {
@@ -1299,8 +1304,8 @@ export function Reader({
 
         /* Botões de ícone reutilizáveis (44px touch target) */
         .icon-btn {
-          width: 44px;
-          height: 44px;
+          width: 42px;
+          height: 42px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1308,15 +1313,23 @@ export function Reader({
           background: var(--surface);
           color: var(--text);
           border-radius: 10px;
-          font-size: 18px;
+          font-size: 17px;
           cursor: pointer;
-          transition: var(--transition);
+          transition: all 150ms ease;
           flex-shrink: 0;
           position: relative;
         }
         .icon-btn:hover {
           border-color: var(--accent);
-          transform: scale(1.05);
+          background: var(--accent-soft);
+          color: var(--accent);
+        }
+        .icon-btn:active {
+          transform: scale(0.92);
+        }
+        .icon-btn.active {
+          background: var(--accent-soft);
+          border-color: var(--accent);
         }
         /* Contador dentro do botão (notas/marcadores) */
         .icon-btn .badge {
