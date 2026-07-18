@@ -17,6 +17,7 @@ export type MessageKey =
   | "errGeneric"
   | "errNetwork"
   | "errTimeout"
+  | "errModelNotFound"
   | "errNoConfig"
   | "errNoText";
 
@@ -35,6 +36,7 @@ const STRINGS: Record<string, Messages> = {
     errTimeout: "A requisição demorou demais e foi cancelada. Tente novamente.",
     errNoConfig: "IA não configurada. Abra Configurações (⚙️) e escolha um provedor.",
     errNoText: "Página sem texto para traduzir.",
+    errModelNotFound: "Modelo não encontrado. Verifique o nome do modelo nas Configurações (⚙️) — pode estar incorreto ou desatualizado.",
   },
   en: {
     errAuth:
@@ -48,6 +50,7 @@ const STRINGS: Record<string, Messages> = {
     errTimeout: "The request took too long and was cancelled. Please try again.",
     errNoConfig: "AI not configured. Open Settings (⚙️) and choose a provider.",
     errNoText: "Page has no text to translate.",
+    errModelNotFound: "Modelo não encontrado. Verifique o nome do modelo nas Configurações (⚙️) — pode estar incorreto ou desatualizado.",
   },
   es: {
     errAuth:
@@ -61,6 +64,7 @@ const STRINGS: Record<string, Messages> = {
     errTimeout: "La solicitud tardó demasiado y se canceló. Inténtalo de nuevo.",
     errNoConfig: "IA no configurada. Abre Configuración (⚙️) y elige un proveedor.",
     errNoText: "La página no tiene texto para traducir.",
+    errModelNotFound: "Modelo não encontrado. Verifique o nome do modelo nas Configurações (⚙️) — pode estar incorreto ou desatualizado.",
   },
   fr: {
     errAuth:
@@ -74,6 +78,7 @@ const STRINGS: Record<string, Messages> = {
     errTimeout: "La requête a pris trop de temps et a été annulée. Veuillez réessayer.",
     errNoConfig: "IA non configurée. Ouvrez les Paramètres (⚙️) et choisissez un fournisseur.",
     errNoText: "La page n'a pas de texte à traduire.",
+    errModelNotFound: "Modelo não encontrado. Verifique o nome do modelo nas Configurações (⚙️) — pode estar incorreto ou desatualizado.",
   },
   zh: {
     errAuth: "API 密钥无效或权限不足。打开设置 (⚙️) 并检查您的密钥。",
@@ -85,6 +90,7 @@ const STRINGS: Record<string, Messages> = {
     errTimeout: "请求超时已取消。请重试。",
     errNoConfig: "AI 未配置。打开设置 (⚙️) 并选择一个提供商。",
     errNoText: "页面没有可翻译的文本。",
+    errModelNotFound: "Modelo não encontrado. Verifique o nome do modelo nas Configurações (⚙️) — pode estar incorreto ou desatualizado.",
   },
   ru: {
     errAuth:
@@ -98,6 +104,7 @@ const STRINGS: Record<string, Messages> = {
     errTimeout: "Запрос занял слишком много времени и был отменён. Попробуйте снова.",
     errNoConfig: "ИА не настроена. Откройте Настройки (⚙️) и выберите провайдера.",
     errNoText: "На странице нет текста для перевода.",
+    errModelNotFound: "Modelo não encontrado. Verifique o nome do modelo nas Configurações (⚙️) — pode estar incorreto ou desatualizado.",
   },
   de: {
     errAuth:
@@ -111,6 +118,7 @@ const STRINGS: Record<string, Messages> = {
     errTimeout: "Die Anfrage dauerte zu lange und wurde abgebrochen. Bitte versuchen Sie es erneut.",
     errNoConfig: "KI nicht konfiguriert. Öffnen Sie die Einstellungen (⚙️) und wählen Sie einen Anbieter.",
     errNoText: "Seite hat keinen Text zum Übersetzen.",
+    errModelNotFound: "Modelo não encontrado. Verifique o nome do modelo nas Configurações (⚙️) — pode estar incorreto ou desatualizado.",
   },
   ja: {
     errAuth: "APIキーが無効か権限がありません。設定 (⚙️) を開いてキーを確認してください。",
@@ -123,6 +131,7 @@ const STRINGS: Record<string, Messages> = {
     errTimeout: "リクエストがタイムアウトし、キャンセルされました。再試行してください。",
     errNoConfig: "AIが設定されていません。設定 (⚙️) を開いてプロバイダーを選択してください。",
     errNoText: "ページに翻訳するテキストがありません。",
+    errModelNotFound: "Modelo não encontrado. Verifique o nome do modelo nas Configurações (⚙️) — pode estar incorreto ou desatualizado.",
   },
 };
 

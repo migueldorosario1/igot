@@ -7,7 +7,6 @@ import type { SelectionAction } from "@/lib/types";
 import { PdfPageCanvas } from "./PdfPageCanvas";
 import { CafezinhoLogo } from "./CafezinhoLogo";
 import { AuthButton } from "./AuthButton";
-import { LangSwitcher } from "./LangSwitcher";
 import { useI18n } from "./I18nProvider";
 import { useTTS } from "@/hooks/useTTS";
 import { SettingsModal } from "./SettingsModal";
@@ -898,15 +897,6 @@ export function Reader({
           >
             🔖 {bookmarks.length > 0 && <span className="badge">{bookmarks.length}</span>}
           </button>
-          {/* 🖨 Print */}
-          <button
-            onClick={printPage}
-            className="icon-btn"
-            title={t("reader_print")}
-            aria-label={t("reader_print")}
-          >
-            🖨
-          </button>
           {/* 📸 Foto */}
           <button
             onClick={savePageAsImage}
@@ -962,8 +952,6 @@ export function Reader({
                 ⚙️
               </button>
             )}
-            {/* 🌐 Idioma */}
-            <LangSwitcher />
             {/* 👤 Login */}
             {auth && (
               <AuthButton

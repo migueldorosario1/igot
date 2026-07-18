@@ -71,9 +71,17 @@ function toMessage(err: unknown): string {
   if (err instanceof ProxyStreamError) {
     const detail = err.providerDetail ? ` (${err.providerDetail})` : "";
     switch (err.statusCode) {
+      case 400:
+        // Erro de requisição: geralmente parâmetro inválido (modelo, temperatura).
+        // O detail traz a mensagem específica do provedor — já está em inglês ou
+        // no idioma do provedor, então é útil mostrar junto.
+        return t(lang, "errGeneric", { code: 400 }) + detail;
       case 401:
       case 403:
         return t(lang, "errAuth") + detail;
+      case 404:
+        // Modelo não encontrado — mensagem específica e útil.
+        return t(lang, "errModelNotFound") + detail;
       case 429:
         return t(lang, "errRateLimit") + detail;
       case 500:

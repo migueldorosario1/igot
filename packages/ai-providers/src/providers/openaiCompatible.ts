@@ -20,6 +20,28 @@ import type {
 import { AIProviderError } from "../types";
 import type { Transport } from "../transport";
 
+/**
+ * Detecta se um modelo é de "raciocínio" (reasoning model) que NÃO aceita
+ * o parâmetro `temperature` (ou só aceita temperature: 1).
+ *
+ * Exemplos: Kimi K3, DeepSeek-R1, DeepSeek-Reasoner, o1, o3, Qwen-QwQ.
+ * Esses modelos ignoram temperature ou retornam erro 400 se enviada.
+ */
+export function isReasoningModel(model: string): boolean {
+  const m = model.toLowerCase();
+  return (
+    m.includes("kimi-k3") ||
+    m.includes("deepseek-r") ||    // deepseek-reasoner, deepseek-r1
+    m.includes("reasoner") ||
+    m.includes("/o1") ||
+    m.includes("o1-") ||
+    m.includes("/o3") ||
+    m.includes("o3-") ||
+    m.includes("qwq") ||
+    m.includes("thinking")
+  );
+}
+
 export interface OpenAICompatibleConfig {
   id: string;
   name: string;
@@ -88,7 +110,11 @@ export class OpenAICompatibleProvider implements AIProvider {
         body: JSON.stringify({
           model,
           messages,
-          temperature: opts.temperature ?? 0.3,
+          // Modelos de raciocínio (Kimi K3, DeepSeek-R1, o1...) não aceitam
+          // temperature — mandar causa erro 400. Omitimos nesses casos.
+          ...(!isReasoningModel(model) && {
+            temperature: opts.temperature ?? 0.3,
+          }),
           ...(opts.maxTokens ? { max_tokens: opts.maxTokens } : {}),
         }),
       },
@@ -157,7 +183,10 @@ export class OpenAICompatibleProvider implements AIProvider {
         body: JSON.stringify({
           model,
           messages,
-          temperature: opts.temperature ?? 0.3,
+          // Modelos de raciocínio não aceitam temperature.
+          ...(!isReasoningModel(model) && {
+            temperature: opts.temperature ?? 0.3,
+          }),
           ...(opts.maxTokens ? { max_tokens: opts.maxTokens } : {}),
           stream: true, // habilita SSE
         }),
