@@ -225,6 +225,19 @@ a {
   .igot-workspace {
     grid-template-columns: 1fr;
   }
+  /* No mobile, o AIPanel aparece como DRAWER fixo na direita (não empilha
+     embaixo do Reader). O Reader mantém o header acessível.
+     Como position:fixed, escapa do overflow:hidden do workspace. */
+  .igot-workspace > .ai-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: 420px;
+    z-index: 600;
+    box-shadow: -4px 0 24px rgba(0,0,0,0.2);
+  }
 }
 
 /* ── TopBar actions + Auth ─────────────────────────────────────────── */

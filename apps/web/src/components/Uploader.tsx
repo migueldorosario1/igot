@@ -117,6 +117,13 @@ export function Uploader({ onFile, error, configReady = true, onOpenSettings }: 
         <div className="privacy-badge">
           🔒 <span>{t("upload_privacy")}</span>
         </div>
+
+        {/* Links: Quem Somos + Privacidade */}
+        <div className="uploader-links">
+          <a href="/sobre">Quem Somos</a>
+          <span>·</span>
+          <a href="/privacidade">Privacidade</a>
+        </div>
       </div>
 
       <style jsx>{`
@@ -299,6 +306,24 @@ export function Uploader({ onFile, error, configReady = true, onOpenSettings }: 
           .features {
             gap: var(--space-4);
           }
+        }
+        .uploader-links {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+          justify-content: center;
+          margin-top: 20px;
+          font-size: 13px;
+        }
+        .uploader-links a {
+          color: var(--accent);
+          text-decoration: none;
+        }
+        .uploader-links a:hover {
+          text-decoration: underline;
+        }
+        .uploader-links span {
+          color: var(--text-muted);
         }
       `}</style>
     </div>

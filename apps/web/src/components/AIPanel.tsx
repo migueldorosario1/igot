@@ -208,11 +208,16 @@ export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
             {speech.listening ? "🔴" : "🎤"}
           </button>
         )}
-        <input
-          type="text"
+        <textarea
+          rows={3}
           value={speech.listening ? speech.transcript : query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && askBook()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              askBook();
+            }
+          }}
           placeholder={speech.listening ? t("ai_listening") : t("ai_ask_placeholder", { title: truncate(book.title, 28) })}
         />
         <button onClick={askBook} disabled={!query.trim() && !speech.transcript}>
@@ -348,11 +353,13 @@ export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
         }
         .ai-footer {
           display: flex;
+          align-items: flex-end;
           gap: 8px;
           padding: 14px 20px;
           border-top: 1px solid var(--border);
         }
-        .ai-footer input {
+        .ai-footer input,
+        .ai-footer textarea {
           flex: 1;
           padding: 10px 14px;
           border: 1px solid var(--border);
@@ -360,7 +367,12 @@ export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
           background: var(--bg);
           color: var(--text);
           font-size: 14px;
+          font-family: inherit;
+          resize: none;
+          min-height: 60px;
+          line-height: 1.5;
         }
+        .ai-footer textarea:focus,
         .ai-footer input:focus {
           outline: none;
           border-color: var(--accent);

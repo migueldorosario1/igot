@@ -668,6 +668,15 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
               Niterói, RJ — Brasil<br />
               migueldorosario@gmail.com
             </p>
+            <p style={{ marginTop: "12px" }}>
+              <a href="/sobre" target="_blank" rel="noreferrer" style={{ color: "var(--accent)", textDecoration: "none" }}>
+                Saiba mais →
+              </a>
+              <span style={{ margin: "0 8px", color: "var(--text-muted)" }}>·</span>
+              <a href="/privacidade" target="_blank" rel="noreferrer" style={{ color: "var(--accent)", textDecoration: "none" }}>
+                Privacidade →
+              </a>
+            </p>
           </div>
         </details>
       </div>
