@@ -1173,9 +1173,9 @@ export function Reader({
         .reader-row-main > .reader-zoom {
           flex-shrink: 0;
         }
-        /* Linha 2: space-between distribui as ações por toda a largura. */
+        /* Linha 2: tudo justificado à DIREITA. */
         .reader-row-actions {
-          justify-content: space-between;
+          justify-content: flex-end;
           row-gap: 6px;
         }
         .reader-zoom {
