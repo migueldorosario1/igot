@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { ParsedBook } from "@igot/parser";
 import type { SelectionAction } from "@/lib/types";
 import { PdfPageCanvas } from "./PdfPageCanvas";
@@ -9,6 +10,7 @@ import { AuthButton } from "./AuthButton";
 import { LangSwitcher } from "./LangSwitcher";
 import { useI18n } from "./I18nProvider";
 import { useTTS } from "@/hooks/useTTS";
+import { SettingsModal } from "./SettingsModal";
 import { translatePageStream, explainPageStream, translateStream, explainStream } from "@/lib/ai-client";
 
 interface ReaderProps {
@@ -28,6 +30,12 @@ interface ReaderProps {
   onCloseBook?: () => void;
   /** Abre as configurações de IA (pra acessar em fullscreen). */
   onOpenSettings?: () => void;
+  /** Settings aberto? (controla renderização do modal DENTRO do Reader). */
+  settingsOpen?: boolean;
+  /** Fecha o modal de settings. */
+  onCloseSettings?: () => void;
+  /** Callback quando salva config (pra atualizar indicador). */
+  onSettingsSaved?: () => void;
   /** True se já tem configuração de IA salva (mostra indicador se falso). */
   configReady?: boolean;
   /** Traduções já prontas (chave = String(chapterIdx+1)). */
@@ -75,6 +83,9 @@ export function Reader({
   onZoomChange,
   onCloseBook,
   onOpenSettings,
+  settingsOpen = false,
+  onCloseSettings,
+  onSettingsSaved,
   configReady = true,
   translations = {},
   onPageTranslation,
@@ -1911,6 +1922,16 @@ export function Reader({
           background: rgba(0, 0, 0, 0.2) !important;
         }
       `}</style>
+
+      {/* Settings renderizado DENTRO do Reader — aparece no fullscreen.
+          Usa portal pro document.body pra garantir z-index acima de tudo. */}
+      {settingsOpen && typeof document !== "undefined" && createPortal(
+        <SettingsModal
+          onClose={() => onCloseSettings?.()}
+          onSaved={() => onSettingsSaved?.()}
+        />,
+        document.body,
+      )}
     </section>
   );
 }

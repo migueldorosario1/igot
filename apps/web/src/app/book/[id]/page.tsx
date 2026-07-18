@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Reader } from "@/components/Reader";
 import { useI18n } from "@/components/I18nProvider";
 import { AIPanel } from "@/components/AIPanel";
-import { SettingsModal } from "@/components/SettingsModal";
 import { hasConfig, loadConfigCache } from "@/lib/config";
 import { useAuth } from "@/lib/auth";
 import { getBook } from "@/lib/repository";
@@ -109,6 +108,9 @@ export default function BookPage({ params }: { params: { id: string } }) {
           onCloseBook={() => router.push("/")}
           auth={auth}
           onOpenSettings={() => setSettingsOpen(true)}
+          settingsOpen={settingsOpen}
+          onCloseSettings={() => setSettingsOpen(false)}
+          onSettingsSaved={() => setConfigReady(hasConfig())}
           configReady={configReady}
           translations={session.translations ?? {}}
           onPageTranslation={(chapIdx, text) => {
@@ -169,12 +171,6 @@ export default function BookPage({ params }: { params: { id: string } }) {
           }
         />
       </div>
-      {settingsOpen && (
-        <SettingsModal
-          onClose={() => setSettingsOpen(false)}
-          onSaved={() => setConfigReady(hasConfig())}
-        />
-      )}
       <style jsx>{`
         .back-btn {
           margin-top: 16px;
