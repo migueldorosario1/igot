@@ -5,6 +5,7 @@ import type { ParsedBook } from "@igot/parser";
 import type { SelectionAction } from "@/lib/types";
 import { PdfPageCanvas } from "./PdfPageCanvas";
 import { CafezinhoLogo } from "./CafezinhoLogo";
+import { AuthButton } from "./AuthButton";
 import { translatePageStream, explainPageStream, translateStream, explainStream } from "@/lib/ai-client";
 
 interface ReaderProps {
@@ -42,6 +43,8 @@ interface ReaderProps {
   onToggleBookmark?: (chapterIdx: number) => void;
   /** Volta pra estante (home). */
   onGoToShelf?: () => void;
+  /** Auth (login Google) — pra mostrar o botão no header. */
+  auth?: ReturnType<typeof import("@/lib/auth").useAuth>;
 }
 
 const MIN_ZOOM = 0.5;
@@ -78,6 +81,7 @@ export function Reader({
   bookmarks = [],
   onToggleBookmark,
   onGoToShelf,
+  auth,
 }: ReaderProps) {
   const [chapterIdx, setChapterIdxState] = useState(initialChapterIdx);
   const [menu, setMenu] = useState<{
@@ -764,6 +768,16 @@ export function Reader({
             >
               ⚙️
             </button>
+          )}
+          {/* Auth (login Google) */}
+          {auth && (
+            <AuthButton
+              status={auth.status}
+              userName={auth.user?.user_metadata?.full_name ?? null}
+              avatarUrl={auth.user?.user_metadata?.avatar_url ?? null}
+              onSignIn={auth.signInWithGoogle}
+              onSignOut={auth.signOut}
+            />
           )}
           {/* Tela cheia */}
           <button

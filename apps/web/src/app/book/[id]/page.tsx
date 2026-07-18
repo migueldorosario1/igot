@@ -3,10 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Reader } from "@/components/Reader";
-import { CafezinhoLogo } from "@/components/CafezinhoLogo";
 import { AIPanel } from "@/components/AIPanel";
 import { SettingsModal } from "@/components/SettingsModal";
-import { AuthButton } from "@/components/AuthButton";
 import { hasConfig, loadConfigCache } from "@/lib/config";
 import { useAuth } from "@/lib/auth";
 import { getBook } from "@/lib/repository";
@@ -97,8 +95,7 @@ export default function BookPage({ params }: { params: { id: string } }) {
 
   return (
     <main className="igot-shell">
-      <TopBar auth={auth} />
-      <div className="igot-workspace">
+      <div className="igot-workspace igot-workspace-no-topbar">
         <Reader
           book={session.book}
           pdfSource={pdfSource}
@@ -108,6 +105,7 @@ export default function BookPage({ params }: { params: { id: string } }) {
           onChapterChange={(n) => updateSession({ chapterIdx: n })}
           onZoomChange={(z) => updateSession({ zoom: z })}
           onCloseBook={() => router.push("/")}
+          auth={auth}
           onOpenSettings={() => setSettingsOpen(true)}
           configReady={configReady}
           translations={session.translations ?? {}}
@@ -190,34 +188,3 @@ export default function BookPage({ params }: { params: { id: string } }) {
   );
 }
 
-/** Barra superior reusada (igual à home, mas sem ⚙️ — fica no Reader). */
-function TopBar({
-  auth,
-}: {
-  auth: ReturnType<typeof useAuth>;
-}) {
-  const goToEstante = () => {
-    if (typeof sessionStorage !== "undefined") {
-      sessionStorage.setItem("igot.backToEstante", "1");
-    }
-    window.location.href = "/";
-  };
-  return (
-    <div className="igot-topbar">
-      <div className="igot-topbar-left">
-        <button onClick={goToEstante} className="brand" title="Estante" style={{ background: "none", border: "none", cursor: "pointer" }}>
-          <CafezinhoLogo size={24} opacity={0.85} /> 💡 <span>igot</span>
-        </button>
-      </div>
-      <div className="igot-topbar-actions">
-        <AuthButton
-          status={auth.status}
-          userName={auth.user?.user_metadata?.full_name ?? null}
-          avatarUrl={auth.user?.user_metadata?.avatar_url ?? null}
-          onSignIn={auth.signInWithGoogle}
-          onSignOut={auth.signOut}
-        />
-      </div>
-    </div>
-  );
-}
