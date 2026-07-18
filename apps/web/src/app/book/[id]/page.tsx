@@ -163,7 +163,11 @@ export default function BookPage({ params }: { params: { id: string } }) {
             router.push("/");
           }}
         />
-        {action && panelVisible && (
+      </div>
+      {/* AIPanel FORA do grid do workspace — não interfere no layout.
+          Flutua como overlay independente. */}
+      {action && panelVisible && (
+        <div className="ai-panel-overlay">
           <AIPanel
             action={action}
             book={session.book}
@@ -182,8 +186,8 @@ export default function BookPage({ params }: { params: { id: string } }) {
               })
             }
           />
-        )}
-      </div>
+        </div>
+      )}
       <style jsx>{`
         .back-btn {
           margin-top: 16px;

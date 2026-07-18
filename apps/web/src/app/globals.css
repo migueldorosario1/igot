@@ -201,6 +201,41 @@ a {
   min-width: 0;
   overflow: hidden;
 }
+/* Overlay do AIPanel — fica FORA do grid do workspace.
+   Desktop: painel fixo na lateral direita (420px).
+   Mobile: card flutuante compacto embaixo (max 240px). */
+.ai-panel-overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 420px;
+  z-index: 600;
+  box-shadow: -4px 0 24px rgba(0,0,0,0.12);
+}
+.ai-panel-overlay .ai-panel {
+  height: 100%;
+}
+@media (max-width: 900px) {
+  .ai-panel-overlay {
+    top: auto;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    width: auto;
+    max-height: 240px;
+    border: 2px solid var(--accent);
+    border-radius: 14px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  }
+  .ai-panel-overlay .ai-panel {
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .ai-panel-overlay .ai-body {
+    max-height: 120px;
+  }
+}
 .igot-loading {
   flex: 1;
   display: flex;
@@ -228,46 +263,7 @@ a {
   /* Quando o painel tá aberto, dá padding extra no reader pra compensar
      o espaço do card flutuante — texto continua rolável até o final. */
   .igot-workspace.has-panel .reader-scroll {
-    padding-bottom: 240px !important;
-  }
-  /* No mobile, o AIPanel é um CARD flutuante no canto inferior.
-     É COMPACTO (max 220px de altura), NÃO ocupa a tela toda.
-     O texto continua 100% rolável por trás dele.
-     Tem padding extra no reader-scroll pra compensar. */
-  .igot-workspace > .ai-panel {
-    position: fixed;
-    left: 8px;
-    right: 8px;
-    bottom: 8px;
-    max-height: 220px;
-    z-index: 600;
-    border: 2px solid var(--accent);
-    border-radius: 14px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-    background: var(--surface);
-    /* pointer-events só no próprio card — deixa o texto rolável por trás. */
-  }
-  .igot-workspace > .ai-panel .ai-body {
-    max-height: 120px;
-  }
-  .igot-workspace > .ai-panel .ai-header {
-    padding: 8px 14px;
-  }
-  .igot-workspace > .ai-panel .ai-title {
-    font-size: 14px;
-  }
-  .igot-workspace > .ai-panel .ai-close {
-    width: 36px;
-    height: 36px;
-    font-size: 24px;
-    background: var(--accent-soft);
-    border-radius: 50%;
-  }
-  .igot-workspace > .ai-panel .ai-footer {
-    padding: 8px 14px;
-  }
-  .igot-workspace > .ai-panel .ai-footer textarea {
-    min-height: 44px;
+    padding-bottom: 260px !important;
   }
 }
 
