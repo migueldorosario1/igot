@@ -8,7 +8,7 @@ import { CafezinhoLogo } from "./CafezinhoLogo";
 import { AuthButton } from "./AuthButton";
 import { useI18n } from "./I18nProvider";
 import { useTTS } from "@/hooks/useTTS";
-import { getTargetLang, getAudioLang } from "@/lib/config";
+import { getTargetLang, getAudioLang, getConfigSync } from "@/lib/config";
 import { SettingsModal } from "./SettingsModal";
 import { translatePageStream, explainPageStream, translateStream, explainStream } from "@/lib/ai-client";
 
@@ -106,39 +106,57 @@ export function Reader({
   const tts = useTTS();
 
   /** Lê a página atual em voz alta (na língua do livro). */
-  const readPageAloud = () => {
-    if (tts.state === "playing") {
+  const [ttsLoading, setTtsLoading] = useState(false);
+
+  const readPageAloud = async () => {
+    if (tts.state === "playing" || ttsLoading) {
       tts.stop();
+      setTtsLoading(false);
       return;
     }
-    // Idioma do áudio falado — "original" = língua do livro, senão o escolhido.
+
+    // Idioma do áudio — "original" = língua do livro, senão o escolhido.
     const audioLang = getAudioLang();
 
-    // PRIORIDADE 1: se tem tradução visível E o áudio é "original", lê a
-    // tradução (porque o usuário quer ouvir no idioma-alvo). Se o áudio é
-    // um idioma específico, lê naquele idioma.
+    // Determina o texto a ler.
+    let text = "";
+    let speakLang = "";
+
     if (showTranslation && pageTranslation && overlayMode === "translate") {
-      // Se tem tradução na tela, lê ela no idioma-alvo.
-      tts.speak(pageTranslation, audioLang === "original" ? getTargetLang() : audioLang);
+      text = pageTranslation;
+      speakLang = audioLang === "original" ? getTargetLang() : audioLang;
+    } else {
+      if (book.sourceFormat === "pdf") {
+        text = currentPageText || chapter?.blocks.map((b) => b.text ?? "").join(" ") || "";
+      } else {
+        text = chapter?.blocks
+          .map((b) => {
+            if (b.type === "heading" || b.type === "quote") return b.text ?? "";
+            if (b.type === "list") return (b.items ?? []).join(", ");
+            return b.text ?? "";
+          })
+          .join(". ") ?? "";
+      }
+      speakLang = audioLang === "original" ? (book.language || "en") : audioLang;
+    }
+
+    if (!text.trim()) return;
+
+    // Tenta voz NEURAL primeiro (se o provedor ativo for OpenAI — tem TTS).
+    const config = getConfigSync();
+    if (config && config.providerId === "openai") {
+      setTtsLoading(true);
+      await tts.speakNeural(text, speakLang, {
+        baseUrl: "https://api.openai.com/v1",
+        apiKey: config.apiKey,
+        model: "tts-1",
+        voice: "nova",
+      });
+      setTtsLoading(false);
       return;
     }
 
-    // PRIORIDADE 2: coleta o texto original da página.
-    let text = "";
-    if (book.sourceFormat === "pdf") {
-      text = currentPageText || chapter?.blocks.map((b) => b.text ?? "").join(" ") || "";
-    } else {
-      text = chapter?.blocks
-        .map((b) => {
-          if (b.type === "heading" || b.type === "quote") return b.text ?? "";
-          if (b.type === "list") return (b.items ?? []).join(", ");
-          return b.text ?? "";
-        })
-        .join(". ") ?? "";
-    }
-    if (!text.trim()) return;
-    // Lê o texto original: no idioma do livro (se "original") ou no escolhido.
-    const speakLang = audioLang === "original" ? (book.language || "en") : audioLang;
+    // Senão, usa voz NATIVA do dispositivo.
     tts.speak(text, speakLang);
   };
   const [chapterIdx, setChapterIdxState] = useState(initialChapterIdx);
@@ -927,15 +945,19 @@ export function Reader({
           >
             📸
           </button>
-          {/* 🔊 Ler em voz alta (TTS) */}
+          {/* 🔊 Ler em voz alta (TTS) — neural (IA) ou nativa */}
           <button
             onClick={readPageAloud}
-            className={`icon-btn ${tts.state === "playing" ? "active" : ""}`}
-            title={tts.state === "playing" ? t("reader_stop_reading") : t("reader_read_aloud")}
-            aria-label={tts.state === "playing" ? t("reader_stop_reading") : t("reader_read_aloud")}
+            className={`icon-btn ${tts.state === "playing" || ttsLoading ? "active" : ""}`}
+            title={
+              ttsLoading ? t("reader_preparing_audio")
+              : tts.state === "playing" ? t("reader_stop_reading")
+              : t("reader_read_aloud")
+            }
+            aria-label={t("reader_read_aloud")}
             disabled={!tts.supported}
           >
-            {tts.state === "playing" ? "🔇" : "🔊"}
+            {ttsLoading ? "⏳" : tts.state === "playing" ? "🔇" : "🔊"}
           </button>
           {/* 🎤 Perguntar por voz — abre o painel da IA pra você falar */}
           <button
