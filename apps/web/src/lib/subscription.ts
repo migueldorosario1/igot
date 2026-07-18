@@ -1,26 +1,30 @@
 /**
  * Sistema de assinatura do Moka.
  *
- * Dois planos:
- *   - FREE (BYOK): usuário traz a própria chave de API. Funciona tudo.
- *   - PREMIUM: nós fornecemos a IA (DeepSeek + OpenAI TTS). Sem precisar de chave.
+ * TRÊS planos com nomes de café (identidade do produto):
  *
- * Por enquanto, o Premium é simulado (estado local). Quando integrarmos
- * o Stripe / RevenueCat pra cobrança real, substituímos as funções.
+ *   ☕ FREE      — BYOK (traga sua própria chave). Funciona tudo, mas
+ *                  o usuário configura a própria IA.
  *
- * No futuro (Capacitor / lojas), usaremos RevenueCat pra gerenciar
- * as assinaturas via Google Play Billing e App Store Subscriptions.
+ *   🥛 CAPPUCCINO — IA inclusa (modelo bom), voz neural natural,
+ *                  traduzir livro inteiro diagramado, biblioteca na nuvem.
+ *                  O plano principal — custo-benefício.
+ *
+ *   ☕ ESPRESSO  — Tudo do Cappuccino + IA top + Dante (agente educacional
+ *                  que lê o livro em vídeo, explica e conversa com o leitor).
+ *                  Focado em educação: escolas, pais, crianças.
+ *
+ * Quando integrarmos Stripe / RevenueCat, as funções de ativação
+ * disparam o fluxo de pagamento real.
  */
 
-const PREMIUM_KEY = "moka.premium";
+const PLAN_KEY = "moka.plan";
 
-export type PlanTier = "free" | "premium";
+export type PlanTier = "free" | "cappuccino" | "espresso";
 
 export interface PlanInfo {
   tier: PlanTier;
-  /** Data de ativação do premium (timestamp). */
   activatedAt?: number;
-  /** Data de expiração (timestamp). Null = vitalício ou ativo. */
   expiresAt?: number | null;
 }
 
@@ -28,11 +32,14 @@ export interface PlanInfo {
 export function getPlan(): PlanInfo {
   if (typeof window === "undefined") return { tier: "free" };
   try {
-    const raw = window.localStorage.getItem(PREMIUM_KEY);
+    const raw = window.localStorage.getItem(PLAN_KEY);
     if (!raw) return { tier: "free" };
     const parsed = JSON.parse(raw) as PlanInfo;
-    // Verifica se não expirou.
-    if (parsed.tier === "premium" && parsed.expiresAt && parsed.expiresAt < Date.now()) {
+    // Migração: quem tinha "premium" vira "cappuccino".
+    if ((parsed as unknown as { tier: string }).tier === "premium") {
+      return { tier: "cappuccino" };
+    }
+    if (parsed.tier !== "free" && parsed.expiresAt && parsed.expiresAt < Date.now()) {
       return { tier: "free" };
     }
     return parsed;
@@ -41,62 +48,102 @@ export function getPlan(): PlanInfo {
   }
 }
 
-/** Verifica se o usuário é premium. */
+/** Verifica se é premium (Cappuccino ou Espresso). */
 export function isPremium(): boolean {
-  return getPlan().tier === "premium";
+  return getPlan().tier !== "free";
 }
 
-/**
- * Ativa o Premium (simulado — depois integra com Stripe/RevenueCat).
- * Em produção, isso só é chamado após confirmação de pagamento.
- */
-export function activatePremium(durationDays?: number): void {
+/** Verifica se é Espresso (top). */
+export function isEspresso(): boolean {
+  return getPlan().tier === "espresso";
+}
+
+/** Ativa um plano (simulado — depois integra com Stripe/RevenueCat). */
+export function activatePlan(tier: PlanTier, durationDays?: number): void {
   if (typeof window === "undefined") return;
   const info: PlanInfo = {
-    tier: "premium",
+    tier,
     activatedAt: Date.now(),
     expiresAt: durationDays ? Date.now() + durationDays * 86400000 : null,
   };
-  window.localStorage.setItem(PREMIUM_KEY, JSON.stringify(info));
+  window.localStorage.setItem(PLAN_KEY, JSON.stringify(info));
 }
 
-/** Cancela o Premium (volta pra Free). */
-export function deactivatePremium(): void {
+/** Cancela (volta pra Free). */
+export function deactivatePlan(): void {
   if (typeof window === "undefined") return;
-  window.localStorage.removeItem(PREMIUM_KEY);
+  window.localStorage.removeItem(PLAN_KEY);
 }
 
 /**
- * Preços dos planos (placeholder — ajustar quando definir os valores reais).
- * Em USD pra alinhar com Google Play / App Store.
+ * Preços dos planos (em USD — alinha com Google Play / App Store).
+ * Cappuccino = mais acessível (plano principal).
+ * Espresso = premium completo (com Dante).
  */
 export const PLAN_PRICES = {
-  monthly: { price: "$4.99", period: "/mês" },
-  quarterly: { price: "$12.99", period: "/trimestre" },
-  yearly: { price: "$39.99", period: "/ano" },
+  cappuccino: {
+    monthly: { price: "$3.99", period: "/mês" },
+    quarterly: { price: "$9.99", period: "/trimestre" },
+    yearly: { price: "$29.99", period: "/ano" },
+  },
+  espresso: {
+    monthly: { price: "$9.99", period: "/mês" },
+    quarterly: { price: "$24.99", period: "/trimestre" },
+    yearly: { price: "$79.99", period: "/ano" },
+  },
 };
 
 /**
- * Recursos de cada plano (pra mostrar na página /premium).
+ * Recursos de cada plano — pra mostrar na página /premium.
  */
-export const PLAN_FEATURES = {
-  free: [
-    "Traga sua própria chave de API (BYOK)",
-    "8 provedores de IA (DeepSeek, OpenAI, Kimi, etc)",
-    "Tradução e explicação ilimitadas",
-    "Leitura em voz alta (voz do dispositivo)",
-    "12 idiomas de interface",
-    "Múltiplas chaves salvas",
-  ],
-  premium: [
-    "Tudo do plano Free",
-    "IA inclusa — sem precisar de chave",
-    "Voz neural natural (OpenAI TTS)",
-    "DeepSeek V3 ilimitado",
-    "☁️ Biblioteca na nuvem — seus livros em qualquer dispositivo",
-    "EPUB: sincroniza completo (sem limite)",
-    "PDF: até 50 MB cada",
-    "Sem anúncios, sem limites",
-    "Suporte prioritário",
-  ],
+export const PLAN_DETAILS: Record<PlanTier, {
+  name: string;
+  emoji: string;
+  tagline: string;
+  features: string[];
+  highlight?: boolean;
+}> = {
+  free: {
+    name: "Free",
+    emoji: "☕",
+    tagline: "Traga sua própria chave de IA",
+    features: [
+      "Traga sua própria chave de API (BYOK)",
+      "8 provedores de IA (DeepSeek, OpenAI, Kimi, etc)",
+      "Traduzir e explicar trechos",
+      "Voz do dispositivo (leitura em voz alta)",
+      "12 idiomas de interface",
+      "Múltiplas chaves salvas (criptografadas)",
+      "Marcadores e anotações",
+    ],
+  },
+  cappuccino: {
+    name: "Cappuccino",
+    emoji: "🥛",
+    tagline: "IA inclusa + voz neural + nuvem",
+    highlight: true,
+    features: [
+      "Tudo do plano Free",
+      "🤖 IA inclusa — sem precisar de chave",
+      "🔊 Voz neural natural (OpenAI TTS)",
+      "📖 Traduzir livro inteiro diagramado",
+      "☁️ Biblioteca na nuvem (qualquer dispositivo)",
+      "EPUB ilimitado + PDF até 50 MB",
+      "Sem anúncios",
+    ],
+  },
+  espresso: {
+    name: "Espresso",
+    emoji: "☕",
+    tagline: "Tudo + Dante, o tutor de leitura",
+    features: [
+      "Tudo do Cappuccino",
+      "🧠 IA mais avançada (modelo top)",
+      "🎭 Dante — agente que lê o livro em vídeo",
+      "💬 Conversa com Dante sobre o livro",
+      "📚 Ideal para educação e crianças",
+      "Traduções comparadas",
+      "Suporte prioritário",
+    ],
+  },
 };
