@@ -453,11 +453,51 @@ export function Reader({
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const SWIPE_MIN = 110;        // mínimo de 110px pra contar como swipe
   const SWIPE_MAX_VERTICAL = 50; // se scrollou >50px na vertical, ignora (era scroll)
+
+  // --- Pinch-to-zoom: pinça com 2 dedos pra aumentar/diminuir o zoom do PDF ---
+  // Funciona em iPad/iPhone e Android. Mede a distância entre os 2 dedos
+  // e ajusta o zoom proporcionalmente (igual Maps, Fotos, etc).
+  const pinchStartDist = useRef<number | null>(null);
+  const pinchStartZoom = useRef<number>(1);
+
   const handleTouchStart = (e: React.TouchEvent) => {
+    // PINCH: se tem 2 dedos na tela, captura a distância inicial.
+    if (e.touches.length === 2) {
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      pinchStartDist.current = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+      pinchStartZoom.current = zoom;
+      touchStart.current = null; // cancela swipe enquanto faz pinch
+      return;
+    }
+    // SWIPE (1 dedo): só registra se não tava fazendo pinch.
+    if (pinchStartDist.current !== null) return;
     const t = e.touches[0];
     touchStart.current = { x: t.clientX, y: t.clientY };
   };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    // PINCH em andamento: ajusta o zoom conforme os dedos se aproximam/afastam.
+    if (pinchStartDist.current === null || e.touches.length !== 2) return;
+    // Previne o pinch-to-zoom do navegador (não queremos que ele faça zoom da página,
+    // e sim do nosso PDF interno).
+    e.preventDefault();
+    const t1 = e.touches[0];
+    const t2 = e.touches[1];
+    const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+    // Razão entre a distância atual e a inicial = quanto cresceu/encolheu.
+    const ratio = dist / pinchStartDist.current;
+    const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, +(pinchStartZoom.current * ratio).toFixed(2)));
+    setZoom(newZoom);
+  };
+
   const handleTouchEnd = (e: React.TouchEvent) => {
+    // Se tava fazendo pinch e soltou um dedo, termina o pinch.
+    if (pinchStartDist.current !== null && e.touches.length < 2) {
+      pinchStartDist.current = null;
+      return;
+    }
+    // SWIPE (1 dedo).
     if (!touchStart.current) return;
     const t = e.changedTouches[0];
     const dx = t.clientX - touchStart.current.x;
@@ -473,6 +513,20 @@ export function Reader({
     if (dx > 0) goPrev(); // dedo da esquerda pra direita = anterior
     else goNext(); // dedo da direita pra esquerda = próxima
   };
+
+  // iOS/Safari marca onTouchMove como "passive" por padrão, o que impede
+  // e.preventDefault() (necessário pro pinch não disparar o zoom do navegador).
+  // Este useEffect registra um listener NON-PASSIVE direto no DOM.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const preventPinch = (e: TouchEvent) => {
+      // Só previne quando tem 2+ dedos (pinch). Com 1 dedo, deixa o scroll rolar.
+      if (e.touches.length >= 2) e.preventDefault();
+    };
+    el.addEventListener("touchmove", preventPinch, { passive: false });
+    return () => el.removeEventListener("touchmove", preventPinch);
+  }, []);
 
   // Zoom e tradução de página (só fazem sentido pra PDF).
   const [zoom, setZoomState] = useState(initialZoom);
@@ -937,6 +991,7 @@ export function Reader({
         onDoubleClick={handleDoubleClick}
         onClick={handleInvisibleMark}
         onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
         {book.sourceFormat === "pdf" && pdfSource ? (
