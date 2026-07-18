@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ParsedBook } from "@igot/parser";
 import type { SelectionAction } from "@/lib/types";
 import { useI18n } from "./I18nProvider";
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { translateStream, explainStream, ask, type BookContext } from "@/lib/ai-client";
 
 interface AIPanelProps {
@@ -27,7 +28,7 @@ interface PanelState {
  * fala com o provedor escolhido pelo usuário, via proxy) e mostra o resultado.
  */
 export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [state, setState] = useState<PanelState>({
     loading: false,
     result: null,
@@ -35,6 +36,11 @@ export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
   });
   const [query, setQuery] = useState("");
   const resultRef = useRef<HTMLDivElement>(null);
+
+  // Reconhecimento de voz: quando termina uma frase, preenche o input.
+  const speech = useSpeechRecognition((text) => {
+    setQuery(text);
+  });
 
   const bookCtx: BookContext = {
     bookTitle: book.title,
@@ -183,14 +189,26 @@ export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
       </div>
 
       <footer className="ai-footer">
+        {/* 🎤 Microfone: fala a pergunta em vez de digitar */}
+        {speech.supported && (
+          <button
+            type="button"
+            className={`ai-mic ${speech.listening ? "listening" : ""}`}
+            onClick={() => speech.listening ? speech.stop() : speech.start(lang)}
+            title={speech.listening ? t("ai_listening") : t("ai_speak_question")}
+            aria-label={t("ai_speak_question")}
+          >
+            {speech.listening ? "🔴" : "🎤"}
+          </button>
+        )}
         <input
           type="text"
-          value={query}
+          value={speech.listening ? speech.transcript : query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && askBook()}
-          placeholder={t("ai_ask_placeholder", { title: truncate(book.title, 28) })}
+          placeholder={speech.listening ? t("ai_listening") : t("ai_ask_placeholder", { title: truncate(book.title, 28) })}
         />
-        <button onClick={askBook} disabled={!query.trim()}>
+        <button onClick={askBook} disabled={!query.trim() && !speech.transcript}>
           ➤
         </button>
       </footer>
@@ -351,6 +369,24 @@ export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
         .ai-footer button:disabled {
           opacity: 0.4;
           cursor: not-allowed;
+        }
+        /* Botão do microfone — diferente do botão de enviar (mais discreto). */
+        .ai-mic {
+          background: var(--surface-alt) !important;
+          color: var(--text) !important;
+          border: 1px solid var(--border) !important;
+          font-size: 18px !important;
+          flex-shrink: 0;
+        }
+        .ai-mic.listening {
+          background: #e74c3c !important;
+          color: white !important;
+          border-color: #e74c3c !important;
+          animation: pulse 1.2s infinite;
+        }
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.1); }
         }
       `}</style>
     </aside>

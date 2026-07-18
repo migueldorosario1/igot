@@ -8,6 +8,7 @@ import { CafezinhoLogo } from "./CafezinhoLogo";
 import { AuthButton } from "./AuthButton";
 import { LangSwitcher } from "./LangSwitcher";
 import { useI18n } from "./I18nProvider";
+import { useTTS } from "@/hooks/useTTS";
 import { translatePageStream, explainPageStream, translateStream, explainStream } from "@/lib/ai-client";
 
 interface ReaderProps {
@@ -86,6 +87,31 @@ export function Reader({
   auth,
 }: ReaderProps) {
   const { t, lang } = useI18n();
+  const tts = useTTS();
+
+  /** Lê a página atual em voz alta (na língua do livro). */
+  const readPageAloud = () => {
+    if (tts.state === "playing") {
+      tts.stop();
+      return;
+    }
+    // Coleta o texto: do currentPageText (PDF extraído) ou dos blocos (EPUB).
+    let text = "";
+    if (book.sourceFormat === "pdf") {
+      text = currentPageText || chapter?.blocks.map((b) => b.text ?? "").join(" ") || "";
+    } else {
+      text = chapter?.blocks
+        .map((b) => {
+          if (b.type === "heading" || b.type === "quote") return b.text ?? "";
+          if (b.type === "list") return (b.items ?? []).join(", ");
+          return b.text ?? "";
+        })
+        .join(". ") ?? "";
+    }
+    if (!text.trim()) return;
+    // Lê na língua do livro (não do idioma da interface).
+    tts.speak(text, book.language || lang);
+  };
   const [chapterIdx, setChapterIdxState] = useState(initialChapterIdx);
   const [menu, setMenu] = useState<{
     x: number;
@@ -878,6 +904,16 @@ export function Reader({
             aria-label={t("reader_photo")}
           >
             📸
+          </button>
+          {/* 🔊 Ler em voz alta (TTS) */}
+          <button
+            onClick={readPageAloud}
+            className={`icon-btn ${tts.state === "playing" ? "active" : ""}`}
+            title={tts.state === "playing" ? t("reader_stop_reading") : t("reader_read_aloud")}
+            aria-label={tts.state === "playing" ? t("reader_stop_reading") : t("reader_read_aloud")}
+            disabled={!tts.supported}
+          >
+            {tts.state === "playing" ? "🔇" : "🔊"}
           </button>
           {/* 🌐/🧠 Traduzir/Explicar página (PDF) */}
           {book.sourceFormat === "pdf" && pdfSource && (
