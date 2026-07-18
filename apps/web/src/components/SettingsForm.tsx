@@ -508,7 +508,7 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
           <p className="hint">{t("set_searching_models")}</p>
         )}
         {modelsError && (
-          <p className="hint" style={{ color: "#c0392b" }}>⚠️ {modelsError}</p>
+          <p className="hint" style={{ color: "#a04020" }}>⚠️ {modelsError}</p>
         )}
         {modelsList && modelsList.length > 0 && (
           <div className="models-list">
@@ -807,17 +807,17 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
           cursor: pointer;
         }
         .models-close-btn:hover {
-          background: #fdecea;
-          color: #c0392b;
+          background: #faf0e8;
+          color: #a04020;
         }
         /* Botão de teste (🔌) — feedback visual por estado. */
         .test-btn.test-ok {
-          background: #e6f4ea;
-          border-color: #1e7e34;
+          background: #f0f2e4;
+          border-color: #6b8e3d;
         }
         .test-btn.test-fail {
-          background: #fdecea;
-          border-color: #c0392b;
+          background: #faf0e8;
+          border-color: #a04020;
         }
         .test-btn:disabled {
           opacity: 0.6;
@@ -848,8 +848,8 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
           color: var(--accent);
         }
         .model-item.selected {
-          background: #e6f4ea;
-          color: #1e7e34;
+          background: #f0f2e4;
+          color: #6b8e3d;
           font-weight: 600;
         }
         .actions {
@@ -885,14 +885,14 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
           font-size: 13px;
         }
         .feedback.ok {
-          background: #e6f4ea;
-          color: #1e7e34;
-          border: 1px solid #b7dfc1;
+          background: #f0f2e4;
+          color: #6b8e3d;
+          border: 1px solid #c8d4a8;
         }
         .feedback.err {
-          background: #fdecea;
-          color: #c0392b;
-          border: 1px solid #f5b7b1;
+          background: #faf0e8;
+          color: #a04020;
+          border: 1px solid #e0c0a8;
         }
 
         /* Badge "chave atual" ao lado do label */
@@ -994,8 +994,8 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
           opacity: 0.85;
         }
         .remove-btn:hover {
-          border-color: #c0392b;
-          color: #c0392b;
+          border-color: #a04020;
+          color: #a04020;
         }
 
         /* Separador de seção */

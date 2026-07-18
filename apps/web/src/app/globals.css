@@ -1,16 +1,20 @@
-/* ─── igot — estilos globais ─────────────────────────────────────────── */
+/* ─── Moka — estilos globais ───────────────────────────────────────────
+   Paleta inspirada no universo do café: cobre, madeira, porcelana.
+   Sem neon, sem futurista — aconchego, elegância, minimalismo. */
 
 :root {
-  /* Cores */
-  --bg: #faf9f7;
-  --surface: #ffffff;
-  --surface-alt: #f3f1ec;
-  --text: #1a1a1a;
-  --text-muted: #6b6b6b;
-  --border: #e3e0d8;
-  --accent: #c8553d;
-  --accent-soft: #fce9e4;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  /* Cores — LIGHT MODE (porcelana + cobre + madeira clara) */
+  --bg: #faf6f0;              /* porcelana quente (fundo) */
+  --surface: #fffefb;         /* branco quente (cards/superfícies) */
+  --surface-alt: #f2ebe0;     /* madeira clara (áreas secundárias) */
+  --text: #2c2018;            /* marrom-escuro (quase preto, texto) */
+  --text-muted: #8a7560;      /* marrom médio (texto secundário) */
+  --border: #e0d5c4;          /* bege-madeira (bordas) */
+  --accent: #b06a3b;          /* cobre (cor principal: botões, links) */
+  --accent-soft: #f5e6d8;     /* cobre claro (hover, fundos suaves) */
+  --accent-dark: #8a4f2a;     /* cobre escuro (press, sombra) */
+  --gold: #c89968;            /* dourado/cobre claro (destaques) */
+  --shadow: 0 1px 4px rgba(120, 90, 50, 0.08), 0 1px 2px rgba(120, 90, 50, 0.04);
   --radius: 10px;
 
   /* Tipografia */
@@ -39,24 +43,27 @@
   /* Transições */
   --transition: 150ms ease;
 
-  /* Seleção de texto (marca-texto amarelo) */
-  --selection-bg: #ffd84d;
-  --selection-color: #1a1a1a;
+  /* Seleção de texto (marca-texto dourado/cobre) */
+  --selection-bg: #f0d090;
+  --selection-color: #2c2018;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #16161a;
-    --surface: #1e1e24;
-    --surface-alt: #26262e;
-    --text: #e8e8ea;
-    --text-muted: #9a9aa3;
-    --border: #33333c;
-    --accent: #e87a63;
-    --accent-soft: #3a2420;
-    --shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-    --selection-bg: #806020;
-    --selection-color: #fff;
+    /* DARK MODE (madeira escura + cobre) */
+    --bg: #1c1611;            /* marrom muito escuro (fundo) */
+    --surface: #26201a;       /* madeira escura (superfícies) */
+    --surface-alt: #302822;   /* madeira um pouco mais clara */
+    --text: #f0e6d8;          /* porcelana quente (texto) */
+    --text-muted: #a89580;    /* madeira seca (texto secundário) */
+    --border: #3d3328;        /* madeira queimada (bordas) */
+    --accent: #d4905a;        /* cobre mais claro (destaca no escuro) */
+    --accent-soft: #3a2a1c;   /* cobre escuro (hover) */
+    --accent-dark: #b06a3b;   /* cobre médio */
+    --gold: #d4a868;          /* dourado quente */
+    --shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+    --selection-bg: #5a4520;
+    --selection-color: #f0e6d8;
   }
 }
 

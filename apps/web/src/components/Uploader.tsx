@@ -194,8 +194,8 @@ export function Uploader({ onFile, error, configReady = true, onOpenSettings }: 
           align-items: center;
           gap: var(--space-3);
           padding: 12px 16px;
-          background: #fff8e1;
-          border: 1px solid #ffe082;
+          background: #faf6ee;
+          border: 1px solid #e8d090;
           border-radius: var(--radius);
           margin-bottom: 20px;
           cursor: pointer;
@@ -218,7 +218,7 @@ export function Uploader({ onFile, error, configReady = true, onOpenSettings }: 
         }
         .setup-content strong {
           font-size: var(--text-sm);
-          color: #e65100;
+          color: #a04020;
         }
         .setup-content span {
           font-size: var(--text-xs);
@@ -269,12 +269,12 @@ export function Uploader({ onFile, error, configReady = true, onOpenSettings }: 
         .uploader-error {
           margin: 16px 0 0;
           padding: 10px 14px;
-          background: #fdecea;
+          background: #faf0e8;
           border-radius: var(--radius);
-          color: #c0392b;
+          color: #a04020;
           font-size: var(--text-sm);
           text-align: left;
-          border: 1px solid #f5b7b1;
+          border: 1px solid #e0c0a8;
         }
 
         /* Badge de privacidade */
