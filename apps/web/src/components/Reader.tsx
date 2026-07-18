@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import type { ParsedBook } from "@igot/parser";
 import type { SelectionAction } from "@/lib/types";
 import { PdfPageCanvas } from "./PdfPageCanvas";
@@ -1911,14 +1910,14 @@ export function Reader({
         }
       `}</style>
 
-      {/* Settings renderizado DENTRO do Reader — aparece no fullscreen.
-          Usa portal pro document.body pra garantir z-index acima de tudo. */}
-      {settingsOpen && typeof document !== "undefined" && createPortal(
+      {/* Settings renderizado DENTRO da <section.reader> — assim aparece
+          tanto no modo normal quanto no fullscreen (que só mostra o
+          elemento que pediu fullscreen e seus filhos). */}
+      {settingsOpen && (
         <SettingsModal
           onClose={() => onCloseSettings?.()}
           onSaved={() => onSettingsSaved?.()}
-        />,
-        document.body,
+        />
       )}
     </section>
   );
