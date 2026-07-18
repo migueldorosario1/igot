@@ -109,7 +109,17 @@ export function Reader({
   const [ttsLoading, setTtsLoading] = useState(false);
 
   const readPageAloud = async () => {
-    if (tts.state === "playing" || ttsLoading) {
+    // Se tá pausado, CONTINUA de onde parou.
+    if (tts.state === "paused") {
+      tts.resume();
+      return;
+    }
+    // Se tá tocando, PAUSA (não para — pode continuar).
+    if (tts.state === "playing") {
+      tts.pause();
+      return;
+    }
+    if (ttsLoading) {
       tts.stop();
       setTtsLoading(false);
       return;
@@ -962,16 +972,17 @@ export function Reader({
           {/* 🔊 Ler em voz alta (TTS) — neural (IA) ou nativa */}
           <button
             onClick={readPageAloud}
-            className={`icon-btn ${tts.state === "playing" || ttsLoading ? "active" : ""}`}
+            className={`icon-btn ${tts.state !== "idle" || ttsLoading ? "active" : ""}`}
             title={
               ttsLoading ? t("reader_preparing_audio")
-              : tts.state === "playing" ? t("reader_stop_reading")
+              : tts.state === "playing" ? t("reader_pause")
+              : tts.state === "paused" ? t("reader_resume")
               : t("reader_read_aloud")
             }
             aria-label={t("reader_read_aloud")}
             disabled={!tts.supported}
           >
-            {ttsLoading ? "⏳" : tts.state === "playing" ? "🔇" : "🔊"}
+            {ttsLoading ? "⏳" : tts.state === "playing" ? "⏸" : tts.state === "paused" ? "▶️" : "🔊"}
           </button>
           {/* 🎤 Perguntar por voz — abre o painel da IA pra você falar */}
           <button
@@ -1288,8 +1299,9 @@ export function Reader({
           background: var(--bg);
           border-right: 1px solid var(--border);
           position: relative;
-          /* overflow: visible — NÃO corta o header (era o bug do menu cortado). */
-          overflow: visible;
+          /* overflow: hidden contém o conteúdo, mas o header tem z-index
+             e min-height que garantem que NUNCA é cortado. */
+          overflow: hidden;
         }
         /* Em tela cheia: ocupa toda a tela, mantém header + nav visíveis. */
         .reader:fullscreen {

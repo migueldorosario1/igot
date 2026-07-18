@@ -61,6 +61,8 @@ export function useTTS() {
   // Áudio neural (TTS via IA) — guardamos num <audio> element.
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // CACHE: texto → URL do áudio gerado. Evita regenerar o mesmo áudio.
+  const audioCacheRef = useRef<Map<string, string>>(new Map());
 
   // Carrega as vozes (assíncrono em alguns navegadores).
   useEffect(() => {
@@ -125,25 +127,14 @@ export function useTTS() {
     [supported, pickVoice],
   );
 
-  const pause = useCallback(() => {
-    if (!supported) return;
-    window.speechSynthesis.pause();
-    setState("paused");
-  }, [supported]);
-
-  const resume = useCallback(() => {
-    if (!supported) return;
-    window.speechSynthesis.resume();
-    setState("playing");
-  }, [supported]);
-
+  /** Para a leitura (cancela tudo — não retoma). */
   const stop = useCallback(() => {
     // Para voz nativa.
     if (supported) window.speechSynthesis.cancel();
     // Para voz neural.
     if (audioRef.current) {
       audioRef.current.pause();
-      audioRef.current = null;
+      audioRef.current.currentTime = 0;
     }
     if (abortRef.current) {
       abortRef.current.abort();
@@ -152,10 +143,32 @@ export function useTTS() {
     setState("idle");
   }, [supported]);
 
+  /** Pausa a leitura (pode retomar de onde parou). */
+  const pause = useCallback(() => {
+    if (supported && window.speechSynthesis.speaking) {
+      window.speechSynthesis.pause();
+    }
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    setState("paused");
+  }, [supported]);
+
+  /** Continua a leitura de onde pausou. */
+  const resume = useCallback(() => {
+    if (supported && window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+    }
+    if (audioRef.current) {
+      audioRef.current.play().catch(() => {});
+    }
+    setState("playing");
+  }, [supported]);
+
   /**
    * Leitura neural via IA (OpenAI TTS).
-   * Recebe config com baseUrl, apiKey, model e voice.
-   * Gera áudio MP3 natural e toca.
+   * Gera áudio MP3 natural e toca. USA CACHE — se o mesmo texto já foi
+   * gerado antes, toca direto sem regenerar (instantâneo).
    * Se falhar, cai pra voz nativa automaticamente.
    */
   const speakNeural = useCallback(
@@ -170,10 +183,24 @@ export function useTTS() {
       },
     ) => {
       if (!text.trim()) return;
-      // Para qualquer leitura anterior.
-      stop();
+
+      // Chave do cache = hash simples do texto + voz.
+      const cacheKey = `${ttsConfig.voice || "nova"}:${text.slice(0, 200)}`;
 
       try {
+        // Se já tem no cache, toca direto (instantâneo, sem loading).
+        const cachedUrl = audioCacheRef.current.get(cacheKey);
+        if (cachedUrl) {
+          const audio = new Audio(cachedUrl);
+          audioRef.current = audio;
+          audio.onended = () => { setState("idle"); audioRef.current = null; };
+          audio.onerror = () => { setState("idle"); audioRef.current = null; };
+          setState("playing");
+          await audio.play();
+          return;
+        }
+
+        // Gera áudio novo.
         setState("playing");
         const controller = new AbortController();
         abortRef.current = controller;
@@ -197,21 +224,15 @@ export function useTTS() {
 
         const blob = await response.blob();
         const url = URL.createObjectURL(blob);
+        // Guarda no cache pra não regenerar na próxima vez.
+        audioCacheRef.current.set(cacheKey, url);
+
         const audio = new Audio(url);
         audioRef.current = audio;
-        audio.onended = () => {
-          setState("idle");
-          URL.revokeObjectURL(url);
-          audioRef.current = null;
-        };
-        audio.onerror = () => {
-          setState("idle");
-          URL.revokeObjectURL(url);
-          audioRef.current = null;
-        };
+        audio.onended = () => { setState("idle"); audioRef.current = null; };
+        audio.onerror = () => { setState("idle"); audioRef.current = null; };
         await audio.play();
       } catch (err) {
-        // Se falhou (cancelado, erro de rede, provedor sem TTS), cai pra voz nativa.
         if ((err as Error).name === "AbortError") {
           setState("idle");
           return;
