@@ -58,8 +58,15 @@ export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
   }, [action]);
 
   // Dispara a ação (traduzir/explicar) quando ela muda — com STREAMING.
+  // "ask" só abre o painel sem chamar a IA (usuário vai digitar/falar).
   useEffect(() => {
     if (!action) return;
+    if (action.type === "ask") {
+      // Só abre o painel, limpa estado pra pessoa fazer a pergunta.
+      setState({ loading: false, result: null, error: null });
+      return;
+    }
+    if (!action.text.trim()) return;
 
     let cancelled = false;
     setState({ loading: true, result: null, error: null });

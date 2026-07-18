@@ -66,6 +66,7 @@ export type UIStringKey =
   | "reader_bookmark_remove"
   | "reader_bookmarks"
   | "reader_print"
+  | "reader_ask"
   | "reader_photo"
   | "reader_photo_error"
   | "reader_read_aloud"
@@ -232,6 +233,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     reader_bookmarks: "Meus marcadores",
     reader_print: "Imprimir / salvar esta página em PDF",
     reader_photo: "Salvar foto desta página (PNG) no seu dispositivo",
+    reader_ask: "🎤 Perguntar por voz",
     reader_photo_error: "Não foi possível salvar a imagem desta página neste navegador.",
     reader_read_aloud: "Ler em voz alta",
     reader_stop_reading: "Parar leitura",
@@ -392,6 +394,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     reader_bookmarks: "My bookmarks",
     reader_print: "Print / save this page as PDF",
     reader_photo: "Save a photo of this page (PNG) to your device",
+    reader_ask: "🎤 Perguntar por voz",
     reader_photo_error: "Could not save the image of this page in this browser.",
     reader_read_aloud: "Ler em voz alta",
     reader_stop_reading: "Parar leitura",
@@ -547,6 +550,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     reader_bookmarks: "Mis marcadores",
     reader_print: "Imprimir / guardar esta página como PDF",
     reader_photo: "Guardar una foto de esta página (PNG) en tu dispositivo",
+    reader_ask: "🎤 Perguntar por voz",
     reader_photo_error: "No se pudo guardar la imagen de esta página en este navegador.",
     reader_read_aloud: "Ler em voz alta",
     reader_stop_reading: "Parar leitura",
@@ -702,6 +706,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     reader_bookmarks: "Mes marque-pages",
     reader_print: "Imprimer / enregistrer cette page en PDF",
     reader_photo: "Enregistrer une photo de cette page (PNG) sur votre appareil",
+    reader_ask: "🎤 Perguntar por voz",
     reader_photo_error: "Impossible d'enregistrer l'image de cette page dans ce navigateur.",
     reader_read_aloud: "Ler em voz alta",
     reader_stop_reading: "Parar leitura",
@@ -857,6 +862,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     reader_bookmarks: "Meine Lesezeichen",
     reader_print: "Diese Seite drucken / als PDF speichern",
     reader_photo: "Ein Foto dieser Seite (PNG) auf deinem Gerät speichern",
+    reader_ask: "🎤 Perguntar por voz",
     reader_photo_error: "Das Bild dieser Seite konnte in diesem Browser nicht gespeichert werden.",
     reader_read_aloud: "Ler em voz alta",
     reader_stop_reading: "Parar leitura",
@@ -1012,6 +1018,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     reader_bookmarks: "I miei segnalibri",
     reader_print: "Stampa / salva questa pagina come PDF",
     reader_photo: "Salva una foto di questa pagina (PNG) sul tuo dispositivo",
+    reader_ask: "🎤 Perguntar por voz",
     reader_photo_error: "Impossibile salvare l'immagine di questa pagina in questo browser.",
     reader_read_aloud: "Ler em voz alta",
     reader_stop_reading: "Parar leitura",
@@ -1167,6 +1174,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     reader_bookmarks: "Мои закладки",
     reader_print: "Печать / сохранить эту страницу как PDF",
     reader_photo: "Сохранить снимок этой страницы (PNG) на ваше устройство",
+    reader_ask: "🎤 Perguntar por voz",
     reader_photo_error: "Не удалось сохранить изображение этой страницы в этом браузере.",
     reader_read_aloud: "Ler em voz alta",
     reader_stop_reading: "Parar leitura",
@@ -1322,6 +1330,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     reader_bookmarks: "我的收藏",
     reader_print: "打印 / 将本页保存为 PDF",
     reader_photo: "将本页保存为图片（PNG）到您的设备",
+    reader_ask: "🎤 Perguntar por voz",
     reader_photo_error: "无法在此浏览器中保存本页的图片。",
     reader_read_aloud: "Ler em voz alta",
     reader_stop_reading: "Parar leitura",
@@ -1477,6 +1486,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     reader_bookmarks: "マイブックマーク",
     reader_print: "このページを印刷 / PDF で保存",
     reader_photo: "このページの画像（PNG）を端末に保存",
+    reader_ask: "🎤 Perguntar por voz",
     reader_photo_error: "このブラウザではこのページの画像を保存できませんでした。",
     reader_read_aloud: "Ler em voz alta",
     reader_stop_reading: "Parar leitura",
@@ -1632,6 +1642,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     reader_bookmarks: "내 책갈피",
     reader_print: "이 페이지 인쇄 / PDF로 저장",
     reader_photo: "이 페이지의 사진(PNG)을 기기에 저장",
+    reader_ask: "🎤 Perguntar por voz",
     reader_photo_error: "이 브라우저에서는 이 페이지의 이미지를 저장할 수 없습니다.",
     reader_read_aloud: "Ler em voz alta",
     reader_stop_reading: "Parar leitura",
@@ -1787,6 +1798,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     reader_bookmarks: "علاماتي",
     reader_print: "طباعة / حفظ هذه الصفحة كـ PDF",
     reader_photo: "حفظ صورة لهذه الصفحة (PNG) على جهازك",
+    reader_ask: "🎤 Perguntar por voz",
     reader_photo_error: "تعذّر حفظ صورة هذه الصفحة في هذا المتصفح.",
     reader_read_aloud: "Ler em voz alta",
     reader_stop_reading: "Parar leitura",
@@ -1942,6 +1954,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     reader_bookmarks: "मेरे बुकमार्क",
     reader_print: "इस पृष्ठ को प्रिंट / PDF के रूप में सहेजें",
     reader_photo: "इस पृष्ठ की एक फ़ोटो (PNG) अपने डिवाइस पर सहेजें",
+    reader_ask: "🎤 Perguntar por voz",
     reader_photo_error: "इस ब्राउज़र में इस पृष्ठ की छवि सहेजी नहीं जा सकी।",
     reader_read_aloud: "Ler em voz alta",
     reader_stop_reading: "Parar leitura",

@@ -6,12 +6,12 @@
  * o Reader monta este objeto e o AIPanel consome.
  */
 
-export type SelectionActionType = "translate" | "explain";
+export type SelectionActionType = "translate" | "explain" | "ask";
 
 export interface SelectionAction {
   /** O que fazer com o texto selecionado. */
   type: SelectionActionType;
-  /** O trecho selecionado. */
+  /** O trecho selecionado (vazio quando é só pra abrir o painel de pergunta). */
   text: string;
   /**
    * Idioma-alvo. Hoje é resolvido pelo ai-client a partir da config do

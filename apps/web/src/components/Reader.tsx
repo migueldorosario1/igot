@@ -827,7 +827,7 @@ export function Reader({
     }
   };
 
-  const fire = (type: SelectionAction["type"]) => {
+  const fire = (type: "translate" | "explain") => {
     if (!menu) return;
     if (isFullscreen) {
       // Em fullscreen, processa internamente (painel flutuante).
@@ -928,6 +928,15 @@ export function Reader({
             disabled={!tts.supported}
           >
             {tts.state === "playing" ? "🔇" : "🔊"}
+          </button>
+          {/* 🎤 Perguntar por voz — abre o painel da IA pra você falar */}
+          <button
+            onClick={() => onSelection?.({ type: "ask", text: "", chapterId: chapter?.id })}
+            className="icon-btn"
+            title={t("reader_ask")}
+            aria-label={t("reader_ask")}
+          >
+            🎤
           </button>
           {/* 🌐/🧠 Traduzir/Explicar página (PDF) */}
           {book.sourceFormat === "pdf" && pdfSource && (
