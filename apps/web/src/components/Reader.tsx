@@ -825,20 +825,6 @@ export function Reader({
           >
             📸
           </button>
-          {/* Zoom (só PDF) */}
-          {book.sourceFormat === "pdf" && pdfSource && (
-            <div className="reader-zoom" title={t("reader_zoom")}>
-              <button onClick={zoomOut} disabled={zoom <= MIN_ZOOM} aria-label={t("reader_zoom_out")}>
-                −
-              </button>
-              <button onClick={zoomReset} className="zoom-value" aria-label={t("reader_zoom_reset")}>
-                {Math.round(zoom * 100)}%
-              </button>
-              <button onClick={zoomIn} disabled={zoom >= MAX_ZOOM} aria-label={t("reader_zoom_in")}>
-                +
-              </button>
-            </div>
-          )}
           {/* 🌐/🧠 Traduzir/Explicar página (PDF) */}
           {book.sourceFormat === "pdf" && pdfSource && (
             <>
@@ -918,6 +904,39 @@ export function Reader({
           />
         </div>
       </header>
+
+      {/* Zoom VERTICAL flutuante na lateral direita (só PDF).
+          Fica fora do header, não ocupa espaço na barra de menu. */}
+      {book.sourceFormat === "pdf" && pdfSource && (
+        <div className="zoom-rail" title={t("reader_zoom")}>
+          <button
+            onClick={zoomIn}
+            disabled={zoom >= MAX_ZOOM}
+            aria-label={t("reader_zoom_in")}
+            title={t("reader_zoom_in")}
+            className="zoom-rail-btn"
+          >
+            +
+          </button>
+          <button
+            onClick={zoomReset}
+            className="zoom-rail-value"
+            aria-label={t("reader_zoom_reset")}
+            title={t("reader_zoom_reset")}
+          >
+            {Math.round(zoom * 100)}%
+          </button>
+          <button
+            onClick={zoomOut}
+            disabled={zoom <= MIN_ZOOM}
+            aria-label={t("reader_zoom_out")}
+            title={t("reader_zoom_out")}
+            className="zoom-rail-btn"
+          >
+            −
+          </button>
+        </div>
+      )}
 
       <div
         ref={scrollRef}
@@ -1176,7 +1195,6 @@ export function Reader({
           display: none;
         }
         .reader-row-main > .icon-btn,
-        .reader-row-main > .reader-zoom,
         .reader-row-main > .page-action-btn,
         .reader-row-main > .cafezinho-mark {
           flex-shrink: 0;
@@ -1189,32 +1207,73 @@ export function Reader({
           flex-shrink: 0;
           margin-left: auto; /* empurra tudo pra direita */
         }
-        .reader-zoom {
+        /* Zoom VERTICAL flutuante na lateral direita.
+           Pequeno "trilho" com + no topo, % no meio, − embaixo.
+           Não ocupa espaço no header — fica sobreposto à borda direita. */
+        .zoom-rail {
+          position: absolute;
+          right: 12px;
+          top: 50%;
+          transform: translateY(-50%);
           display: flex;
+          flex-direction: column;
           align-items: center;
+          gap: 4px;
+          padding: 6px 4px;
+          background: var(--surface);
           border: 1px solid var(--border);
-          border-radius: 8px;
-          overflow: hidden;
+          border-radius: 14px;
+          box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+          z-index: 40;
         }
-        .reader-zoom button {
+        .zoom-rail-btn {
+          width: 36px;
+          height: 36px;
           border: none;
           background: transparent;
           color: var(--text);
-          width: 30px;
-          height: 30px;
-          font-size: 16px;
-          border-radius: 0;
+          font-size: 20px;
+          font-weight: 600;
+          border-radius: 10px;
+          cursor: pointer;
+          transition: all 120ms ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
-        .reader-zoom button:hover:not(:disabled) {
+        .zoom-rail-btn:hover:not(:disabled) {
           background: var(--accent-soft);
           color: var(--accent);
         }
-        .reader-zoom .zoom-value {
-          width: auto;
-          min-width: 48px;
+        .zoom-rail-btn:active:not(:disabled) {
+          transform: scale(0.9);
+        }
+        .zoom-rail-btn:disabled {
+          opacity: 0.3;
+          cursor: not-allowed;
+        }
+        .zoom-rail-value {
+          width: 44px;
+          padding: 4px 0;
+          border: none;
+          border-top: 1px solid var(--border);
+          border-bottom: 1px solid var(--border);
+          background: transparent;
+          color: var(--text);
           font-size: 12px;
-          border-left: 1px solid var(--border);
-          border-right: 1px solid var(--border);
+          font-weight: 600;
+          cursor: pointer;
+          text-align: center;
+          transition: all 120ms ease;
+        }
+        .zoom-rail-value:hover {
+          background: var(--accent-soft);
+          color: var(--accent);
+        }
+        /* Em fullscreen, o trilho fica um pouco mais pra dentro pra não
+           colar na borda. */
+        .reader:fullscreen .zoom-rail {
+          right: 16px;
         }
         .translate-page-btn {
           padding: 6px 12px;
