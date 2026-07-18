@@ -47,6 +47,15 @@ export const PRESETS: ProviderPreset[] = [
     description: "Excelente custo-benefício e raciocínio.",
   },
   {
+    id: "together",
+    name: "Together AI",
+    baseUrl: "https://api.together.xyz/v1",
+    defaultModel: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+    adapter: "openai",
+    keyUrl: "https://api.together.ai/settings/api-keys",
+    description: "Centena de modelos open-source (Llama, Qwen, DeepSeek). Preços baixos.",
+  },
+  {
     id: "kimi",
     name: "Kimi (Moonshot)",
     baseUrl: "https://api.moonshot.ai/v1",

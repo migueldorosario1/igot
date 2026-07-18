@@ -20,6 +20,7 @@ const ALLOWED_HOSTS = new Set<string>([
   "dashscope.aliyuncs.com",
   "api.anthropic.com",
   "generativelanguage.googleapis.com",
+  "api.together.xyz",
 ]);
 
 const LOCAL_HOSTS = new Set<string>(["localhost", "127.0.0.1"]);

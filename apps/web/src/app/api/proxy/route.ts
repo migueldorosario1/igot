@@ -28,6 +28,7 @@ const ALLOWED_HOSTS = new Set<string>([
   "dashscope.aliyuncs.com",
   "api.anthropic.com",
   "generativelanguage.googleapis.com",
+  "api.together.xyz",
 ]);
 
 /** Hosts locais permitidos (para self-hosted / desenvolvimento). */

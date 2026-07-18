@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import { PRESETS, type AIConfig } from "@igot/ai-providers";
-import { setConfig, clearConfig, getTargetLang, setTargetLang } from "@/lib/config";
+import {
+  setConfig, setActiveProvider, removeProviderKey,
+  clearConfig, getTargetLang, setTargetLang,
+  listAllProvidersSync, maskKey,
+} from "@/lib/config";
 import { testConnection, listModels } from "@/lib/ai-client";
 
 interface SettingsFormProps {
@@ -40,8 +44,12 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
   const [modelsLoading, setModelsLoading] = useState(false);
   const [modelsError, setModelsError] = useState("");
   const [modelSearch, setModelSearch] = useState("");
+  // Lista de provedores já cadastrados (com chave mascarada).
+  const [savedProviders, setSavedProviders] = useState(listAllProvidersSync());
 
   const preset = PRESETS.find((p) => p.id === providerId);
+  /** Este provedor já tem chave cadastrada? (pra mostrar "atualizar" vs "adicionar"). */
+  const hasExistingKey = savedProviders.some((p) => p.providerId === providerId);
 
   /** Busca os modelos disponíveis no provedor (requer chave). */
   const handleListModels = async () => {
@@ -96,12 +104,34 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
       baseUrl: baseUrl.trim() || undefined,
     };
     // AWAIT: setConfig é assíncrona (criptografa a chave antes de salvar).
-    // Sem o await, onSaved() dispara antes da gravação terminar → chave some.
     await setConfig(config);
     setTargetLang(targetLang);
     setSaved(true);
+    setSavedProviders(listAllProvidersSync()); // atualiza a lista de cadastrados
     onSaved();
     setTimeout(() => setSaved(false), 2500);
+  };
+
+  /** Troca o provedor ativo (qual está em uso). */
+  const handleActivate = async (pid: string) => {
+    await setActiveProvider(pid);
+    setProviderId(pid);
+    setSavedProviders(listAllProvidersSync());
+    onSaved();
+  };
+
+  /** Remove a chave de um provedor do cofre. */
+  const handleRemoveKey = async (pid: string) => {
+    if (!confirm(`Remover a chave de ${PRESETS.find((p) => p.id === pid)?.name ?? pid}?`)) return;
+    await removeProviderKey(pid);
+    // Se removeu o que tava editando, limpa os campos.
+    if (pid === providerId) {
+      setApiKey("");
+      setModel("");
+      setBaseUrl("");
+    }
+    setSavedProviders(listAllProvidersSync());
+    onSaved();
   };
 
   const handleClear = () => {
@@ -109,12 +139,77 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
     setApiKey("");
     setModel("");
     setBaseUrl("");
+    setSavedProviders([]);
     setTest({ status: "idle", message: "" });
     onSaved();
   };
 
   return (
     <form className="settings-form" onSubmit={handleSave}>
+      {/* Meus provedores cadastrados (chaves salvas) */}
+      {savedProviders.length > 0 && (
+        <div className="saved-providers">
+          <p className="saved-providers-title">🔑 Minhas chaves cadastradas</p>
+          <div className="saved-providers-list">
+            {savedProviders.map((p) => {
+              const name = PRESETS.find((pr) => pr.id === p.providerId)?.name ?? p.providerId;
+              return (
+                <div
+                  key={p.providerId}
+                  className={`saved-provider-card ${p.active ? "active" : ""}`}
+                >
+                  <div className="saved-provider-info">
+                    <span className="saved-provider-name">
+                      {p.active && <span className="active-dot">●</span>} {name}
+                    </span>
+                    <span className="saved-provider-key">{p.maskedKey}</span>
+                    {p.model && <span className="saved-provider-model">{p.model}</span>}
+                  </div>
+                  <div className="saved-provider-actions">
+                    {!p.active && (
+                      <button
+                        type="button"
+                        className="mini-btn use-btn"
+                        onClick={() => handleActivate(p.providerId)}
+                        title="Usar este provedor"
+                      >
+                        Usar
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="mini-btn edit-btn"
+                      onClick={() => {
+                        setProviderId(p.providerId);
+                        setApiKey("");
+                        setModel(p.model ?? "");
+                        setAdvancedOpen(true);
+                      }}
+                      title="Editar chave"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      type="button"
+                      className="mini-btn remove-btn"
+                      onClick={() => handleRemoveKey(p.providerId)}
+                      title="Remover chave"
+                    >
+                      🗑
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Separador visual */}
+      <div className="section-divider">
+        <span>{hasExistingKey ? "Atualizar chave" : "Adicionar nova chave"}</span>
+      </div>
+
       {/* Provedor */}
       <div className="field">
         <label htmlFor="provider">Provedor de IA</label>
@@ -122,11 +217,16 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
           id="provider"
           value={providerId}
           onChange={(e) => {
-            setProviderId(e.target.value);
+            const newPid = e.target.value;
+            setProviderId(newPid);
+            setApiKey(""); // limpa o campo — usuário digita nova ou vê mascarada
             setTest({ status: "idle", message: "" });
             setModelsList(null);
             setModelsError("");
             setModelSearch("");
+            // Se já tem chave pra esse provedor, pré-carrega o modelo salvo.
+            const existing = savedProviders.find((p) => p.providerId === newPid);
+            setModel(existing?.model ?? "");
           }}
         >
           {PRESETS.map((p) => (
@@ -150,14 +250,23 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
 
       {/* Chave */}
       <div className="field">
-        <label htmlFor="apikey">Chave de API</label>
+        <label htmlFor="apikey">
+          Chave de API
+          {hasExistingKey && (
+            <span className="existing-key-badge">
+              Atual: {savedProviders.find((p) => p.providerId === providerId)?.maskedKey}
+            </span>
+          )}
+        </label>
         <div className="key-row">
           <input
             id="apikey"
             type={showKey ? "text" : "password"}
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
-            placeholder="cole sua chave aqui"
+            placeholder={hasExistingKey
+              ? `Cole uma NOVA chave pra atualizar (atual: ${savedProviders.find((p) => p.providerId === providerId)?.maskedKey})`
+              : "cole sua chave aqui"}
             autoComplete="off"
             spellCheck={false}
           />
@@ -319,14 +428,14 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
       {/* Ações */}
       <div className="actions">
         <button type="submit" className="primary" disabled={!apiKey.trim()}>
-          Salvar
+          {hasExistingKey ? "💾 Atualizar chave" : "💾 Adicionar chave"}
         </button>
         <button type="button" onClick={handleTest} disabled={!apiKey.trim() || test.status === "testing"}>
           {test.status === "testing" ? "Testando…" : "Testar conexão"}
         </button>
-        {initial && (
+        {savedProviders.length > 0 && (
           <button type="button" className="danger" onClick={handleClear}>
-            Limpar
+            Limpar tudo
           </button>
         )}
       </div>
@@ -596,6 +705,127 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
           background: #fdecea;
           color: #c0392b;
           border: 1px solid #f5b7b1;
+        }
+
+        /* Badge "chave atual" ao lado do label */
+        .existing-key-badge {
+          font-weight: 400;
+          font-size: 11px;
+          color: var(--text-muted);
+          margin-left: 8px;
+          font-family: ui-monospace, "SF Mono", Consolas, monospace;
+          background: var(--surface-alt);
+          padding: 2px 6px;
+          border-radius: 4px;
+        }
+
+        /* Lista de provedores cadastrados */
+        .saved-providers {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .saved-providers-title {
+          margin: 0;
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text-muted);
+        }
+        .saved-providers-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .saved-provider-card {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          padding: 10px 12px;
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          background: var(--surface);
+        }
+        .saved-provider-card.active {
+          border-color: var(--accent);
+          background: var(--accent-soft);
+        }
+        .saved-provider-info {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          min-width: 0;
+          flex: 1;
+        }
+        .saved-provider-name {
+          font-weight: 600;
+          font-size: 14px;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+        .active-dot {
+          color: var(--accent);
+          font-size: 10px;
+        }
+        .saved-provider-key {
+          font-size: 12px;
+          color: var(--text-muted);
+          font-family: ui-monospace, "SF Mono", Consolas, monospace;
+        }
+        .saved-provider-model {
+          font-size: 11px;
+          color: var(--text-muted);
+          font-style: italic;
+        }
+        .saved-provider-actions {
+          display: flex;
+          gap: 4px;
+          flex-shrink: 0;
+        }
+        .mini-btn {
+          border: 1px solid var(--border);
+          background: var(--surface);
+          color: var(--text);
+          border-radius: 6px;
+          font-size: 12px;
+          padding: 4px 8px;
+          cursor: pointer;
+          transition: var(--transition);
+        }
+        .mini-btn:hover {
+          border-color: var(--accent);
+        }
+        .use-btn {
+          background: var(--accent);
+          color: white;
+          border-color: var(--accent);
+          font-weight: 600;
+        }
+        .use-btn:hover {
+          opacity: 0.85;
+        }
+        .remove-btn:hover {
+          border-color: #c0392b;
+          color: #c0392b;
+        }
+
+        /* Separador de seção */
+        .section-divider {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin: 4px 0;
+          color: var(--text-muted);
+          font-size: 12px;
+          font-weight: 600;
+        }
+        .section-divider::before,
+        .section-divider::after {
+          content: "";
+          flex: 1;
+          height: 1px;
+          background: var(--border);
         }
 
         /* Seção de ajuda */
