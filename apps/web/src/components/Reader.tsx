@@ -591,13 +591,13 @@ export function Reader({
       ? showTranslation
         ? t("reader_view_original")
         : t("reader_view_translation")
-      : t("reader_translate_page");
+      : t("reader_sel_translate");
 
   const explainBtnLabel = translatingPage && overlayMode === "explain"
     ? t("reader_explaining")
     : overlayMode === "explain" && showTranslation
       ? t("reader_view_original")
-      : t("reader_explain_page");
+      : t("reader_sel_explain");
 
   /** Versão SÓ ÍCONE dos botões (cabe numa linha só).
    *  O texto completo vai no `title` (tooltip ao passar o dedo/mouse). */
@@ -905,10 +905,10 @@ export function Reader({
         </div>
       </header>
 
-      {/* Zoom VERTICAL flutuante na lateral direita (só PDF).
-          Fica fora do header, não ocupa espaço na barra de menu. */}
+      {/* Zoom VERTICAL no topo da lateral direita (só PDF).
+          Só + e − (sem %, mais limpo). Some quando o menu é ocultado. */}
       {book.sourceFormat === "pdf" && pdfSource && (
-        <div className="zoom-rail" title={t("reader_zoom")}>
+        <div className="zoom-rail" data-hidden={!menuVisible} title={t("reader_zoom")}>
           <button
             onClick={zoomIn}
             disabled={zoom >= MAX_ZOOM}
@@ -917,14 +917,6 @@ export function Reader({
             className="zoom-rail-btn"
           >
             +
-          </button>
-          <button
-            onClick={zoomReset}
-            className="zoom-rail-value"
-            aria-label={t("reader_zoom_reset")}
-            title={t("reader_zoom_reset")}
-          >
-            {Math.round(zoom * 100)}%
           </button>
           <button
             onClick={zoomOut}
@@ -1207,32 +1199,41 @@ export function Reader({
           flex-shrink: 0;
           margin-left: auto; /* empurra tudo pra direita */
         }
-        /* Zoom VERTICAL flutuante na lateral direita.
-           Pequeno "trilho" com + no topo, % no meio, − embaixo.
-           Não ocupa espaço no header — fica sobreposto à borda direita. */
+        /* Zoom VERTICAL no topo da lateral direita.
+           Só + e −, compacto. Some quando o menu é ocultado (fullscreen). */
         .zoom-rail {
           position: absolute;
           right: 12px;
-          top: 50%;
-          transform: translateY(-50%);
+          top: 12px;
           display: flex;
           flex-direction: column;
-          align-items: center;
-          gap: 4px;
-          padding: 6px 4px;
+          gap: 2px;
+          padding: 4px;
           background: var(--surface);
           border: 1px solid var(--border);
-          border-radius: 14px;
-          box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+          border-radius: 12px;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.12);
           z-index: 40;
+          transition: opacity 200ms ease;
+        }
+        /* Esconde o zoom junto com o menu (data-hidden=true no fullscreen). */
+        .zoom-rail[data-hidden="true"] {
+          opacity: 0;
+          pointer-events: none;
+        }
+        .reader:fullscreen .zoom-rail {
+          top: 72px; /* abaixo do header do fullscreen */
+        }
+        .reader:fullscreen[data-menu-hidden="true"] .zoom-rail {
+          top: 16px;
         }
         .zoom-rail-btn {
-          width: 36px;
-          height: 36px;
+          width: 40px;
+          height: 40px;
           border: none;
           background: transparent;
           color: var(--text);
-          font-size: 20px;
+          font-size: 22px;
           font-weight: 600;
           border-radius: 10px;
           cursor: pointer;
@@ -1251,29 +1252,6 @@ export function Reader({
         .zoom-rail-btn:disabled {
           opacity: 0.3;
           cursor: not-allowed;
-        }
-        .zoom-rail-value {
-          width: 44px;
-          padding: 4px 0;
-          border: none;
-          border-top: 1px solid var(--border);
-          border-bottom: 1px solid var(--border);
-          background: transparent;
-          color: var(--text);
-          font-size: 12px;
-          font-weight: 600;
-          cursor: pointer;
-          text-align: center;
-          transition: all 120ms ease;
-        }
-        .zoom-rail-value:hover {
-          background: var(--accent-soft);
-          color: var(--accent);
-        }
-        /* Em fullscreen, o trilho fica um pouco mais pra dentro pra não
-           colar na borda. */
-        .reader:fullscreen .zoom-rail {
-          right: 16px;
         }
         .translate-page-btn {
           padding: 6px 12px;
