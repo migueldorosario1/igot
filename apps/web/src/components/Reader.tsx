@@ -754,23 +754,7 @@ export function Reader({
               </span>
             )}
           </div>
-          {/* Navegação ‹ N/M › */}
-          <div className="reader-nav">
-            <button onClick={goPrev} disabled={chapterIdx === 0} aria-label={book.sourceFormat === "pdf" ? "Página anterior" : "Capítulo anterior"}>
-              ‹
-            </button>
-            <span className="reader-counter">
-              {chapterIdx + 1} / {totalChapters}
-            </span>
-            <button
-              onClick={goNext}
-              disabled={chapterIdx >= totalChapters - 1}
-              aria-label={book.sourceFormat === "pdf" ? "Próxima página" : "Próximo capítulo"}
-            >
-              ›
-            </button>
-          </div>
-          {/* ⚙️ Configurações — depois da numeração (como pedido) */}
+          {/* ⚙️ Configurações */}
           {onOpenSettings && (
             <button
               onClick={onOpenSettings}
@@ -803,32 +787,35 @@ export function Reader({
           )}
         </div>
 
-        {/* ── Linha 2: ações de conteúdo (quebra limpo quando cabe pouco) ── */}
+        {/* ── Linha 2: ações de conteúdo ── */}
         <div className="reader-row reader-row-actions">
+          {/* Notas */}
           <button
             onClick={() => setNotesOpen(true)}
-            className="notes-btn"
+            className="icon-btn"
             title="Minhas anotações"
+            aria-label="Anotações"
           >
-            📓 <span className="btn-label">{notes.length > 0 ? notes.length : ""}</span>
+            📓 {notes.length > 0 && <span className="badge">{notes.length}</span>}
+          </button>
+          {/* Marcador de página (toggle) */}
+          <button
+            onClick={toggleBookmark}
+            className={`icon-btn ${isBookmarked ? "active" : ""}`}
+            title={isBookmarked ? "Remover marcador desta página" : "Marcar esta página"}
+            aria-label="Marcar página"
+            aria-pressed={isBookmarked}
+          >
+            {isBookmarked ? "🔖" : "🏷"}
           </button>
           {/* Lista de marcadores */}
           <button
             onClick={() => setBookmarksOpen(true)}
-            className="notes-btn"
+            className="icon-btn"
             title="Meus marcadores"
+            aria-label="Marcadores"
           >
-            🔖 <span className="btn-label">{bookmarks.length > 0 ? bookmarks.length : ""}</span>
-          </button>
-          {/* Marcador de página (bookmark) */}
-          <button
-            onClick={toggleBookmark}
-            className={`icon-btn bookmark-btn ${isBookmarked ? "active" : ""}`}
-            title={isBookmarked ? "Remover marcador desta página" : "Marcar esta página"}
-            aria-label="Marcador"
-            aria-pressed={isBookmarked}
-          >
-            {isBookmarked ? "🔖" : "🏷"}
+            🔖 {bookmarks.length > 0 && <span className="badge">{bookmarks.length}</span>}
           </button>
           {/* Estante — volta pra home */}
           <button
@@ -860,10 +847,11 @@ export function Reader({
           {/* Abrir outro livro */}
           <button
             onClick={onCloseBook}
-            className="open-other-btn"
-            title="Fechar e abrir outro livro"
+            className="icon-btn"
+            title="Abrir outro livro"
+            aria-label="Abrir outro"
           >
-            📂 Abrir outro
+            📂
           </button>
           {book.sourceFormat === "pdf" && pdfSource && (
             <>
@@ -1129,7 +1117,7 @@ export function Reader({
           flex-shrink: 0;
           overflow: hidden;
           transition: max-height 200ms ease, opacity 200ms ease, padding 200ms ease;
-          max-height: 300px; /* duas linhas de botões */
+          max-height: 160px; /* duas linhas de botões */
         }
         .reader:fullscreen[data-menu-hidden="true"] .reader-header {
           max-height: 0;
@@ -1310,12 +1298,31 @@ export function Reader({
           cursor: pointer;
           transition: var(--transition);
           flex-shrink: 0;
+          position: relative;
         }
         .icon-btn:hover {
           border-color: var(--accent);
           transform: scale(1.05);
         }
-        /* Marcador ativo: destaque dourado */
+        /* Contador dentro do botão (notas/marcadores) */
+        .icon-btn .badge {
+          position: absolute;
+          top: -2px;
+          right: -2px;
+          background: var(--accent);
+          color: white;
+          font-size: 10px;
+          font-weight: 700;
+          min-width: 16px;
+          height: 16px;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0 4px;
+        }
+
+        /* Marcador ativo: destaque dourado */        /* Marcador ativo: destaque dourado */
         .bookmark-btn.active {
           background: var(--accent-soft);
           border-color: var(--accent);
