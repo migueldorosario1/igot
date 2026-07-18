@@ -153,23 +153,25 @@ export default function BookPage({ params }: { params: { id: string } }) {
             router.push("/");
           }}
         />
-        <AIPanel
-          action={action}
-          book={session.book}
-          onClose={handleClosePanel}
-          onSaveNote={(entry) =>
-            updateSession({
-              notes: [
-                {
-                  ...entry,
-                  id: `note-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-                  savedAt: Date.now(),
-                },
-                ...(session.notes ?? []),
-              ],
-            })
-          }
-        />
+        {action && (
+          <AIPanel
+            action={action}
+            book={session.book}
+            onClose={handleClosePanel}
+            onSaveNote={(entry) =>
+              updateSession({
+                notes: [
+                  {
+                    ...entry,
+                    id: `note-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                    savedAt: Date.now(),
+                  },
+                  ...(session.notes ?? []),
+                ],
+              })
+            }
+          />
+        )}
       </div>
       <style jsx>{`
         .back-btn {
