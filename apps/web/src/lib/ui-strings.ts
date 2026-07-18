@@ -51,6 +51,7 @@ export type UIStringKey =
   // ── Reader ──
   | "reader_read_new"
   | "reader_open_other"
+  | "reader_open_new"
   | "reader_shelf"
   | "reader_zoom"
   | "reader_zoom_out"
@@ -221,6 +222,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     // Reader
     reader_read_new: "Ler novo",
     reader_open_other: "Abrir outro livro",
+    reader_open_new: "Abrir novo livro",
     reader_shelf: "Minha estante",
     reader_zoom: "Zoom",
     reader_zoom_out: "Diminuir zoom",
@@ -384,6 +386,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     upload_privacy: "Your AI keys never leave your device.",
     reader_read_new: "Read new",
     reader_open_other: "Open another book",
+    reader_open_new: "Abrir novo livro",
     reader_shelf: "My shelf",
     reader_zoom: "Zoom",
     reader_zoom_out: "Zoom out",
@@ -543,6 +546,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     upload_privacy: "Tus claves de IA nunca salen de tu dispositivo.",
     reader_read_new: "Leer nuevo",
     reader_open_other: "Abrir otro libro",
+    reader_open_new: "Abrir novo livro",
     reader_shelf: "Mi estantería",
     reader_zoom: "Zoom",
     reader_zoom_out: "Alejar",
@@ -702,6 +706,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     upload_privacy: "Vos clés d'IA ne quittent jamais votre appareil.",
     reader_read_new: "Lire un nouveau",
     reader_open_other: "Ouvrir un autre livre",
+    reader_open_new: "Abrir novo livro",
     reader_shelf: "Ma bibliothèque",
     reader_zoom: "Zoom",
     reader_zoom_out: "Dézoomer",
@@ -861,6 +866,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     upload_privacy: "Deine KI-Schlüssel verlassen niemals dein Gerät.",
     reader_read_new: "Neues lesen",
     reader_open_other: "Anderes Buch öffnen",
+    reader_open_new: "Abrir novo livro",
     reader_shelf: "Mein Bücherregal",
     reader_zoom: "Zoom",
     reader_zoom_out: "Verkleinern",
@@ -1020,6 +1026,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     upload_privacy: "Le tue chiavi IA non lasciano mai il tuo dispositivo.",
     reader_read_new: "Leggi nuovo",
     reader_open_other: "Apri un altro libro",
+    reader_open_new: "Abrir novo livro",
     reader_shelf: "La mia libreria",
     reader_zoom: "Zoom",
     reader_zoom_out: "Riduci zoom",
@@ -1179,6 +1186,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     upload_privacy: "Ваши ключи ИИ никогда не покидают ваше устройство.",
     reader_read_new: "Читать новое",
     reader_open_other: "Открыть другую книгу",
+    reader_open_new: "Abrir novo livro",
     reader_shelf: "Моя полка",
     reader_zoom: "Масштаб",
     reader_zoom_out: "Уменьшить",
@@ -1338,6 +1346,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     upload_privacy: "您的 AI 密钥永远不会离开您的设备。",
     reader_read_new: "阅读新书",
     reader_open_other: "打开其他书籍",
+    reader_open_new: "Abrir novo livro",
     reader_shelf: "我的书架",
     reader_zoom: "缩放",
     reader_zoom_out: "缩小",
@@ -1497,6 +1506,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     upload_privacy: "あなたの AI キーは端末から外に出ません。",
     reader_read_new: "新しい本を読む",
     reader_open_other: "別の本を開く",
+    reader_open_new: "Abrir novo livro",
     reader_shelf: "マイ本棚",
     reader_zoom: "ズーム",
     reader_zoom_out: "縮小",
@@ -1656,6 +1666,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     upload_privacy: "AI 키는 기기를 떠나지 않습니다.",
     reader_read_new: "새 책 읽기",
     reader_open_other: "다른 책 열기",
+    reader_open_new: "Abrir novo livro",
     reader_shelf: "내 책장",
     reader_zoom: "확대/축소",
     reader_zoom_out: "축소",
@@ -1815,6 +1826,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     upload_privacy: "مفاتيح الذكاء الاصطناعي لا تغادر جهازك أبداً.",
     reader_read_new: "قراءة جديد",
     reader_open_other: "فتح كتاب آخر",
+    reader_open_new: "Abrir novo livro",
     reader_shelf: "رفي",
     reader_zoom: "تكبير",
     reader_zoom_out: "تصغير",
@@ -1974,6 +1986,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     upload_privacy: "आपकी AI कुंजियाँ कभी आपके डिवाइस से बाहर नहीं जातीं।",
     reader_read_new: "नई पढ़ें",
     reader_open_other: "दूसरी किताब खोलें",
+    reader_open_new: "Abrir novo livro",
     reader_shelf: "मेरा शेल्फ़",
     reader_zoom: "ज़ूम",
     reader_zoom_out: "ज़ूम आउट",

@@ -153,6 +153,8 @@ export function Reader({
   const scrollRef = useRef<HTMLDivElement>(null);
   // Canvas do PDF renderizado (pra snapshot/foto da página).
   const pdfCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  // Input de arquivo escondido (pra abrir novo livro direto do Reader).
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [menuVisible, setMenuVisible] = useState(true);
   const [bookmarksOpen, setBookmarksOpen] = useState(false);
@@ -870,14 +872,14 @@ export function Reader({
           >
             <CafezinhoLogo size={26} opacity={0.85} />
           </a>
-          {/* 📖 Ler novo */}
+          {/* ➕ Abrir novo arquivo (dispara seletor de arquivo direto) */}
           <button
-            onClick={onCloseBook}
+            onClick={() => fileInputRef.current?.click()}
             className="icon-btn"
-            title={t("reader_open_other")}
-            aria-label={t("reader_read_new")}
+            title={t("reader_open_new")}
+            aria-label={t("reader_open_new")}
           >
-            📖
+            ➕
           </button>
           {/* 📚 Estante */}
           <button
@@ -1953,6 +1955,22 @@ export function Reader({
           onSaved={() => onSettingsSaved?.()}
         />
       )}
+
+      {/* Input de arquivo escondido — aberto pelo botão ➕ "Abrir novo".
+          Vai pra home que abre o seletor de arquivo automaticamente. */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".epub,.pdf"
+        hidden
+        onChange={(e) => {
+          // Se selecionou algo, vai pra home processar.
+          if (e.target.files?.[0]) {
+            sessionStorage.setItem("moka.openUploader", "1");
+            onCloseBook?.();
+          }
+        }}
+      />
     </section>
   );
 }

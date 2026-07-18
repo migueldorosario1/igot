@@ -62,7 +62,13 @@ export default function HomePage() {
       // Se tem livros e o usuário não veio clicando em "estante" (voltar),
       // abre automaticamente o último lido.
       const cameFromEstante = sessionStorage.getItem("igot.backToEstante") === "1";
-      if (cameFromEstante) {
+      // Se veio do botão "Abrir novo" do Reader, abre o seletor de arquivo.
+      const openUploader = sessionStorage.getItem("moka.openUploader") === "1";
+      if (openUploader) {
+        sessionStorage.removeItem("moka.openUploader");
+        // Dispara o clique no input de arquivo depois de renderizar.
+        setTimeout(() => document.getElementById("file-input")?.click(), 300);
+      } else if (cameFromEstante) {
         sessionStorage.removeItem("igot.backToEstante");
       } else if (list.length > 0) {
         const lastRead = list.reduce((a, b) =>
