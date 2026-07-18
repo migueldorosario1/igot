@@ -1,49 +1,40 @@
 /**
  * Persistência da config de IA no navegador (localStorage) — CRIPTOGRAFADA.
  *
- * MULTI-CHAVE: o usuário pode cadastrar uma chave pra CADA provedor
- * (DeepSeek, OpenAI, Together, etc). Todas ficam salvas e mascaradas na UI.
- * Um `activeProviderId` diz qual está em uso no momento.
+ * MULTI-ENTRADA: o usuário pode cadastrar VÁRIAS chaves, inclusive do MESMO
+ * provedor (ex: Kimi K3 + Kimi K2 Thinking). Cada entrada tem:
+ *   - id único (gerado automaticamente)
+ *   - providerId (qual provedor: deepseek, openai, kimi, etc)
+ *   - apiKey (criptografada)
+ *   - model (qual modelo usar)
+ *   - label (nome customizado opcional, ex: "Kimi K3 trabalho", "DeepSeek barato")
+ *
+ * Um `activeId` diz qual entrada está em uso no momento.
  *
  * As chaves são criptografadas (AES-GCM) antes de ir pro localStorage —
- * "guarda como segredo da própria mulher". Mesmo quem abre o localStorage
- * não vê a chave no texto legível.
- *
- * O servidor nunca a vê persistida — só a recebe transitória no corpo do
- * proxy, repassando ao provedor.
+ * "guarda como segredo da própria mulher".
  */
 
 import type { AIConfig } from "@igot/ai-providers";
 import { encrypt, decrypt } from "./crypto";
 
-const VAULT_KEY = "igot.aiVault"; // novo formato: múltiplas chaves
+const VAULT_KEY = "igot.aiVault"; // novo formato: lista de entradas
 const LEGACY_KEY = "igot.aiConfig"; // formato antigo: chave única
 const LANG_KEY = "igot.targetLang";
 
-/** Uma entrada por provedor. */
-export interface ProviderEntry {
+/** Uma entrada no cofre (uma chave + modelo de um provedor). */
+export interface VaultEntry {
+  /** ID único desta entrada (gerado). */
+  id: string;
+  /** Qual provedor (deepseek, openai, kimi, etc). */
+  providerId: string;
   apiKey: string;
   model?: string;
   baseUrl?: string;
+  /** Nome customizado opcional pra distinguishir múltiplas do mesmo provedor. */
+  label?: string;
   savedAt: number;
 }
-
-/** O "cofre" de chaves: mapa providerId → entry + qual tá ativo. */
-interface Vault {
-  /** providerId → dados da chave. */
-  entries: Record<string, {
-    apiKeyEnc: string;
-    model?: string;
-    baseUrl?: string;
-    savedAt: number;
-  }>;
-  /** Qual provedor está em uso agora. */
-  activeProviderId: string | null;
-}
-
-/** Cache em memória (descriptografado). null = vazio; undefined = não carregou. */
-let cachedVault: Record<string, ProviderEntry> | null | undefined = undefined;
-let cachedActiveId: string | null = null;
 
 /** Versão mascarada de uma chave pra exibir na UI (sk-***...abc). */
 export function maskKey(key: string): string {
@@ -52,39 +43,104 @@ export function maskKey(key: string): string {
   return `${key.slice(0, 4)}••••${key.slice(-4)}`;
 }
 
+/** Gera um ID único curto pra uma nova entrada. */
+function genId(): string {
+  return `e${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
+}
+
+// ─── Cache em memória ───────────────────────────────────────────────────
+
+/** Lista de entradas descriptografadas. undefined = não carregou; null = vazio. */
+let cachedEntries: VaultEntry[] | null | undefined = undefined;
+/** ID da entrada ativa (em uso). */
+let cachedActiveId: string | null = null;
+
+// ─── Serialização (localStorage é string) ──────────────────────────────
+
+interface SerializedVault {
+  version: 2;
+  entries: Array<{
+    id: string;
+    providerId: string;
+    apiKeyEnc: string;
+    model?: string;
+    baseUrl?: string;
+    label?: string;
+    savedAt: number;
+  }>;
+  activeId: string | null;
+}
+
+// ─── Carregamento ──────────────────────────────────────────────────────
+
 /** Inicializa o cache descriptografando do localStorage (async). */
 async function ensureCache(): Promise<void> {
-  if (cachedVault !== undefined) return;
+  if (cachedEntries !== undefined) return;
   if (typeof window === "undefined") {
-    cachedVault = null;
+    cachedEntries = null;
     cachedActiveId = null;
     return;
   }
   try {
     const raw = window.localStorage.getItem(VAULT_KEY);
     if (raw) {
-      // Formato novo (cofre de múltiplas chaves).
-      const parsed = JSON.parse(raw) as Vault;
-      const entries: Record<string, ProviderEntry> = {};
-      for (const [pid, enc] of Object.entries(parsed.entries ?? {})) {
-        try {
-          const apiKey = await decrypt(enc.apiKeyEnc);
-          entries[pid] = {
-            apiKey,
-            model: enc.model,
-            baseUrl: enc.baseUrl,
-            savedAt: enc.savedAt,
-          };
-        } catch {
-          // chave corrompida — pula
+      const parsed = JSON.parse(raw) as SerializedVault;
+      if (parsed.version === 2) {
+        // Formato novo: lista de entradas.
+        const entries: VaultEntry[] = [];
+        for (const e of parsed.entries ?? []) {
+          try {
+            const apiKey = await decrypt(e.apiKeyEnc);
+            entries.push({
+              id: e.id,
+              providerId: e.providerId,
+              apiKey,
+              model: e.model,
+              baseUrl: e.baseUrl,
+              label: e.label,
+              savedAt: e.savedAt,
+            });
+          } catch {
+            // chave corrompida — pula
+          }
         }
+        cachedEntries = entries;
+        cachedActiveId = parsed.activeId;
+        return;
       }
-      cachedVault = entries;
-      cachedActiveId = parsed.activeProviderId;
-      return;
+      // versão 1 (mapa por providerId) — migra
+      if ((parsed as unknown as { entries: Record<string, unknown> }).entries) {
+        const v1 = parsed as unknown as {
+          entries: Record<string, { apiKeyEnc?: string; model?: string; baseUrl?: string; savedAt: number }>;
+          activeProviderId: string | null;
+        };
+        const entries: VaultEntry[] = [];
+        for (const [pid, e] of Object.entries(v1.entries ?? {})) {
+          if (e.apiKeyEnc) {
+            try {
+              const apiKey = await decrypt(e.apiKeyEnc);
+              entries.push({
+                id: genId(),
+                providerId: pid,
+                apiKey,
+                model: e.model,
+                baseUrl: e.baseUrl,
+                savedAt: e.savedAt,
+              });
+            } catch { /* pula */ }
+          }
+        }
+        const firstId = entries[0]?.id ?? null;
+        cachedEntries = entries;
+        cachedActiveId = v1.activeProviderId
+          ? entries.find((e) => e.providerId === v1.activeProviderId)?.id ?? firstId
+          : firstId;
+        await persist();
+        return;
+      }
     }
 
-    // Migração do formato legado (chave única).
+    // Migração do formato legado (chave única em igot.aiConfig).
     const legacyRaw = window.localStorage.getItem(LEGACY_KEY);
     if (legacyRaw) {
       const parsed = JSON.parse(legacyRaw) as {
@@ -98,170 +154,259 @@ async function ensureCache(): Promise<void> {
       if (parsed.apiKeyEnc) apiKey = await decrypt(parsed.apiKeyEnc);
       else if (parsed.apiKey) apiKey = parsed.apiKey;
       if (parsed.providerId && apiKey) {
-        cachedVault = {
-          [parsed.providerId]: {
-            apiKey,
-            model: parsed.model,
-            baseUrl: parsed.baseUrl,
-            savedAt: Date.now(),
-          },
-        };
-        cachedActiveId = parsed.providerId;
-        // Já persiste no novo formato.
-        await persistVault();
-        // Limpa o legado.
+        const id = genId();
+        cachedEntries = [{
+          id,
+          providerId: parsed.providerId,
+          apiKey,
+          model: parsed.model,
+          baseUrl: parsed.baseUrl,
+          savedAt: Date.now(),
+        }];
+        cachedActiveId = id;
+        await persist();
         window.localStorage.removeItem(LEGACY_KEY);
         return;
       }
     }
-    cachedVault = null;
+    cachedEntries = null;
     cachedActiveId = null;
   } catch {
-    cachedVault = null;
+    cachedEntries = null;
     cachedActiveId = null;
   }
 }
 
 /** Grava o cofre no localStorage (criptografando todas as chaves). */
-async function persistVault(): Promise<void> {
-  if (typeof window === "undefined" || !cachedVault) return;
-  const entries: Vault["entries"] = {};
-  for (const [pid, entry] of Object.entries(cachedVault)) {
-    entries[pid] = {
-      apiKeyEnc: await encrypt(entry.apiKey),
-      model: entry.model,
-      baseUrl: entry.baseUrl,
-      savedAt: entry.savedAt,
-    };
-  }
-  const vault: Vault = { entries, activeProviderId: cachedActiveId };
-  window.localStorage.setItem(VAULT_KEY, JSON.stringify(vault));
+async function persist(): Promise<void> {
+  if (typeof window === "undefined" || !cachedEntries) return;
+  const serialized: SerializedVault = {
+    version: 2,
+    entries: await Promise.all(
+      cachedEntries.map(async (e) => ({
+        id: e.id,
+        providerId: e.providerId,
+        apiKeyEnc: await encrypt(e.apiKey),
+        model: e.model,
+        baseUrl: e.baseUrl,
+        label: e.label,
+        savedAt: e.savedAt,
+      })),
+    ),
+    activeId: cachedActiveId,
+  };
+  window.localStorage.setItem(VAULT_KEY, JSON.stringify(serialized));
 }
 
+// ─── API pública ────────────────────────────────────────────────────────
+
 /**
- * Lê a config ATIVA (do provedor em uso). Retorna null se nenhuma chave.
+ * Lê a config ATIVA (da entrada em uso). Retorna null se nenhuma.
  * Assíncrona (descriptografa).
  */
 export async function getConfig(): Promise<AIConfig | null> {
   await ensureCache();
-  if (!cachedVault || !cachedActiveId) return null;
-  const entry = cachedVault[cachedActiveId];
+  if (!cachedEntries || !cachedActiveId) return null;
+  const entry = cachedEntries.find((e) => e.id === cachedActiveId);
   if (!entry) return null;
   return {
-    providerId: cachedActiveId,
+    providerId: entry.providerId,
     apiKey: entry.apiKey,
     model: entry.model,
     baseUrl: entry.baseUrl,
   };
 }
 
-/** Versão SÍNCRONA — retorna o cache da config ativa em memória. */
+/** Versão SÍNCRONA — retorna o cache da config ativa. */
 export function getConfigSync(): AIConfig | null {
-  if (!cachedVault || !cachedActiveId) return null;
-  const entry = cachedVault[cachedActiveId];
+  if (!cachedEntries || !cachedActiveId) return null;
+  const entry = cachedEntries.find((e) => e.id === cachedActiveId);
   if (!entry) return null;
   return {
-    providerId: cachedActiveId,
+    providerId: entry.providerId,
     apiKey: entry.apiKey,
     model: entry.model,
     baseUrl: entry.baseUrl,
   };
 }
 
-/** Carrega o cache descriptografando do localStorage (chamar no boot). */
+/** Carrega o cache (chamar no boot). */
 export async function loadConfigCache(): Promise<void> {
   await ensureCache();
 }
 
 /**
- * Salva (ou atualiza) a chave de um provedor NO COFRE.
- * Se não há provedor ativo, este vira o ativo. Não troca o ativo se já existe um.
+ * Adiciona ou atualiza uma entrada no cofre.
+ * Se `entryId` for passado, atualiza aquela entrada; senão cria uma nova.
+ * Se não há ativa, esta vira a ativa. NÃO troca a ativa se já existe uma.
  */
-export async function setConfig(config: AIConfig): Promise<void> {
+export async function setConfig(
+  config: AIConfig,
+  options?: { entryId?: string; label?: string },
+): Promise<string> {
   await ensureCache();
-  if (typeof window === "undefined") return;
-  if (!cachedVault) cachedVault = {};
-  cachedVault[config.providerId] = {
+  if (typeof window === "undefined") return "";
+  if (!cachedEntries) cachedEntries = [];
+
+  const id = options?.entryId ?? genId();
+  const existingIdx = cachedEntries.findIndex((e) => e.id === id);
+
+  const entry: VaultEntry = {
+    id,
+    providerId: config.providerId,
     apiKey: config.apiKey,
     model: config.model,
     baseUrl: config.baseUrl,
+    label: options?.label,
     savedAt: Date.now(),
   };
-  if (!cachedActiveId) cachedActiveId = config.providerId;
-  await persistVault();
+
+  if (existingIdx >= 0) {
+    cachedEntries[existingIdx] = entry;
+  } else {
+    cachedEntries.push(entry);
+  }
+  if (!cachedActiveId) cachedActiveId = id;
+  await persist();
+  return id;
 }
 
-/** Define qual provedor está ativo (em uso). */
-export async function setActiveProvider(providerId: string): Promise<void> {
+/** Define qual entrada está ativa (em uso). */
+export async function setActiveEntry(entryId: string): Promise<void> {
   await ensureCache();
-  if (cachedVault && cachedVault[providerId]) {
-    cachedActiveId = providerId;
-    await persistVault();
+  if (cachedEntries && cachedEntries.some((e) => e.id === entryId)) {
+    cachedActiveId = entryId;
+    await persist();
   }
 }
 
-/** Remove a chave de um provedor específico do cofre. */
-export async function removeProviderKey(providerId: string): Promise<void> {
+/** Remove uma entrada do cofre. */
+export async function removeEntry(entryId: string): Promise<void> {
   await ensureCache();
-  if (!cachedVault) return;
-  delete cachedVault[providerId];
-  if (cachedActiveId === providerId) {
-    // Se removeu o ativo, escolhe o primeiro restante (ou null).
-    const remaining = Object.keys(cachedVault);
-    cachedActiveId = remaining.length > 0 ? remaining[0] : null;
+  if (!cachedEntries) return;
+  cachedEntries = cachedEntries.filter((e) => e.id !== entryId);
+  if (cachedActiveId === entryId) {
+    cachedActiveId = cachedEntries.length > 0 ? cachedEntries[0].id : null;
   }
-  await persistVault();
+  await persist();
 }
 
-/** Remove TODAS as chaves (limpa o cofre). */
+/** Atualiza apenas o label de uma entrada. */
+export async function updateEntryLabel(entryId: string, label: string): Promise<void> {
+  await ensureCache();
+  if (!cachedEntries) return;
+  const entry = cachedEntries.find((e) => e.id === entryId);
+  if (entry) {
+    entry.label = label || undefined;
+    await persist();
+  }
+}
+
+/** Remove TODAS as entradas (limpa o cofre). */
 export function clearConfig(): void {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(VAULT_KEY);
   window.localStorage.removeItem(LEGACY_KEY);
-  cachedVault = null;
+  cachedEntries = null;
   cachedActiveId = null;
 }
 
-/** Lista TODAS as chaves cadastradas (mascaradas) — pra exibir na UI. */
-export async function listAllProviders(): Promise<
-  Array<{ providerId: string; maskedKey: string; model?: string; active: boolean }>
+/** Lista TODAS as entradas (com info pra UI: mascarada, modelo, ativo, label). */
+export async function listAllEntries(): Promise<
+  Array<{
+    id: string;
+    providerId: string;
+    maskedKey: string;
+    model?: string;
+    label?: string;
+    active: boolean;
+  }>
 > {
   await ensureCache();
-  if (!cachedVault) return [];
-  return Object.entries(cachedVault).map(([pid, entry]) => ({
-    providerId: pid,
-    maskedKey: maskKey(entry.apiKey),
-    model: entry.model,
-    active: pid === cachedActiveId,
+  if (!cachedEntries) return [];
+  return cachedEntries.map((e) => ({
+    id: e.id,
+    providerId: e.providerId,
+    maskedKey: maskKey(e.apiKey),
+    model: e.model,
+    label: e.label,
+    active: e.id === cachedActiveId,
   }));
 }
 
-/** Versão síncrona de listAllProviders (usa cache). */
+/** Versão síncrona de listAllEntries. */
+export function listAllEntriesSync(): Array<{
+  id: string;
+  providerId: string;
+  maskedKey: string;
+  model?: string;
+  label?: string;
+  active: boolean;
+}> {
+  if (!cachedEntries) return [];
+  return cachedEntries.map((e) => ({
+    id: e.id,
+    providerId: e.providerId,
+    maskedKey: maskKey(e.apiKey),
+    model: e.model,
+    label: e.label,
+    active: e.id === cachedActiveId,
+  }));
+}
+
+/** True se há pelo menos uma entrada com ativa definida. */
+export function hasConfig(): boolean {
+  return cachedEntries != null
+    && cachedEntries !== undefined
+    && cachedEntries.length > 0
+    && cachedActiveId != null;
+}
+
+/** Marca que precisa recarregar o cache. */
+export function invalidateConfigCache(): void {
+  cachedEntries = undefined;
+  cachedActiveId = null;
+}
+
+// ─── Compatibilidade: manter funções antigas funcionando ────────────────
+// (código que usa setActiveProvider/removeProviderKey/listAllProviders)
+// — redirecionam pras novas funções pra não quebrar nada.
+
+/** @deprecated use setActiveEntry */
+export async function setActiveProvider(providerId: string): Promise<void> {
+  await ensureCache();
+  if (!cachedEntries) return;
+  const entry = cachedEntries.find((e) => e.providerId === providerId);
+  if (entry) {
+    cachedActiveId = entry.id;
+    await persist();
+  }
+}
+
+/** @deprecated use removeEntry */
+export async function removeProviderKey(providerId: string): Promise<void> {
+  await ensureCache();
+  if (!cachedEntries) return;
+  const entry = cachedEntries.find((e) => e.providerId === providerId);
+  if (entry) await removeEntry(entry.id);
+}
+
+/** @deprecated use listAllEntriesSync */
 export function listAllProvidersSync(): Array<{
   providerId: string;
   maskedKey: string;
   model?: string;
   active: boolean;
 }> {
-  if (!cachedVault) return [];
-  return Object.entries(cachedVault).map(([pid, entry]) => ({
-    providerId: pid,
-    maskedKey: maskKey(entry.apiKey),
-    model: entry.model,
-    active: pid === cachedActiveId,
+  return listAllEntriesSync().map((e) => ({
+    providerId: e.providerId,
+    maskedKey: e.maskedKey,
+    model: e.model,
+    active: e.active,
   }));
 }
 
-/** True se há pelo menos uma chave cadastrada (e o ativo é válido). */
-export function hasConfig(): boolean {
-  return cachedVault != null && cachedVault !== undefined && cachedActiveId != null;
-}
-
-/** Marca que precisa recarregar o cache. */
-export function invalidateConfigCache(): void {
-  cachedVault = undefined;
-  cachedActiveId = null;
-}
+// ─── Idioma ─────────────────────────────────────────────────────────────
 
 /** Idioma-alvo das respostas da IA (default pt-BR). */
 export function getTargetLang(): string {

@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { PRESETS, type AIConfig } from "@igot/ai-providers";
 import {
-  setConfig, setActiveProvider, removeProviderKey,
+  setConfig, setActiveEntry, removeEntry, updateEntryLabel,
   clearConfig, getTargetLang, setTargetLang,
-  listAllProvidersSync, maskKey,
+  listAllEntriesSync,
 } from "@/lib/config";
 import { testConnection, listModels } from "@/lib/ai-client";
 
@@ -31,6 +31,9 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
   const [apiKey, setApiKey] = useState(initial?.apiKey ?? "");
   const [model, setModel] = useState(initial?.model ?? "");
   const [baseUrl, setBaseUrl] = useState(initial?.baseUrl ?? "");
+  const [label, setLabel] = useState("");
+  // ID da entry que tá sendo editada (null = criando nova).
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [targetLang, setLang] = useState(getTargetLang());
   const [showKey, setShowKey] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -44,12 +47,10 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
   const [modelsLoading, setModelsLoading] = useState(false);
   const [modelsError, setModelsError] = useState("");
   const [modelSearch, setModelSearch] = useState("");
-  // Lista de provedores já cadastrados (com chave mascarada).
-  const [savedProviders, setSavedProviders] = useState(listAllProvidersSync());
+  // Lista de entradas cadastradas (com chave mascarada + modelo).
+  const [entries, setEntries] = useState(listAllEntriesSync());
 
   const preset = PRESETS.find((p) => p.id === providerId);
-  /** Este provedor já tem chave cadastrada? (pra mostrar "atualizar" vs "adicionar"). */
-  const hasExistingKey = savedProviders.some((p) => p.providerId === providerId);
 
   /** Busca os modelos disponíveis no provedor (requer chave). */
   const handleListModels = async () => {
@@ -104,74 +105,103 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
       baseUrl: baseUrl.trim() || undefined,
     };
     // AWAIT: setConfig é assíncrona (criptografa a chave antes de salvar).
-    await setConfig(config);
+    // Passa editingId se tá editando uma entry existente.
+    await setConfig(config, { entryId: editingId ?? undefined, label: label.trim() || undefined });
     setTargetLang(targetLang);
     setSaved(true);
-    setSavedProviders(listAllProvidersSync()); // atualiza a lista de cadastrados
+    setEntries(listAllEntriesSync()); // atualiza a lista
+    // Limpa o formulário pra próxima entrada.
+    setApiKey("");
+    setLabel("");
+    setEditingId(null);
     onSaved();
     setTimeout(() => setSaved(false), 2500);
   };
 
-  /** Troca o provedor ativo (qual está em uso). */
-  const handleActivate = async (pid: string) => {
-    await setActiveProvider(pid);
-    setProviderId(pid);
-    setSavedProviders(listAllProvidersSync());
+  /** Troca a entry ativa (qual está em uso). */
+  const handleActivate = async (id: string) => {
+    await setActiveEntry(id);
+    setEntries(listAllEntriesSync());
     onSaved();
   };
 
-  /** Remove a chave de um provedor do cofre. */
-  const handleRemoveKey = async (pid: string) => {
-    if (!confirm(`Remover a chave de ${PRESETS.find((p) => p.id === pid)?.name ?? pid}?`)) return;
-    await removeProviderKey(pid);
-    // Se removeu o que tava editando, limpa os campos.
-    if (pid === providerId) {
+  /** Remove uma entry do cofre. */
+  const handleRemoveEntry = async (id: string) => {
+    const entry = entries.find((e) => e.id === id);
+    const name = PRESETS.find((p) => p.id === entry?.providerId)?.name ?? entry?.providerId ?? id;
+    if (!confirm(`Remover "${entry?.label || name}${entry?.model ? ` (${entry.model})` : ''}"?`)) return;
+    await removeEntry(id);
+    if (editingId === id) {
       setApiKey("");
       setModel("");
       setBaseUrl("");
+      setLabel("");
+      setEditingId(null);
     }
-    setSavedProviders(listAllProvidersSync());
+    setEntries(listAllEntriesSync());
     onSaved();
   };
 
+  /** Carrega uma entry pra edição. */
+  const handleEdit = (id: string) => {
+    // Como não temos a chave descriptografada aqui, só setamos provider/model/label.
+    // O usuário cola a chave nova (ou pode ver a mascarada na lista).
+    const entry = entries.find((e) => e.id === id);
+    if (!entry) return;
+    setEditingId(id);
+    setProviderId(entry.providerId);
+    setApiKey(""); // por segurança, não pré-preenche a chave
+    setModel(entry.model ?? "");
+    setLabel(entry.label ?? "");
+    setBaseUrl("");
+    setAdvancedOpen(true);
+  };
+
   const handleClear = () => {
+    if (!confirm("Remover TODAS as chaves cadastradas?")) return;
     clearConfig();
     setApiKey("");
     setModel("");
     setBaseUrl("");
-    setSavedProviders([]);
+    setLabel("");
+    setEditingId(null);
+    setEntries([]);
     setTest({ status: "idle", message: "" });
     onSaved();
   };
 
   return (
     <form className="settings-form" onSubmit={handleSave}>
-      {/* Meus provedores cadastrados (chaves salvas) */}
-      {savedProviders.length > 0 && (
+      {/* Minhas chaves cadastradas — cada uma com provedor + MODELO visível */}
+      {entries.length > 0 && (
         <div className="saved-providers">
-          <p className="saved-providers-title">🔑 Minhas chaves cadastradas</p>
+          <p className="saved-providers-title">🔑 Minhas chaves cadastradas ({entries.length})</p>
           <div className="saved-providers-list">
-            {savedProviders.map((p) => {
-              const name = PRESETS.find((pr) => pr.id === p.providerId)?.name ?? p.providerId;
+            {entries.map((e) => {
+              const name = PRESETS.find((pr) => pr.id === e.providerId)?.name ?? e.providerId;
+              const displayName = e.label || name;
               return (
                 <div
-                  key={p.providerId}
-                  className={`saved-provider-card ${p.active ? "active" : ""}`}
+                  key={e.id}
+                  className={`saved-provider-card ${e.active ? "active" : ""}`}
                 >
                   <div className="saved-provider-info">
                     <span className="saved-provider-name">
-                      {p.active && <span className="active-dot">●</span>} {name}
+                      {e.active && <span className="active-dot">●</span>} {displayName}
                     </span>
-                    <span className="saved-provider-key">{p.maskedKey}</span>
-                    {p.model && <span className="saved-provider-model">{p.model}</span>}
+                    <span className="saved-provider-key">{e.maskedKey}</span>
+                    {/* Modelo SEMPRE visível — é o que diferencia múltiplas entries */}
+                    <span className="saved-provider-model">
+                      🧩 {e.model || PRESETS.find((pr) => pr.id === e.providerId)?.defaultModel || "padrão"}
+                    </span>
                   </div>
                   <div className="saved-provider-actions">
-                    {!p.active && (
+                    {!e.active && (
                       <button
                         type="button"
                         className="mini-btn use-btn"
-                        onClick={() => handleActivate(p.providerId)}
-                        title="Usar este provedor"
+                        onClick={() => handleActivate(e.id)}
+                        title="Usar esta chave"
                       >
                         Usar
                       </button>
@@ -179,21 +209,16 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
                     <button
                       type="button"
                       className="mini-btn edit-btn"
-                      onClick={() => {
-                        setProviderId(p.providerId);
-                        setApiKey("");
-                        setModel(p.model ?? "");
-                        setAdvancedOpen(true);
-                      }}
-                      title="Editar chave"
+                      onClick={() => handleEdit(e.id)}
+                      title="Editar"
                     >
                       ✏️
                     </button>
                     <button
                       type="button"
                       className="mini-btn remove-btn"
-                      onClick={() => handleRemoveKey(p.providerId)}
-                      title="Remover chave"
+                      onClick={() => handleRemoveEntry(e.id)}
+                      title="Remover"
                     >
                       🗑
                     </button>
@@ -207,7 +232,7 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
 
       {/* Separador visual */}
       <div className="section-divider">
-        <span>{hasExistingKey ? "Atualizar chave" : "Adicionar nova chave"}</span>
+        <span>{editingId ? "Editar chave" : "Adicionar nova chave"}</span>
       </div>
 
       {/* Provedor */}
@@ -219,14 +244,12 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
           onChange={(e) => {
             const newPid = e.target.value;
             setProviderId(newPid);
-            setApiKey(""); // limpa o campo — usuário digita nova ou vê mascarada
+            setApiKey("");
             setTest({ status: "idle", message: "" });
             setModelsList(null);
             setModelsError("");
             setModelSearch("");
-            // Se já tem chave pra esse provedor, pré-carrega o modelo salvo.
-            const existing = savedProviders.find((p) => p.providerId === newPid);
-            setModel(existing?.model ?? "");
+            setModel(""); // limpa modelo ao trocar provedor
           }}
         >
           {PRESETS.map((p) => (
@@ -248,25 +271,32 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
         )}
       </div>
 
+      {/* Nome/etiqueta opcional (pra distinguir múltiplas do mesmo provedor) */}
+      <div className="field">
+        <label htmlFor="label">
+          Apelido <span className="muted">(opcional — pra distinguir se tiver várias)</span>
+        </label>
+        <input
+          id="label"
+          type="text"
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          placeholder={`Ex: ${preset?.name} ${model || preset?.defaultModel || ""}`}
+          autoComplete="off"
+          spellCheck={false}
+        />
+      </div>
+
       {/* Chave */}
       <div className="field">
-        <label htmlFor="apikey">
-          Chave de API
-          {hasExistingKey && (
-            <span className="existing-key-badge">
-              Atual: {savedProviders.find((p) => p.providerId === providerId)?.maskedKey}
-            </span>
-          )}
-        </label>
+        <label htmlFor="apikey">Chave de API</label>
         <div className="key-row">
           <input
             id="apikey"
             type={showKey ? "text" : "password"}
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
-            placeholder={hasExistingKey
-              ? `Cole uma NOVA chave pra atualizar (atual: ${savedProviders.find((p) => p.providerId === providerId)?.maskedKey})`
-              : "cole sua chave aqui"}
+            placeholder={editingId ? "Cole uma NOVA chave pra atualizar" : "cole sua chave aqui"}
             autoComplete="off"
             spellCheck={false}
           />
@@ -327,82 +357,82 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
         </select>
       </div>
 
-      {/* Escolher modelos (antes "Avançado") */}
+      {/* Modelo — SEMPRE VISÍVEL (é o que diferencia múltiplas entries) */}
+      <div className="field">
+        <label htmlFor="model">
+          Modelo
+          <span className="muted"> (padrão: {preset?.defaultModel})</span>
+        </label>
+        <div className="model-row">
+          <input
+            id="model"
+            type="text"
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+            placeholder={preset?.defaultModel}
+            spellCheck={false}
+          />
+          <button
+            type="button"
+            className="ghost"
+            onClick={handleListModels}
+            disabled={modelsLoading || !apiKey.trim()}
+            title="Buscar modelos disponíveis no provedor"
+          >
+            {modelsLoading ? "⏳" : "🔍"}
+          </button>
+        </div>
+
+        {/* Lista de modelos encontrados (clicável) */}
+        {modelsLoading && (
+          <p className="hint">Buscando modelos disponíveis…</p>
+        )}
+        {modelsError && (
+          <p className="hint" style={{ color: "#c0392b" }}>⚠️ {modelsError}</p>
+        )}
+        {modelsList && modelsList.length > 0 && (
+          <div className="models-list">
+            <input
+              type="text"
+              className="model-search"
+              placeholder="Filtrar modelos…"
+              value={modelSearch}
+              onChange={(e) => setModelSearch(e.target.value)}
+            />
+            <div className="models-scroll">
+              {modelsList
+                .filter((m) =>
+                  m.toLowerCase().includes(modelSearch.toLowerCase()),
+                )
+                .map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    className={`model-item ${model === m ? "selected" : ""}`}
+                    onClick={() => setModel(m)}
+                  >
+                    {model === m && "✓ "}{m}
+                  </button>
+                ))}
+            </div>
+          </div>
+        )}
+        {modelsList && modelsList.length === 0 && (
+          <p className="hint">Nenhum modelo encontrado.</p>
+        )}
+      </div>
+
+      {/* Avançado: só baseUrl */}
       <button
         type="button"
         className="advanced-toggle"
         onClick={() => setAdvancedOpen((o) => !o)}
         aria-expanded={advancedOpen}
       >
-        {advancedOpen ? "▾" : "▸"} Escolher modelo
+        {advancedOpen ? "▾" : "▸"} Avançado (URL custom)
       </button>
       {advancedOpen && (
         <div className="advanced">
-          <div className="field">
-            <label htmlFor="model">
-              Modelo{" "}
-              <span className="muted">
-                (padrão: {preset?.defaultModel})
-              </span>
-            </label>
-            <div className="model-row">
-              <input
-                id="model"
-                type="text"
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                placeholder={preset?.defaultModel}
-                spellCheck={false}
-              />
-              <button
-                type="button"
-                className="ghost"
-                onClick={handleListModels}
-                disabled={modelsLoading || !apiKey.trim()}
-                title="Buscar modelos disponíveis no provedor"
-              >
-                {modelsLoading ? "⏳" : "🔍"}
-              </button>
-            </div>
-
-            {/* Lista de modelos encontrados (clicável) */}
-            {modelsLoading && (
-              <p className="hint">Buscando modelos disponíveis…</p>
-            )}
-            {modelsError && (
-              <p className="hint" style={{ color: "#c0392b" }}>⚠️ {modelsError}</p>
-            )}
-            {modelsList && modelsList.length > 0 && (
-              <div className="models-list">
-                <input
-                  type="text"
-                  className="model-search"
-                  placeholder="Filtrar modelos…"
-                  value={modelSearch}
-                  onChange={(e) => setModelSearch(e.target.value)}
-                />
-                <div className="models-scroll">
-                  {modelsList
-                    .filter((m) =>
-                      m.toLowerCase().includes(modelSearch.toLowerCase()),
-                    )
-                    .map((m) => (
-                      <button
-                        key={m}
-                        type="button"
-                        className={`model-item ${model === m ? "selected" : ""}`}
-                        onClick={() => setModel(m)}
-                      >
-                        {model === m && "✓ "}{m}
-                      </button>
-                    ))}
-                </div>
-              </div>
-            )}
-            {modelsList && modelsList.length === 0 && (
-              <p className="hint">Nenhum modelo encontrado.</p>
-            )}
-          </div>
           <div className="field">
             <label htmlFor="baseurl">
               URL base{" "}
@@ -428,12 +458,12 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
       {/* Ações */}
       <div className="actions">
         <button type="submit" className="primary" disabled={!apiKey.trim()}>
-          {hasExistingKey ? "💾 Atualizar chave" : "💾 Adicionar chave"}
+          {editingId ? "💾 Atualizar" : "💾 Adicionar chave"}
         </button>
         <button type="button" onClick={handleTest} disabled={!apiKey.trim() || test.status === "testing"}>
           {test.status === "testing" ? "Testando…" : "Testar conexão"}
         </button>
-        {savedProviders.length > 0 && (
+        {entries.length > 0 && (
           <button type="button" className="danger" onClick={handleClear}>
             Limpar tudo
           </button>
