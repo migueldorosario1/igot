@@ -8,6 +8,7 @@ import { CafezinhoLogo } from "./CafezinhoLogo";
 import { AuthButton } from "./AuthButton";
 import { useI18n } from "./I18nProvider";
 import { useTTS } from "@/hooks/useTTS";
+import { getTargetLang } from "@/lib/config";
 import { SettingsModal } from "./SettingsModal";
 import { translatePageStream, explainPageStream, translateStream, explainStream } from "@/lib/ai-client";
 
@@ -104,7 +105,17 @@ export function Reader({
       tts.stop();
       return;
     }
-    // Coleta o texto: do currentPageText (PDF extraído) ou dos blocos (EPUB).
+    // Idioma-alvo das traduções (ex: português). Esse é o idioma que a pessoa
+    // ESCOLHEU pra traduzir/explicar — é nele que vamos ler.
+    const targetLang = getTargetLang();
+
+    // PRIORIDADE 1: se tem tradução visível na tela, lê ELA (no idioma-alvo).
+    if (showTranslation && pageTranslation && overlayMode === "translate") {
+      tts.speak(pageTranslation, targetLang);
+      return;
+    }
+
+    // PRIORIDADE 2: coleta o texto original da página.
     let text = "";
     if (book.sourceFormat === "pdf") {
       text = currentPageText || chapter?.blocks.map((b) => b.text ?? "").join(" ") || "";
@@ -118,8 +129,8 @@ export function Reader({
         .join(". ") ?? "";
     }
     if (!text.trim()) return;
-    // Lê na língua do livro (não do idioma da interface).
-    tts.speak(text, book.language || lang);
+    // Lê o texto original na língua dele (auto-detectada do livro).
+    tts.speak(text, book.language || targetLang);
   };
   const [chapterIdx, setChapterIdxState] = useState(initialChapterIdx);
   const [menu, setMenu] = useState<{
