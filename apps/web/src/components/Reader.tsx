@@ -53,6 +53,10 @@ interface ReaderProps {
   onToggleBookmark?: (chapterIdx: number) => void;
   /** Volta pra estante (home). */
   onGoToShelf?: () => void;
+  /** Painel da IA visível? (pra botão de toggle). */
+  panelVisible?: boolean;
+  /** Mostra/oculta o painel da IA (sem perder a ação). */
+  onTogglePanel?: () => void;
   /** Auth (login Google) — pra mostrar o botão no header. */
   auth?: ReturnType<typeof import("@/lib/auth").useAuth>;
 }
@@ -94,6 +98,8 @@ export function Reader({
   bookmarks = [],
   onToggleBookmark,
   onGoToShelf,
+  panelVisible = false,
+  onTogglePanel,
   auth,
 }: ReaderProps) {
   const { t, lang } = useI18n();
@@ -938,6 +944,17 @@ export function Reader({
           >
             🎤
           </button>
+          {/* 💬 Reabrir painel da IA (quando oculto mas tem ação) */}
+          {onTogglePanel && !panelVisible && (
+            <button
+              onClick={() => onTogglePanel()}
+              className="icon-btn active"
+              title={t("reader_show_panel")}
+              aria-label={t("reader_show_panel")}
+            >
+              💬
+            </button>
+          )}
           {/* 🌐/🧠 Traduzir/Explicar página (PDF) */}
           {book.sourceFormat === "pdf" && pdfSource && (
             <>

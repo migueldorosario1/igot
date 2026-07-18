@@ -11,6 +11,8 @@ interface AIPanelProps {
   action: SelectionAction | null;
   book: ParsedBook;
   onClose: () => void;
+  /** Oculta o painel sem perder a ação (pode reabrir depois). */
+  onHide?: () => void;
   /** Salvar a resposta atual como anotação. */
   onSaveNote?: (entry: { kind: "translate" | "explain" | "ask"; source: string; result: string; chapterId?: string }) => void;
 }
@@ -27,7 +29,7 @@ interface PanelState {
  * Quando recebe uma `action` (Traduzir/Explicar), chama o ai-client (que
  * fala com o provedor escolhido pelo usuário, via proxy) e mostra o resultado.
  */
-export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
+export function AIPanel({ action, book, onClose, onHide, onSaveNote }: AIPanelProps) {
   const { t, lang } = useI18n();
   const [state, setState] = useState<PanelState>({
     loading: false,
@@ -156,8 +158,18 @@ export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
               {t("ai_save")}
             </button>
           )}
-          {/* ✕ SEMPRE visível — usuário pode desistir/fechar a qualquer momento,
-              inclusive durante o loading (não fica "presa"). */}
+          {/* 🙉 Ocultar — esconde o painel sem perder a ação (pode reabrir). */}
+          {onHide && (
+            <button
+              className="ai-hide"
+              onClick={onHide}
+              aria-label={t("ai_hide")}
+              title={t("ai_hide")}
+            >
+              🙉
+            </button>
+          )}
+          {/* ✕ Fechar — fecha e limpa a ação. */}
           <button
             className="ai-close"
             onClick={onClose}
@@ -250,6 +262,18 @@ export function AIPanel({ action, book, onClose, onSaveNote }: AIPanelProps) {
           font-size: 24px;
           line-height: 1;
           padding: 0 4px;
+        }
+        .ai-hide {
+          border: none;
+          background: transparent;
+          font-size: 18px;
+          line-height: 1;
+          padding: 0 4px;
+          cursor: pointer;
+          opacity: 0.7;
+        }
+        .ai-hide:hover {
+          opacity: 1;
         }
         .ai-header-actions {
           display: flex;

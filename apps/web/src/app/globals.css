@@ -225,31 +225,49 @@ a {
   .igot-workspace {
     grid-template-columns: 1fr;
   }
-  /* No mobile, o AIPanel vira um BOTTOM SHEET que sobe de baixo.
-     Ocupa no máximo 45% da tela — NÃO cobre o livro.
-     O usuário pode ler em cima e ver a resposta embaixo. */
+  /* Quando o painel tá aberto, dá padding extra no reader pra compensar
+     o espaço do card flutuante — texto continua rolável até o final. */
+  .igot-workspace.has-panel .reader-scroll {
+    padding-bottom: 240px !important;
+  }
+  /* No mobile, o AIPanel é um CARD flutuante no canto inferior.
+     É COMPACTO (max 220px de altura), NÃO ocupa a tela toda.
+     O texto continua 100% rolável por trás dele.
+     Tem padding extra no reader-scroll pra compensar. */
   .igot-workspace > .ai-panel {
     position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    max-height: 35vh;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    max-height: 220px;
     z-index: 600;
-    border-top: 2px solid var(--accent);
-    border-radius: 16px 16px 0 0;
-    box-shadow: 0 -4px 24px rgba(0,0,0,0.18);
+    border: 2px solid var(--accent);
+    border-radius: 14px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
     background: var(--surface);
+    /* pointer-events só no próprio card — deixa o texto rolável por trás. */
   }
   .igot-workspace > .ai-panel .ai-body {
-    max-height: 20vh;
+    max-height: 120px;
   }
-  /* Botão de fechar bem visível no mobile */
+  .igot-workspace > .ai-panel .ai-header {
+    padding: 8px 14px;
+  }
+  .igot-workspace > .ai-panel .ai-title {
+    font-size: 14px;
+  }
   .igot-workspace > .ai-panel .ai-close {
-    width: 44px;
-    height: 44px;
-    font-size: 28px;
+    width: 36px;
+    height: 36px;
+    font-size: 24px;
     background: var(--accent-soft);
     border-radius: 50%;
+  }
+  .igot-workspace > .ai-panel .ai-footer {
+    padding: 8px 14px;
+  }
+  .igot-workspace > .ai-panel .ai-footer textarea {
+    min-height: 44px;
   }
 }
 

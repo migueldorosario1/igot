@@ -24,6 +24,9 @@ export default function BookPage({ params }: { params: { id: string } }) {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [action, setAction] = useState<SelectionAction | null>(null);
+  // Painel oculto/mostrado (separado de ter ação ou não).
+  // Ocultar NÃO perde a ação — só esconde visualmente.
+  const [panelVisible, setPanelVisible] = useState(false);
   const [configReady, setConfigReady] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -56,8 +59,13 @@ export default function BookPage({ params }: { params: { id: string } }) {
     return () => clearTimeout(t);
   }, [session, loading, auth.userId]);
 
-  const handleSelection = (a: SelectionAction) => setAction(a);
+  const handleSelection = (a: SelectionAction) => {
+    setAction(a);
+    setPanelVisible(true);
+  };
   const handleClosePanel = () => setAction(null);
+  /** Oculta o painel sem perder a ação (pode reabrir depois). */
+  const handleHidePanel = () => setPanelVisible(false);
 
   const updateSession = (patch: Partial<Session>) =>
     setSession((prev) => (prev ? { ...prev, ...patch } : prev));
@@ -96,11 +104,13 @@ export default function BookPage({ params }: { params: { id: string } }) {
 
   return (
     <main className="igot-shell">
-      <div className="igot-workspace igot-workspace-no-topbar">
+      <div className={`igot-workspace igot-workspace-no-topbar ${action ? "has-panel" : ""}`}>
         <Reader
           book={session.book}
           pdfSource={pdfSource}
           onSelection={handleSelection}
+          panelVisible={panelVisible}
+          onTogglePanel={() => setPanelVisible((v) => !v)}
           initialChapterIdx={session.chapterIdx}
           initialZoom={session.zoom}
           onChapterChange={(n) => updateSession({ chapterIdx: n })}
@@ -153,11 +163,12 @@ export default function BookPage({ params }: { params: { id: string } }) {
             router.push("/");
           }}
         />
-        {action && (
+        {action && panelVisible && (
           <AIPanel
             action={action}
             book={session.book}
-            onClose={handleClosePanel}
+            onClose={() => { setAction(null); setPanelVisible(false); }}
+            onHide={handleHidePanel}
             onSaveNote={(entry) =>
               updateSession({
                 notes: [
