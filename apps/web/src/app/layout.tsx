@@ -4,15 +4,15 @@ import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { I18nProvider } from "@/components/I18nProvider";
 
 export const metadata: Metadata = {
-  title: "igot — Leia qualquer coisa. Entenda tudo.",
+  title: "Moka — Leia qualquer coisa. Entenda tudo.",
   description:
-    "Leitor de e-books com IA integrada: traduza e explique qualquer trecho, em qualquer língua.",
-  applicationName: "igot",
+    "Leitor inteligente de livros e documentos com IA integrada: traduza e explique qualquer trecho, em qualquer língua.",
+  applicationName: "Moka",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "igot",
+    title: "Moka",
   },
   icons: {
     icon: [

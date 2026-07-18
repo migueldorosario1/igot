@@ -265,7 +265,7 @@ export function Reader({
   const savePageAsImage = () => {
     const safeTitle = (book.title || "livro").replace(/[^\w\u00C0-\u017F\s-]/g, "").trim().replace(/\s+/g, "_");
     const pageLabel = book.sourceFormat === "pdf" ? `pag${chapterIdx + 1}` : `cap${chapterIdx + 1}`;
-    const fileName = `igot-${safeTitle}-${pageLabel}.png`;
+    const fileName = `moka-${safeTitle}-${pageLabel}.png`;
 
     let canvas: HTMLCanvasElement | null = null;
 
@@ -455,7 +455,7 @@ export function Reader({
     // Rodapé discreto com marca.
     ctx.fillStyle = "#bbb";
     ctx.font = "12px Georgia, serif";
-    ctx.fillText("igot · Cafezinho Media Group", MARGIN, canvasH - 24);
+    ctx.fillText("Moka · Cafezinho Media Group", MARGIN, canvasH - 24);
 
     return canvas;
   };

@@ -45,8 +45,8 @@ export function Uploader({ onFile, error, configReady = true, onOpenSettings }: 
       <div className="uploader-card">
         {/* Hero */}
         <div className="hero">
-          <div className="logo">💡</div>
-          <h1 className="brand-name">igot</h1>
+          <div className="logo">☕</div>
+          <h1 className="brand-name">Moka</h1>
           <p className="tagline">{t("app_tagline")}</p>
           <p className="subtitle">{t("upload_hero_desc")}</p>
         </div>

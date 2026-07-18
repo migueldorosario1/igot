@@ -160,7 +160,7 @@ export default function HomePage() {
       {/* TopBar com logo clicável */}
       <div className="igot-topbar">
         <div className="brand" title="Estante">
-          <CafezinhoLogo size={26} opacity={0.85} /> 💡 <span>igot</span>
+          <CafezinhoLogo size={26} opacity={0.85} /> <span>Moka</span>
         </div>
         <div className="igot-topbar-actions">
           <LangSwitcher />

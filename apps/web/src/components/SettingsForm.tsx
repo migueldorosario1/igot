@@ -618,7 +618,7 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
           <summary>{t("about_title")}</summary>
           <div className="about-content">
             <p>
-              <strong>igot</strong> — "Leia qualquer coisa. Entenda tudo."
+              <strong>Moka</strong> — "Leia qualquer coisa. Entenda tudo."
             </p>
             <p>
               Um leitor de e-books com IA que traduz e explica qualquer trecho,

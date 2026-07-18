@@ -1,7 +1,7 @@
 {
-  "name": "igot — Leia qualquer coisa. Entenda tudo.",
-  "short_name": "igot",
-  "description": "Leitor de e-books com IA integrada: traduza e explique qualquer trecho, em qualquer língua.",
+  "name": "Moka — Leia qualquer coisa. Entenda tudo.",
+  "short_name": "Moka",
+  "description": "Leitor inteligente de livros e documentos com IA integrada: traduza e explique qualquer trecho, em qualquer língua.",
   "lang": "pt-BR",
   "id": "/",
   "start_url": "/",
