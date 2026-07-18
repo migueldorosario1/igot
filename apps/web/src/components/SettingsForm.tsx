@@ -86,7 +86,7 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
     );
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!apiKey.trim()) return;
     const config: AIConfig = {
@@ -95,7 +95,9 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
       model: model.trim() || undefined,
       baseUrl: baseUrl.trim() || undefined,
     };
-    setConfig(config);
+    // AWAIT: setConfig é assíncrona (criptografa a chave antes de salvar).
+    // Sem o await, onSaved() dispara antes da gravação terminar → chave some.
+    await setConfig(config);
     setTargetLang(targetLang);
     setSaved(true);
     onSaved();

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { AIConfig } from "@igot/ai-providers";
-import { getConfigSync, loadConfigCache } from "@/lib/config";
+import { getConfigSync, loadConfigCache, invalidateConfigCache } from "@/lib/config";
 import { SettingsForm } from "./SettingsForm";
 
 interface SettingsModalProps {
@@ -22,8 +22,11 @@ interface SettingsModalProps {
 export function SettingsModal({ onClose, onSaved }: SettingsModalProps) {
   const [config, setConfig] = useState<AIConfig | null>(null);
 
-  // Lê a config quando monta (garante que o cache tá carregado).
+  // Lê a config FRESCA a cada abertura do modal.
+  // invalidateConfigCache força reler do localStorage (descriptografando de novo)
+  // — assim pega mudanças feitas fora (ex.: outra aba, ou clear anterior).
   useEffect(() => {
+    invalidateConfigCache();
     loadConfigCache().then(() => setConfig(getConfigSync()));
   }, []);
 
@@ -59,8 +62,12 @@ export function SettingsModal({ onClose, onSaved }: SettingsModalProps) {
           <SettingsForm
             initial={config}
             onSaved={() => {
-              setConfig(getConfigSync());
-              onSaved?.();
+              // Invalida e recarrega pra garantir que o cache reflete o salvo.
+              invalidateConfigCache();
+              loadConfigCache().then(() => {
+                setConfig(getConfigSync());
+                onSaved?.();
+              });
             }}
           />
         </div>
