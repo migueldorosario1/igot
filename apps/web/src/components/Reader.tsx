@@ -562,6 +562,17 @@ export function Reader({
       if (action === "translate") {
         onPageTranslation?.(chapterIdx, result.text);
       }
+      // AUTO-SAVE: toda tradução/explicação de página inteira vai pra notas.
+      // O source traz o trecho original da página (truncado pra não ficar enorme).
+      const sourcePreview = currentPageText.length > 500
+        ? `${currentPageText.slice(0, 500)}…`
+        : currentPageText;
+      onSaveNote?.({
+        kind: action,
+        source: sourcePreview,
+        result: result.text,
+        chapterId: chapter?.id,
+      });
     } else {
       setPageTranslation(`⚠️ ${result.error ?? "Erro."}`);
     }
