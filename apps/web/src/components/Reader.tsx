@@ -748,16 +748,20 @@ export function Reader({
             <CafezinhoLogo size={28} opacity={0.85} />
           </a>
           <div className="reader-title">
-            <h1>{book.title}</h1>
-            {book.sourceFormat === "pdf" ? (
-              book.author && <span className="reader-author">{book.author}</span>
-            ) : (
-              <span className="reader-author">
-                {chapter?.title || `Capítulo ${chapterIdx + 1}`}
-                {book.author && ` · ${book.author}`}
-              </span>
-            )}
+            <h1>
+              <span className="reader-title-text">{book.title}</span>
+              {book.author && <span className="reader-title-author"> — {book.author}</span>}
+            </h1>
           </div>
+          {/* Ler novo arquivo */}
+          <button
+            onClick={onCloseBook}
+            className="icon-btn with-text"
+            title="Abrir outro livro"
+            aria-label="Ler novo"
+          >
+            📖 <span className="btn-text">Ler novo</span>
+          </button>
           {/* Estante — volta pra home */}
           <button
             onClick={() => onGoToShelf?.()}
@@ -871,15 +875,6 @@ export function Reader({
             aria-label="Salvar foto da página"
           >
             📸
-          </button>
-          {/* Abrir outro livro */}
-          <button
-            onClick={onCloseBook}
-            className="icon-btn"
-            title="Abrir outro livro"
-            aria-label="Abrir outro"
-          >
-            📂
           </button>
           {book.sourceFormat === "pdf" && pdfSource && (
             <>
@@ -1134,7 +1129,7 @@ export function Reader({
           flex-shrink: 0;
           overflow: hidden;
           transition: max-height 200ms ease, opacity 200ms ease, padding 200ms ease;
-          max-height: 160px; /* duas linhas de botões */
+          max-height: 130px; /* duas linhas compactas */
         }
         .reader:fullscreen[data-menu-hidden="true"] .reader-header {
           max-height: 0;
@@ -1150,8 +1145,8 @@ export function Reader({
         .reader-header {
           display: flex;
           flex-direction: column;
-          gap: 6px;
-          padding: 8px 14px;
+          gap: 4px; /* entrelinha menor */
+          padding: 6px 14px;
           border-bottom: 1px solid var(--border);
           background: var(--surface);
           flex-shrink: 0;
@@ -1163,6 +1158,7 @@ export function Reader({
           align-items: center;
           gap: 6px;
           flex-wrap: wrap;
+          min-height: 42px;
         }
         /* Linha 1: space-between preenche os dois lados (logo+título esq, controles dir). */
         .reader-row-main {
@@ -1544,20 +1540,38 @@ export function Reader({
         }
         .reader-title {
           min-width: 0;
-          flex-shrink: 1;
+          flex: 1 1 auto;
           overflow: hidden;
         }
         .reader-title h1 {
           margin: 0;
-          font-size: 16px;
+          font-size: 15px;
           font-weight: 600;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
+          display: flex;
+          align-items: baseline;
+          gap: 0;
         }
-        .reader-author {
-          font-size: 13px;
+        /* Título e autor na MESMA linha, mesma fonte — só muda a cor. */
+        .reader-title-text {
+          color: var(--text);
+        }
+        .reader-title-author {
+          font-weight: 400;  /* mais fino que o título */
           color: var(--text-muted);
+        }
+        /* Botão de ícone COM texto (ex: "Ler novo"). */
+        .icon-btn.with-text {
+          width: auto;
+          padding: 0 12px;
+          gap: 5px;
+          font-size: 13px;
+          font-weight: 500;
+        }
+        .icon-btn.with-text .btn-text {
+          white-space: nowrap;
         }
         .reader-nav {
           display: flex;
