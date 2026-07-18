@@ -1204,7 +1204,7 @@ export function Reader({
         .zoom-rail {
           position: absolute;
           right: 12px;
-          top: 12px;
+          top: 64px; /* ABAIXO do header (não trepa no menu) */
           display: flex;
           flex-direction: column;
           gap: 2px;
@@ -1222,7 +1222,7 @@ export function Reader({
           pointer-events: none;
         }
         .reader:fullscreen .zoom-rail {
-          top: 72px; /* abaixo do header do fullscreen */
+          top: 64px; /* abaixo do header do fullscreen */
         }
         .reader:fullscreen[data-menu-hidden="true"] .zoom-rail {
           top: 16px;
