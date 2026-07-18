@@ -7,6 +7,7 @@ import { PdfPageCanvas } from "./PdfPageCanvas";
 import { CafezinhoLogo } from "./CafezinhoLogo";
 import { AuthButton } from "./AuthButton";
 import { LangSwitcher } from "./LangSwitcher";
+import { useI18n } from "./I18nProvider";
 import { translatePageStream, explainPageStream, translateStream, explainStream } from "@/lib/ai-client";
 
 interface ReaderProps {
@@ -84,6 +85,7 @@ export function Reader({
   onGoToShelf,
   auth,
 }: ReaderProps) {
+  const { t, lang } = useI18n();
   const [chapterIdx, setChapterIdxState] = useState(initialChapterIdx);
   const [menu, setMenu] = useState<{
     x: number;
@@ -149,8 +151,8 @@ export function Reader({
   const printPage = () => {
     const titleText = `${book.title} — ${
       book.sourceFormat === "pdf"
-        ? `Página ${chapterIdx + 1}`
-        : chapter?.title || `Capítulo ${chapterIdx + 1}`
+        ? t("reader_page_n", { n: chapterIdx + 1 })
+        : chapter?.title || t("reader_chapter_n", { n: chapterIdx + 1 })
     }`;
     // Coleta o texto: do currentPageText (PDF extraído) ou dos blocos (EPUB).
     const textContent =
@@ -246,7 +248,7 @@ export function Reader({
       }, "image/png");
     } catch {
       // Fallback: alguns navegadores bloqueiam toBlob em canvas grande.
-      alert("Não foi possível salvar a imagem desta página neste navegador.");
+      alert(t("reader_photo_error"));
     }
   };
 
@@ -352,7 +354,7 @@ export function Reader({
     y += 22;
     ctx.fillStyle = COLOR;
     ctx.font = H1_SIZE;
-    const chTitle = ch.title || `Capítulo ${chapterIdx + 1}`;
+    const chTitle = ch.title || t("reader_chapter_n", { n: chapterIdx + 1 });
     ctx.fillText(chTitle.slice(0, 90), MARGIN, y);
     y += H1_LINE_H;
     // Linha separadora.
@@ -584,18 +586,18 @@ export function Reader({
 
   /** Rótulo dinâmico do botão conforme o estado. */
   const translateBtnLabel = translatingPage && overlayMode === "translate"
-    ? "⏳ Traduzindo…"
+    ? t("reader_translating")
     : pageTranslation && overlayMode === "translate"
       ? showTranslation
-        ? "📖 Ver original"
-        : "🌐 Ver tradução"
-      : "🌐 Traduzir página";
+        ? t("reader_view_original")
+        : t("reader_view_translation")
+      : t("reader_translate_page");
 
   const explainBtnLabel = translatingPage && overlayMode === "explain"
-    ? "⏳ Explicando…"
+    ? t("reader_explaining")
     : overlayMode === "explain" && showTranslation
-      ? "📖 Ver original"
-      : "🧠 Explicar página";
+      ? t("reader_view_original")
+      : t("reader_explain_page");
 
   /** Versão SÓ ÍCONE dos botões (cabe numa linha só).
    *  O texto completo vai no `title` (tooltip ao passar o dedo/mouse). */
@@ -769,30 +771,30 @@ export function Reader({
           <button
             onClick={onCloseBook}
             className="icon-btn with-text"
-            title="Abrir outro livro"
-            aria-label="Ler novo"
+            title={t("reader_open_other")}
+            aria-label={t("reader_read_new")}
           >
-            📖 <span className="btn-text">Ler novo</span>
+            📖 <span className="btn-text">{t("reader_read_new")}</span>
           </button>
           {/* Estante — volta pra home */}
           <button
             onClick={() => onGoToShelf?.()}
             className="icon-btn"
-            title="Minha estante"
-            aria-label="Estante"
+            title={t("reader_shelf")}
+            aria-label={t("reader_shelf")}
           >
             📚
           </button>
           {/* Zoom (só PDF) */}
           {book.sourceFormat === "pdf" && pdfSource && (
-            <div className="reader-zoom" title="Zoom">
-              <button onClick={zoomOut} disabled={zoom <= MIN_ZOOM} aria-label="Diminuir zoom">
+            <div className="reader-zoom" title={t("reader_zoom")}>
+              <button onClick={zoomOut} disabled={zoom <= MIN_ZOOM} aria-label={t("reader_zoom_out")}>
                 −
               </button>
-              <button onClick={zoomReset} className="zoom-value" aria-label="Restaurar zoom">
+              <button onClick={zoomReset} className="zoom-value" aria-label={t("reader_zoom_reset")}>
                 {Math.round(zoom * 100)}%
               </button>
-              <button onClick={zoomIn} disabled={zoom >= MAX_ZOOM} aria-label="Aumentar zoom">
+              <button onClick={zoomIn} disabled={zoom >= MAX_ZOOM} aria-label={t("reader_zoom_in")}>
                 +
               </button>
             </div>
@@ -802,8 +804,8 @@ export function Reader({
             <button
               onClick={onOpenSettings}
               className={`icon-btn settings-gear ${configReady ? "" : "unset"}`}
-              title="Configurações de IA"
-              aria-label="Configurações"
+              title={t("reader_settings")}
+              aria-label={t("settings")}
             >
               ⚙️
             </button>
@@ -824,8 +826,8 @@ export function Reader({
           <button
             onClick={toggleFullscreen}
             className="icon-btn"
-            title={isFullscreen ? "Sair da tela cheia" : "Tela cheia"}
-            aria-label="Tela cheia"
+            title={isFullscreen ? t("reader_exit_fullscreen") : t("reader_fullscreen")}
+            aria-label={isFullscreen ? t("reader_exit_fullscreen") : t("reader_fullscreen")}
           >
             {isFullscreen ? "🗗" : "⛶"}
           </button>
@@ -834,8 +836,8 @@ export function Reader({
             <button
               onClick={() => setMenuVisible((v) => !v)}
               className="icon-btn menu-toggle-btn"
-              title={menuVisible ? "Ocultar menu" : "Mostrar menu"}
-              aria-label="Alternar menu"
+              title={menuVisible ? t("reader_hide_menu") : t("reader_show_menu")}
+              aria-label={menuVisible ? t("reader_hide_menu") : t("reader_show_menu")}
             >
               {menuVisible ? "👁" : "🙈"}
             </button>
@@ -848,8 +850,8 @@ export function Reader({
           <button
             onClick={() => setNotesOpen(true)}
             className="icon-btn"
-            title="Minhas anotações"
-            aria-label="Anotações"
+            title={t("reader_notes")}
+            aria-label={t("reader_notes")}
           >
             📓 {notes.length > 0 && <span className="badge">{notes.length}</span>}
           </button>
@@ -857,8 +859,8 @@ export function Reader({
           <button
             onClick={toggleBookmark}
             className={`icon-btn ${isBookmarked ? "active" : ""}`}
-            title={isBookmarked ? "Remover marcador desta página" : "Marcar esta página"}
-            aria-label="Marcar página"
+            title={isBookmarked ? t("reader_bookmark_remove") : t("reader_bookmark")}
+            aria-label={t("reader_bookmark")}
             aria-pressed={isBookmarked}
           >
             {isBookmarked ? "🔖" : "🏷"}
@@ -867,8 +869,8 @@ export function Reader({
           <button
             onClick={() => setBookmarksOpen(true)}
             className="icon-btn"
-            title="Meus marcadores"
-            aria-label="Marcadores"
+            title={t("reader_bookmarks")}
+            aria-label={t("reader_bookmarks")}
           >
             🔖 {bookmarks.length > 0 && <span className="badge">{bookmarks.length}</span>}
           </button>
@@ -876,8 +878,8 @@ export function Reader({
           <button
             onClick={printPage}
             className="icon-btn"
-            title="Imprimir / salvar esta página em PDF"
-            aria-label="Imprimir página"
+            title={t("reader_print")}
+            aria-label={t("reader_print")}
           >
             🖨
           </button>
@@ -885,8 +887,8 @@ export function Reader({
           <button
             onClick={savePageAsImage}
             className="icon-btn"
-            title="Salvar foto desta página (PNG) no seu dispositivo"
-            aria-label="Salvar foto da página"
+            title={t("reader_photo")}
+            aria-label={t("reader_photo")}
           >
             📸
           </button>
@@ -951,7 +953,7 @@ export function Reader({
       {/* Barra de navegação rápida — slider horizontal pra pular páginas */}
       {totalChapters > 1 && (
         <div className="reader-nav-bar">
-          <button onClick={goPrev} disabled={chapterIdx === 0} aria-label="Anterior">
+          <button onClick={goPrev} disabled={chapterIdx === 0} aria-label={t("reader_nav_prev")}>
             ‹
           </button>
           <input
@@ -961,12 +963,12 @@ export function Reader({
             value={chapterIdx}
             onChange={(e) => setChapterIdx(Number(e.target.value))}
             className="nav-slider"
-            aria-label="Navegar páginas"
+            aria-label={t("reader_nav_label")}
           />
           <button
             onClick={goNext}
             disabled={chapterIdx >= totalChapters - 1}
-            aria-label="Próxima"
+            aria-label={t("reader_nav_next")}
           >
             ›
           </button>
@@ -983,17 +985,17 @@ export function Reader({
           role="menu"
         >
           <button onClick={() => fire("translate")} role="menuitem">
-            🌐 Traduzir
+            {t("reader_sel_translate")}
           </button>
           <button onClick={() => fire("explain")} role="menuitem">
-            🧠 Explicar
+            {t("reader_sel_explain")}
           </button>
           <button
             className="selection-menu-close"
             onClick={() => { setMenu(null); window.getSelection()?.removeAllRanges(); }}
             role="menuitem"
-            aria-label="Fechar menu"
-            title="Fechar"
+            aria-label={t("close")}
+            title={t("close")}
           >
             ✕
           </button>
@@ -1004,11 +1006,11 @@ export function Reader({
       {isFullscreen && (fsResult !== null || fsLoading) && (
         <div className="fs-result-panel">
           <div className="fs-result-header">
-            <span>{fsAction === "translate" ? "🌐 Tradução" : "🧠 Explicação"}</span>
+            <span>{fsAction === "translate" ? t("reader_fs_translation") : t("reader_fs_explanation")}</span>
             <button onClick={() => { setFsResult(null); setFsAction(null); }}>✕</button>
           </div>
           <div className="fs-result-body">
-            {fsLoading && !fsResult && <p>Processando…</p>}
+            {fsLoading && !fsResult && <p>{t("reader_processing")}</p>}
             {fsResult && <p>{fsResult}</p>}
           </div>
         </div>
@@ -1019,8 +1021,8 @@ export function Reader({
         <button
           onClick={() => setMenuVisible(true)}
           className="fs-show-menu-btn"
-          title="Mostrar menu"
-          aria-label="Mostrar menu"
+          title={t("reader_show_menu")}
+          aria-label={t("reader_show_menu")}
         >
           <CafezinhoLogo size={22} opacity={0.9} />
         </button>
@@ -1031,16 +1033,13 @@ export function Reader({
         <div className="notes-overlay" onClick={() => setBookmarksOpen(false)}>
           <div className="notes-modal" onClick={(e) => e.stopPropagation()}>
             <header className="notes-header">
-              <h2>🔖 Marcadores</h2>
-              <button onClick={() => setBookmarksOpen(false)} aria-label="Fechar">✕</button>
+              <h2>{t("reader_bookmarks_title")}</h2>
+              <button onClick={() => setBookmarksOpen(false)} aria-label={t("close")}>✕</button>
             </header>
             <div className="notes-body">
               {bookmarks.length === 0 ? (
                 <p className="notes-empty">
-                  Você ainda não marcou nenhuma página.
-                  <br />
-                  Toque em <strong>🔖</strong> ou no canto superior direito da
-                  página para marcar.
+                  {t("reader_bookmarks_empty")}
                 </p>
               ) : (
                 [...bookmarks]
@@ -1049,8 +1048,8 @@ export function Reader({
                     const ch = book.chapters[bm.chapterIdx];
                     const label =
                       book.sourceFormat === "pdf"
-                        ? `Página ${bm.chapterIdx + 1}`
-                        : ch?.title || `Capítulo ${bm.chapterIdx + 1}`;
+                        ? t("reader_page_n", { n: bm.chapterIdx + 1 })
+                        : ch?.title || t("reader_chapter_n", { n: bm.chapterIdx + 1 });
                     return (
                       <button
                         key={`${bm.chapterIdx}-${bm.savedAt}`}
@@ -1062,7 +1061,7 @@ export function Reader({
                       >
                         <span className="bookmark-label">{label}</span>
                         <span className="bookmark-date">
-                          {new Date(bm.savedAt).toLocaleDateString("pt-BR", {
+                          {new Date(bm.savedAt).toLocaleDateString(lang, {
                             day: "2-digit",
                             month: "short",
                             hour: "2-digit",
@@ -1082,29 +1081,26 @@ export function Reader({
         <div className="notes-overlay" onClick={() => setNotesOpen(false)}>
           <div className="notes-modal" onClick={(e) => e.stopPropagation()}>
             <header className="notes-header">
-              <h2>📓 Minhas anotações</h2>
-              <button onClick={() => setNotesOpen(false)} aria-label="Fechar">✕</button>
+              <h2>{t("reader_notes_title")}</h2>
+              <button onClick={() => setNotesOpen(false)} aria-label={t("close")}>✕</button>
             </header>
             <div className="notes-body">
               {notes.length === 0 ? (
                 <p className="notes-empty">
-                  Você ainda não salvou nenhuma anotação deste livro.
-                  <br />
-                  Selecione um trecho, peça <strong>Traduzir</strong> ou{" "}
-                  <strong>Explicar</strong>, e clique em <strong>📌 Salvar</strong>.
+                  {t("reader_notes_empty")}
                 </p>
               ) : (
                 notes.map((n) => (
                   <div key={n.id} className="note-card">
                     <div className="note-meta">
                       <span className={`note-kind note-${n.kind}`}>
-                        {n.kind === "translate" ? "🌐 Tradução" : n.kind === "explain" ? "🧠 Explicação" : "❓ Pergunta"}
+                        {n.kind === "translate" ? t("reader_note_translate") : n.kind === "explain" ? t("reader_note_explain") : t("reader_note_question")}
                       </span>
-                      <time>{new Date(n.savedAt).toLocaleString("pt-BR")}</time>
+                      <time>{new Date(n.savedAt).toLocaleString(lang)}</time>
                       <button
                         className="note-delete"
                         onClick={() => onRemoveNote?.(n.id)}
-                        aria-label="Excluir"
+                        aria-label={t("remove")}
                       >
                         🗑
                       </button>

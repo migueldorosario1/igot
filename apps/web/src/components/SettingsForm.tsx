@@ -8,6 +8,7 @@ import {
   listAllEntriesSync, getConfigById,
 } from "@/lib/config";
 import { testConnection, listModels } from "@/lib/ai-client";
+import { useI18n } from "./I18nProvider";
 
 interface SettingsFormProps {
   /** Config inicial (se houver). */
@@ -27,6 +28,7 @@ interface TestState {
  * modelo/baseUrl), testa a conexão e salva. Tudo no navegador.
  */
 export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
+  const { t } = useI18n();
   const [providerId, setProviderId] = useState(initial?.providerId ?? "zai");
   const [apiKey, setApiKey] = useState(initial?.apiKey ?? "");
   const [model, setModel] = useState(initial?.model ?? "");
@@ -151,7 +153,7 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
   const handleRemoveEntry = async (id: string) => {
     const entry = entries.find((e) => e.id === id);
     const name = PRESETS.find((p) => p.id === entry?.providerId)?.name ?? entry?.providerId ?? id;
-    if (!confirm(`Remover "${entry?.label || name}${entry?.model ? ` (${entry.model})` : ''}"?`)) return;
+    if (!confirm(t("set_remove_confirm", { title: `${entry?.label || name}${entry?.model ? ` (${entry.model})` : ''}` }))) return;
     await removeEntry(id);
     if (editingId === id) {
       setApiKey("");
@@ -180,7 +182,7 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
   };
 
   const handleClear = () => {
-    if (!confirm("Remover TODAS as chaves cadastradas?")) return;
+    if (!confirm(t("set_clear_confirm"))) return;
     clearConfig();
     setApiKey("");
     setModel("");
@@ -197,7 +199,7 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
       {/* Minhas chaves cadastradas — cada uma com provedor + MODELO visível */}
       {entries.length > 0 && (
         <div className="saved-providers">
-          <p className="saved-providers-title">🔑 Minhas chaves cadastradas ({entries.length})</p>
+          <p className="saved-providers-title">{t("set_my_keys", { n: entries.length })}</p>
           <div className="saved-providers-list">
             {entries.map((e) => {
               const name = PRESETS.find((pr) => pr.id === e.providerId)?.name ?? e.providerId;
@@ -214,7 +216,7 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
                     <span className="saved-provider-key">{e.maskedKey}</span>
                     {/* Modelo SEMPRE visível — é o que diferencia múltiplas entries */}
                     <span className="saved-provider-model">
-                      🧩 {e.model || PRESETS.find((pr) => pr.id === e.providerId)?.defaultModel || "padrão"}
+                      🧩 {e.model || PRESETS.find((pr) => pr.id === e.providerId)?.defaultModel || t("set_default_model")}
                     </span>
                   </div>
                   <div className="saved-provider-actions">
@@ -223,16 +225,16 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
                         type="button"
                         className="mini-btn use-btn"
                         onClick={() => handleActivate(e.id)}
-                        title="Usar esta chave"
+                        title={t("use")}
                       >
-                        Usar
+                        {t("use")}
                       </button>
                     )}
                     <button
                       type="button"
                       className={`mini-btn test-btn ${entryTest[e.id] ? `test-${entryTest[e.id]}` : ""}`}
                       onClick={() => handleTestEntry(e.id)}
-                      title="Testar conexão"
+                      title={t("set_test_connection")}
                       disabled={entryTest[e.id] === "testing"}
                     >
                       {entryTest[e.id] === "testing" ? "⏳" : entryTest[e.id] === "ok" ? "✅" : entryTest[e.id] === "fail" ? "❌" : "🔌"}
@@ -241,7 +243,7 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
                       type="button"
                       className="mini-btn edit-btn"
                       onClick={() => handleEdit(e.id)}
-                      title="Editar"
+                      title={t("edit")}
                     >
                       ✏️
                     </button>
@@ -249,7 +251,7 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
                       type="button"
                       className="mini-btn remove-btn"
                       onClick={() => handleRemoveEntry(e.id)}
-                      title="Remover"
+                      title={t("remove")}
                     >
                       🗑
                     </button>
@@ -263,12 +265,12 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
 
       {/* Separador visual */}
       <div className="section-divider">
-        <span>{editingId ? "Editar chave" : "Adicionar nova chave"}</span>
+        <span>{editingId ? t("set_edit_key") : t("set_add_key")}</span>
       </div>
 
       {/* Provedor */}
       <div className="field">
-        <label htmlFor="provider">Provedor de IA</label>
+        <label htmlFor="provider">{t("set_provider")}</label>
         <select
           id="provider"
           value={providerId}
@@ -294,7 +296,7 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
         )}
         {preset?.keyUrl && (
           <p className="hint">
-            Não tem chave?{" "}
+            {t("set_no_key_link")}{" "}
             <a href={preset.keyUrl} target="_blank" rel="noreferrer">
               Obter uma →
             </a>
@@ -305,7 +307,7 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
       {/* Nome/etiqueta opcional (pra distinguir múltiplas do mesmo provedor) */}
       <div className="field">
         <label htmlFor="label">
-          Apelido <span className="muted">(opcional — pra distinguir se tiver várias)</span>
+          {t("set_label")} <span className="muted">{t("set_label_hint")}</span>
         </label>
         <input
           id="label"
@@ -320,14 +322,14 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
 
       {/* Chave */}
       <div className="field">
-        <label htmlFor="apikey">Chave de API</label>
+        <label htmlFor="apikey">{t("set_api_key")}</label>
         <div className="key-row">
           <input
             id="apikey"
             type={showKey ? "text" : "password"}
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
-            placeholder={editingId ? "Cole uma NOVA chave pra atualizar" : "cole sua chave aqui"}
+            placeholder={editingId ? t("set_api_key_update") : t("set_api_key_placeholder")}
             autoComplete="off"
             spellCheck={false}
           />
@@ -335,22 +337,21 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
             type="button"
             className="ghost"
             onClick={() => setShowKey((s) => !s)}
-            aria-label={showKey ? "Esconder chave" : "Mostrar chave"}
+            aria-label={showKey ? t("set_hide_key") : t("set_show_key")}
           >
             {showKey ? "🙈" : "👁"}
           </button>
         </div>
         <p className="hint privacy">
-          🔒 Sua chave fica só neste navegador (localStorage). Nunca é enviada
-          ao nosso servidor exceto para repassá-la ao provedor.
+          {t("set_key_privacy")}
         </p>
       </div>
 
       {/* Idioma das respostas */}
       <div className="field">
-        <label htmlFor="lang">Idioma das traduções e explicações</label>
+        <label htmlFor="lang">{t("set_ai_lang")}</label>
         <p className="hint" style={{ marginBottom: "8px" }}>
-          A IA vai traduzir e explicar os textos neste idioma.
+          {t("set_ai_lang_hint")}
         </p>
         <select
           id="lang"
@@ -391,8 +392,8 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
       {/* Modelo — SEMPRE VISÍVEL (é o que diferencia múltiplas entries) */}
       <div className="field">
         <label htmlFor="model">
-          Modelo
-          <span className="muted"> (padrão: {preset?.defaultModel})</span>
+          {t("set_model")}
+          <span className="muted"> {t("set_model_default", { model: preset?.defaultModel ?? "" })}</span>
         </label>
         <div className="model-row">
           <input
@@ -408,7 +409,7 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
             className="ghost"
             onClick={handleListModels}
             disabled={modelsLoading || !apiKey.trim()}
-            title="Buscar modelos disponíveis no provedor"
+            title={t("set_search_models")}
           >
             {modelsLoading ? "⏳" : "🔍"}
           </button>
@@ -416,7 +417,7 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
 
         {/* Lista de modelos encontrados (clicável) */}
         {modelsLoading && (
-          <p className="hint">Buscando modelos disponíveis…</p>
+          <p className="hint">{t("set_searching_models")}</p>
         )}
         {modelsError && (
           <p className="hint" style={{ color: "#c0392b" }}>⚠️ {modelsError}</p>
@@ -427,7 +428,7 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
               <input
                 type="text"
                 className="model-search"
-                placeholder="Filtrar modelos…"
+                placeholder={t("filter") + "…"}
                 value={modelSearch}
                 onChange={(e) => setModelSearch(e.target.value)}
               />
@@ -460,7 +461,7 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
           </div>
         )}
         {modelsList && modelsList.length === 0 && (
-          <p className="hint">Nenhum modelo encontrado.</p>
+          <p className="hint">{t("set_no_models")}</p>
         )}
       </div>
 
@@ -471,15 +472,15 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
         onClick={() => setAdvancedOpen((o) => !o)}
         aria-expanded={advancedOpen}
       >
-        {advancedOpen ? "▾" : "▸"} Avançado (URL custom)
+        {advancedOpen ? "▾" : "▸"} {t("set_advanced")}
       </button>
       {advancedOpen && (
         <div className="advanced">
           <div className="field">
             <label htmlFor="baseurl">
-              URL base{" "}
+              {t("set_base_url")}{" "}
               <span className="muted">
-                (padrão: {preset?.baseUrl})
+                {t("set_base_url_default", { url: preset?.baseUrl ?? "" })}
               </span>
             </label>
             <input
@@ -491,7 +492,7 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
               spellCheck={false}
             />
             <p className="hint">
-              Use para apontar a um servidor self-hosted (ex.: Ollama, LM Studio).
+              {t("set_base_url_hint")}
             </p>
           </div>
         </div>
@@ -500,19 +501,19 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
       {/* Ações */}
       <div className="actions">
         <button type="submit" className="primary" disabled={!apiKey.trim()}>
-          {editingId ? "💾 Atualizar" : "💾 Adicionar chave"}
+          {editingId ? t("set_btn_update") : t("set_btn_add")}
         </button>
         <button type="button" onClick={handleTest} disabled={!apiKey.trim() || test.status === "testing"}>
-          {test.status === "testing" ? "Testando…" : "Testar conexão"}
+          {test.status === "testing" ? t("set_testing") : t("set_test_connection")}
         </button>
         {entries.length > 0 && (
           <button type="button" className="danger" onClick={handleClear}>
-            Limpar tudo
+            {t("set_clear_all")}
           </button>
         )}
       </div>
 
-      {saved && <p className="feedback ok">✓ Configuração salva.</p>}
+      {saved && <p className="feedback ok">{t("set_saved")}</p>}
 
       {test.status !== "idle" && test.status !== "testing" && (
         <p className={`feedback ${test.status === "ok" ? "ok" : "err"}`}>
@@ -523,25 +524,22 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
 
       {/* Ajuda: o que é API, ranking de preços, link do provedor */}
       <details className="help-section">
-        <summary>Precisa de ajuda? O que é uma chave de API?</summary>
+        <summary>{t("help_title")}</summary>
         <div className="help-content">
           <p>
-            Uma <strong>chave de API</strong> é como uma senha que te permite usar
-            a inteligência artificial do provedor escolhido (Z.ai, OpenAI, DeepSeek, etc.).
-            Você cria a chave no site do provedor, cola aqui, e o igot usa ela pra
-            traduzir e explicar os textos. Sua chave fica <strong>só no seu dispositivo</strong>.
+            {t("help_what_is_key")}
           </p>
           <p>
-            <strong>Como conseguir uma chave (grátis):</strong>
+            <strong>{t("help_how_to_get")}</strong>
           </p>
           <ul>
-            <li>Clique no link "Obter uma →" acima (ao lado do nome do provedor)</li>
-            <li>Crie uma conta no site do provedor</li>
-            <li>Gere uma chave de API (API Key)</li>
-            <li>Copie a chave e cole aqui no campo acima</li>
+            <li>{t("help_step1")}</li>
+            <li>{t("help_step2")}</li>
+            <li>{t("help_step3")}</li>
+            <li>{t("help_step4")}</li>
           </ul>
           <p>
-            <strong>Comparação de preços dos provedores:</strong>{" "}
+            <strong>{t("help_pricing")}</strong>{" "}
             <a href="https://openrouter.ai/pricing" target="_blank" rel="noreferrer">
               Ver ranking de preços (OpenRouter) →
             </a>
@@ -552,7 +550,7 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
       {/* Quem somos */}
       <div className="about-section">
         <details>
-          <summary>Quem somos</summary>
+          <summary>{t("about_title")}</summary>
           <div className="about-content">
             <p>
               <strong>igot</strong> — "Leia qualquer coisa. Entenda tudo."
@@ -574,7 +572,7 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
 
       {/* Doação */}
       <div className="donate-section">
-        <p className="donate-title">Gostou do igot? Apoie o projeto!</p>
+        <p className="donate-title">{t("donate_title")}</p>
         <div className="donate-options">
           <a
             href="https://www.paypal.com/donate?hosted_button_id=migueldorosario@gmail.com"
@@ -582,7 +580,7 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
             rel="noreferrer"
             className="donate-btn paypal"
           >
-            💙 PayPal
+            {t("donate_paypal")}
           </a>
           <button
             type="button"
@@ -595,7 +593,7 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
               });
             }}
           >
-            🟢 PIX (copiar)
+            {t("donate_pix")}
           </button>
         </div>
       </div>
