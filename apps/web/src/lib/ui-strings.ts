@@ -140,6 +140,7 @@ export type UIStringKey =
   | "set_btn_add"
   | "set_test_connection"
   | "set_testing"
+  | "set_cole_key"
   | "set_clear_all"
   | "set_clear_confirm"
   | "set_saved"
@@ -306,6 +307,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     set_btn_add: "💾 Adicionar chave",
     set_test_connection: "Testar conexão",
     set_testing: "Testando…",
+    set_cole_key: "Cole a chave primeiro.",
     set_clear_all: "Limpar tudo",
     set_clear_confirm: "Remover TODAS as chaves cadastradas?",
     set_saved: "✓ Configuração salva.",
@@ -465,6 +467,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     set_btn_add: "💾 Add key",
     set_test_connection: "Test connection",
     set_testing: "Testing…",
+    set_cole_key: "Cole a chave primeiro.",
     set_clear_all: "Clear all",
     set_clear_confirm: "Remove ALL registered keys?",
     set_saved: "✓ Settings saved.",
@@ -621,6 +624,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     set_btn_add: "💾 Añadir clave",
     set_test_connection: "Probar conexión",
     set_testing: "Probando…",
+    set_cole_key: "Cole a chave primeiro.",
     set_clear_all: "Borrar todo",
     set_clear_confirm: "¿Quitar TODAS las claves registradas?",
     set_saved: "✓ Ajustes guardados.",
@@ -777,6 +781,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     set_btn_add: "💾 Ajouter la clé",
     set_test_connection: "Tester la connexion",
     set_testing: "Test…",
+    set_cole_key: "Cole a chave primeiro.",
     set_clear_all: "Tout effacer",
     set_clear_confirm: "Retirer TOUTES les clés enregistrées ?",
     set_saved: "✓ Paramètres enregistrés.",
@@ -933,6 +938,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     set_btn_add: "💾 Schlüssel hinzufügen",
     set_test_connection: "Verbindung testen",
     set_testing: "Testen…",
+    set_cole_key: "Cole a chave primeiro.",
     set_clear_all: "Alles löschen",
     set_clear_confirm: "ALLE registrierten Schlüssel entfernen?",
     set_saved: "✓ Einstellungen gespeichert.",
@@ -1089,6 +1095,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     set_btn_add: "💾 Aggiungi chiave",
     set_test_connection: "Testa connessione",
     set_testing: "Test…",
+    set_cole_key: "Cole a chave primeiro.",
     set_clear_all: "Cancella tutto",
     set_clear_confirm: "Rimuovere TUTTE le chiavi registrate?",
     set_saved: "✓ Impostazioni salvate.",
@@ -1245,6 +1252,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     set_btn_add: "💾 Добавить ключ",
     set_test_connection: "Проверить подключение",
     set_testing: "Проверка…",
+    set_cole_key: "Cole a chave primeiro.",
     set_clear_all: "Очистить всё",
     set_clear_confirm: "Удалить ВСЕ зарегистрированные ключи?",
     set_saved: "✓ Настройки сохранены.",
@@ -1401,6 +1409,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     set_btn_add: "💾 添加密钥",
     set_test_connection: "测试连接",
     set_testing: "测试中…",
+    set_cole_key: "Cole a chave primeiro.",
     set_clear_all: "清空全部",
     set_clear_confirm: "移除所有已注册的密钥？",
     set_saved: "✓ 设置已保存。",
@@ -1557,6 +1566,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     set_btn_add: "💾 キーを追加",
     set_test_connection: "接続テスト",
     set_testing: "テスト中…",
+    set_cole_key: "Cole a chave primeiro.",
     set_clear_all: "すべて消去",
     set_clear_confirm: "すべての登録済みキーを削除しますか？",
     set_saved: "✓ 設定を保存しました。",
@@ -1713,6 +1723,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     set_btn_add: "💾 키 추가",
     set_test_connection: "연결 테스트",
     set_testing: "테스트 중…",
+    set_cole_key: "Cole a chave primeiro.",
     set_clear_all: "모두 지우기",
     set_clear_confirm: "모든 등록 키를 제거하시겠습니까?",
     set_saved: "✓ 설정이 저장되었습니다.",
@@ -1869,6 +1880,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     set_btn_add: "💾 إضافة مفتاح",
     set_test_connection: "اختبار الاتصال",
     set_testing: "جارٍ الاختبار…",
+    set_cole_key: "Cole a chave primeiro.",
     set_clear_all: "مسح الكل",
     set_clear_confirm: "إزالة كل المفاتيح المسجّلة؟",
     set_saved: "✓ تم حفظ الإعدادات.",
@@ -2025,6 +2037,7 @@ export const UI_STRINGS: Record<string, LangStrings> = {
     set_btn_add: "💾 कुंजी जोड़ें",
     set_test_connection: "कनेक्शन जाँचें",
     set_testing: "जाँच हो रही है…",
+    set_cole_key: "Cole a chave primeiro.",
     set_clear_all: "सब साफ़ करें",
     set_clear_confirm: "सभी पंजीकृत कुंजियाँ हटाएँ?",
     set_saved: "✓ सेटिंग्स सहेजी गईं।",

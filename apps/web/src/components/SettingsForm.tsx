@@ -106,22 +106,29 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
 
   const handleTest = async () => {
     if (!apiKey.trim()) {
-      setTest({ status: "fail", message: "Cole a chave primeiro." });
+      setTest({ status: "fail", message: t("set_cole_key") });
       return;
     }
-    setTest({ status: "testing", message: "Testando…" });
-    const config: AIConfig = {
-      providerId,
-      apiKey: apiKey.trim(),
-      model: model.trim() || undefined,
-      baseUrl: baseUrl.trim() || undefined,
-    };
-    const result = await testConnection(config);
-    setTest(
-      result.ok
-        ? { status: "ok", message: result.message }
-        : { status: "fail", message: result.message },
-    );
+    setTest({ status: "testing", message: t("set_testing") });
+    try {
+      const config: AIConfig = {
+        providerId,
+        apiKey: apiKey.trim(),
+        model: model.trim() || undefined,
+        baseUrl: baseUrl.trim() || undefined,
+      };
+      const result = await testConnection(config);
+      setTest(
+        result.ok
+          ? { status: "ok", message: result.message }
+          : { status: "fail", message: result.message },
+      );
+    } catch (err) {
+      setTest({
+        status: "fail",
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
   };
 
   /** Testa uma entry JÁ CADASTRADA (da lista) — sem precisar digitar a chave. */
@@ -164,6 +171,10 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
     setApiKey("");
     setLabel("");
     setEditingId(null);
+    // Limpa o rascunho (já salvou, não precisa mais).
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(DRAFT_KEY);
+    }
     onSaved();
     setTimeout(() => setSaved(false), 2500);
   };
@@ -217,6 +228,9 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
     setEditingId(null);
     setEntries([]);
     setTest({ status: "idle", message: "" });
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(DRAFT_KEY);
+    }
     onSaved();
   };
 
