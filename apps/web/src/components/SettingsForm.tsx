@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PRESETS, type AIConfig } from "@igot/ai-providers";
 import {
   setConfig, setActiveEntry, removeEntry, updateEntryLabel,
@@ -30,11 +30,26 @@ interface TestState {
  */
 export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
   const { t, lang: uiLang, setLang: setUILang } = useI18n();
-  const [providerId, setProviderId] = useState(initial?.providerId ?? "zai");
-  const [apiKey, setApiKey] = useState(initial?.apiKey ?? "");
-  const [model, setModel] = useState(initial?.model ?? "");
-  const [baseUrl, setBaseUrl] = useState(initial?.baseUrl ?? "");
-  const [label, setLabel] = useState("");
+
+  // Rascunho persistente: salva o que o usuário digitou no localStorage pra
+  // não perder se fechar o modal sem salvar. Limpo após salvar com sucesso.
+  const DRAFT_KEY = "moka.settingsDraft";
+  const loadDraft = (): Partial<{
+    providerId: string; apiKey: string; model: string; baseUrl: string; label: string;
+  }> => {
+    if (typeof window === "undefined") return {};
+    try {
+      const raw = window.localStorage.getItem(DRAFT_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch { return {}; }
+  };
+  const draft = loadDraft();
+
+  const [providerId, setProviderId] = useState(draft.providerId ?? initial?.providerId ?? "zai");
+  const [apiKey, setApiKey] = useState(draft.apiKey ?? initial?.apiKey ?? "");
+  const [model, setModel] = useState(draft.model ?? initial?.model ?? "");
+  const [baseUrl, setBaseUrl] = useState(draft.baseUrl ?? initial?.baseUrl ?? "");
+  const [label, setLabel] = useState(draft.label ?? "");
   // ID da entry que tá sendo editada (null = criando nova).
   const [editingId, setEditingId] = useState<string | null>(null);
   const [targetLang, setLang] = useState(getTargetLang());
@@ -55,6 +70,14 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
   const [entries, setEntries] = useState(listAllEntriesSync());
   // Estado de teste por entry: entryId → 'testing' | 'ok' | 'fail'.
   const [entryTest, setEntryTest] = useState<Record<string, "testing" | "ok" | "fail">>({});
+
+  // Salva o rascunho no localStorage sempre que os campos mudam.
+  // Assim, se o usuário fechar o modal sem salvar, não perde o que digitou.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const draft = { providerId, apiKey, model, baseUrl, label };
+    window.localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  }, [providerId, apiKey, model, baseUrl, label, DRAFT_KEY]);
 
   const preset = PRESETS.find((p) => p.id === providerId);
 
