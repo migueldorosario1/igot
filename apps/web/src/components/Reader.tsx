@@ -881,20 +881,20 @@ export function Reader({
               <button
                 onClick={handleTranslatePage}
                 disabled={translatingPage || !currentPageText}
-                className={`icon-btn page-action-btn ${overlayMode === "translate" && showTranslation ? "active" : ""}`}
+                className={`page-action-btn ${overlayMode === "translate" && showTranslation ? "active" : ""}`}
                 title={translateBtnLabel}
                 aria-label={translateBtnLabel}
               >
-                {translateIcon}
+                {isFullscreen ? translateIcon : translateBtnLabel}
               </button>
               <button
                 onClick={() => handlePageAction("explain")}
                 disabled={(translatingPage && overlayMode !== "explain") || !currentPageText}
-                className={`icon-btn page-action-btn ${overlayMode === "explain" && showTranslation ? "active" : ""}`}
+                className={`page-action-btn ${overlayMode === "explain" && showTranslation ? "active" : ""}`}
                 title={explainBtnLabel}
                 aria-label={explainBtnLabel}
               >
-                {explainIcon}
+                {isFullscreen ? explainIcon : explainBtnLabel}
               </button>
             </>
           )}
@@ -1158,8 +1158,18 @@ export function Reader({
           gap: 8px;
           flex-wrap: wrap;
         }
+        /* Linha 1: espaço entre — título à esquerda (max-width), controles à direita.
+           Sem 'flex:1' no título, pra não criar espaços vazios. */
         .reader-row-main {
-          justify-content: flex-start;
+          justify-content: space-between;
+        }
+        .reader-row-main .reader-title {
+          max-width: min(50%, 360px);
+        }
+        /* Agrupa navegação + ⚙️ + fullscreen no canto direito da linha 1. */
+        .reader-row-main > .reader-nav,
+        .reader-row-main > .icon-btn {
+          flex-shrink: 0;
         }
         .reader-row-actions {
           justify-content: flex-start;
@@ -1209,8 +1219,40 @@ export function Reader({
           opacity: 0.4;
           cursor: not-allowed;
         }
-        /* Botões de ação da página (traduzir/explicar) — ícone compacto.
-           Fica destacado quando a página está traduzida/explicada (ativo). */
+        /* Botões de ação da página (traduzir/explicar).
+           No modo NORMAL: texto (padding menor, fonte 13px).
+           No FULLSCREEN: só ícone (44px touch target). */
+        .page-action-btn {
+          padding: 6px 12px;
+          border: 1px solid var(--border);
+          background: var(--surface);
+          color: var(--text);
+          border-radius: 8px;
+          font-size: 13px;
+          white-space: nowrap;
+          cursor: pointer;
+          transition: var(--transition);
+          flex-shrink: 0;
+        }
+        .page-action-btn:hover:not(:disabled) {
+          border-color: var(--accent);
+          color: var(--accent);
+        }
+        .page-action-btn:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+        }
+        /* Em fullscreen: vira botão de ícone quadrado (44px). */
+        .reader:fullscreen .page-action-btn {
+          width: 44px;
+          height: 44px;
+          padding: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 18px;
+        }
+        /* Destaque quando a página está traduzida/explicada (ativo). */
         .page-action-btn.active {
           background: var(--accent-soft);
           border-color: var(--accent);
@@ -1468,7 +1510,7 @@ export function Reader({
         }
         .reader-title {
           min-width: 0;
-          flex: 1 1 0;
+          flex-shrink: 1;
           overflow: hidden;
         }
         .reader-title h1 {
