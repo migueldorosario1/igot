@@ -6,6 +6,7 @@ import type { SelectionAction } from "@/lib/types";
 import { PdfPageCanvas } from "./PdfPageCanvas";
 import { CafezinhoLogo } from "./CafezinhoLogo";
 import { AuthButton } from "./AuthButton";
+import { LangSwitcher } from "./LangSwitcher";
 import { translatePageStream, explainPageStream, translateStream, explainStream } from "@/lib/ai-client";
 
 interface ReaderProps {
@@ -807,6 +808,8 @@ export function Reader({
               ⚙️
             </button>
           )}
+          {/* 🌐 Idioma da interface */}
+          <LangSwitcher />
           {/* Auth (login Google) */}
           {auth && (
             <AuthButton

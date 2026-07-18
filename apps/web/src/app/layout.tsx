@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { I18nProvider } from "@/components/I18nProvider";
 
 export const metadata: Metadata = {
   title: "igot — Leia qualquer coisa. Entenda tudo.",
@@ -42,7 +43,9 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body>
-        {children}
+        <I18nProvider>
+          {children}
+        </I18nProvider>
         <ServiceWorkerRegister />
       </body>
     </html>
