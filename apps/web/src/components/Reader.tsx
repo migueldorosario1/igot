@@ -1763,7 +1763,12 @@ export function Reader({
         .reader-scroll {
           flex: 1;
           overflow-y: auto;
-          padding: 40px 0 80px;
+          padding: 40px 0 120px;
+          /* Permite scroll vertical completo, inclusive margens inferiores.
+             Garante que TODO o conteúdo (inclusive o rodapé da página) seja
+             acessível via scroll. */
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior: contain;
         }
         .reader-text {
           max-width: 680px;

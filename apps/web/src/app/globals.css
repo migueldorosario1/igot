@@ -233,7 +233,7 @@ a {
     left: 0;
     right: 0;
     bottom: 0;
-    max-height: 45vh;
+    max-height: 35vh;
     z-index: 600;
     border-top: 2px solid var(--accent);
     border-radius: 16px 16px 0 0;
@@ -241,7 +241,7 @@ a {
     background: var(--surface);
   }
   .igot-workspace > .ai-panel .ai-body {
-    max-height: 30vh;
+    max-height: 20vh;
   }
   /* Botão de fechar bem visível no mobile */
   .igot-workspace > .ai-panel .ai-close {
