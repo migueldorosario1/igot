@@ -59,10 +59,10 @@ export const PRESETS: ProviderPreset[] = [
     id: "kimi",
     name: "Kimi (Moonshot)",
     baseUrl: "https://api.moonshot.ai/v1",
-    defaultModel: "moonshot-v1-128k",
+    defaultModel: "kimi-k3",
     adapter: "openai",
     keyUrl: "https://platform.moonshot.ai/console/api-keys",
-    description: "Janela de contexto gigante (até 128k+). Plataforma internacional.",
+    description: "Kimi K3: modelo flagship 2.8T parâmetros, contexto de 1M tokens.",
   },
   {
     id: "qwen",
