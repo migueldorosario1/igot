@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 
 /**
  * Hook de reconhecimento de voz (Speech-to-Text).
@@ -33,6 +33,8 @@ export function useSpeechRecognition(onFinalResult?: (text: string) => void): Sp
 
   // Ref pra sinalizar parada manual (do botão stop externo).
   const stoppedManuallyRef = useRef(false);
+  // Acumula o texto FINAL já reconhecido (sobrevive a reinícios do iOS).
+  const accumulatedRef = useRef("");
 
   const [listening, setListening] = useState(false);
   const [transcript, setTranscript] = useState("");
@@ -57,6 +59,8 @@ export function useSpeechRecognition(onFinalResult?: (text: string) => void): Sp
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     // Flag: se o usuário parou manualmente, não reinicia.
     stoppedManuallyRef.current = false;
+    // Zera o acumulado (nova sessão de fala).
+    accumulatedRef.current = "";
 
     const startTimeout = () => {
       if (timeoutId) clearTimeout(timeoutId);
@@ -69,26 +73,33 @@ export function useSpeechRecognition(onFinalResult?: (text: string) => void): Sp
     recognition.onstart = () => {
       setListening(true);
       startTimeout();
+      // NO reinício: restaura o acumulado na tela (não zera).
+      if (accumulatedRef.current) {
+        setTranscript(accumulatedRef.current);
+      }
     };
 
     recognition.onresult = (event: any) => {
       // Renova o timeout a cada resultado (enquanto fala, segue ouvindo).
       startTimeout();
       let interim = "";
-      let final = "";
+      let newFinal = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
         if (result.isFinal) {
-          final += result[0].transcript;
+          newFinal += result[0].transcript;
         } else {
           interim += result[0].transcript;
         }
       }
-      if (final) {
-        setTranscript(final);
-        callbackRef.current?.(final.trim());
+      if (newFinal) {
+        // ACUMULA: soma ao texto já reconhecido (não substitui).
+        accumulatedRef.current = (accumulatedRef.current + " " + newFinal).trim();
+        setTranscript(accumulatedRef.current);
+        callbackRef.current?.(accumulatedRef.current);
       } else if (interim) {
-        setTranscript(interim);
+        // Mostra: acumulado + o que tá falando agora.
+        setTranscript((accumulatedRef.current + " " + interim).trim());
       }
     };
 
@@ -125,11 +136,25 @@ export function useSpeechRecognition(onFinalResult?: (text: string) => void): Sp
     if (recognitionRef.current) {
       try { recognitionRef.current.stop(); } catch { /* ignora */ }
     }
+    recognitionRef.current = null;
     setListening(false);
+  }, []);
+
+  // CLEANUP: quando o componente desmonta (ex: fechou o painel), PARA o microfone.
+  // Sem isso, o recognition continua gravando mesmo após fechar o painel.
+  useEffect(() => {
+    return () => {
+      stoppedManuallyRef.current = true;
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch { /* ignora */ }
+      }
+      recognitionRef.current = null;
+    };
   }, []);
 
   const reset = useCallback(() => {
     setTranscript("");
+    accumulatedRef.current = "";
   }, []);
 
   return { supported, listening, transcript, start, stop, reset };

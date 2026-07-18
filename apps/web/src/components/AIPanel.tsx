@@ -162,7 +162,7 @@ export function AIPanel({ action, book, onClose, onHide, onSaveNote }: AIPanelPr
           {onHide && (
             <button
               className="ai-hide"
-              onClick={onHide}
+              onClick={() => { speech.stop(); onHide(); }}
               aria-label={t("ai_hide")}
               title={t("ai_hide")}
             >
@@ -172,7 +172,7 @@ export function AIPanel({ action, book, onClose, onHide, onSaveNote }: AIPanelPr
           {/* ✕ Fechar — fecha e limpa a ação. */}
           <button
             className="ai-close"
-            onClick={onClose}
+            onClick={() => { speech.stop(); onClose(); }}
             aria-label={t("close")}
             title={t("close")}
           >
