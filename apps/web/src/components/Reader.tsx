@@ -749,34 +749,28 @@ export function Reader({
   return (
     <section className="reader" ref={containerRef} data-menu-hidden={!menuVisible}>
       <header className="reader-header" data-hidden={!menuVisible}>
-        {/* ── Linha 1: logo + título + estante + zoom + ⚙️ + auth + fullscreen ── */}
+        {/* ── Menu em UMA LINHA só (sem título/autor — libera espaço) ── */}
         <div className="reader-row reader-row-main">
-          {/* Logo Cafezinho — sempre presente, canto esquerdo, vazada */}
+          {/* Logo Cafezinho — canto esquerdo, vazada */}
           <a
             href="/"
             onClick={(e) => { if (onGoToShelf) { e.preventDefault(); onGoToShelf(); } }}
             className="cafezinho-mark"
-            title="Cafezinho Media Group — Voltar à estante"
-            aria-label="Voltar à estante"
+            title="Cafezinho Media Group"
+            aria-label="Cafezinho Media Group"
           >
-            <CafezinhoLogo size={28} opacity={0.85} />
+            <CafezinhoLogo size={26} opacity={0.85} />
           </a>
-          <div className="reader-title">
-            <h1>
-              <span className="reader-title-text">{book.title}</span>
-              {book.author && <span className="reader-title-author"> — {book.author}</span>}
-            </h1>
-          </div>
-          {/* Ler novo arquivo */}
+          {/* 📖 Ler novo */}
           <button
             onClick={onCloseBook}
-            className="icon-btn with-text"
+            className="icon-btn"
             title={t("reader_open_other")}
             aria-label={t("reader_read_new")}
           >
-            📖 <span className="btn-text">{t("reader_read_new")}</span>
+            📖
           </button>
-          {/* Estante — volta pra home */}
+          {/* 📚 Estante */}
           <button
             onClick={() => onGoToShelf?.()}
             className="icon-btn"
@@ -784,6 +778,52 @@ export function Reader({
             aria-label={t("reader_shelf")}
           >
             📚
+          </button>
+          {/* 📓 Notas */}
+          <button
+            onClick={() => setNotesOpen(true)}
+            className="icon-btn"
+            title={t("reader_notes")}
+            aria-label={t("reader_notes")}
+          >
+            📓 {notes.length > 0 && <span className="badge">{notes.length}</span>}
+          </button>
+          {/* 🏷 Marcar página */}
+          <button
+            onClick={toggleBookmark}
+            className={`icon-btn ${isBookmarked ? "active" : ""}`}
+            title={isBookmarked ? t("reader_bookmark_remove") : t("reader_bookmark")}
+            aria-label={t("reader_bookmark")}
+            aria-pressed={isBookmarked}
+          >
+            {isBookmarked ? "🔖" : "🏷"}
+          </button>
+          {/* 🔖 Lista marcadores */}
+          <button
+            onClick={() => setBookmarksOpen(true)}
+            className="icon-btn"
+            title={t("reader_bookmarks")}
+            aria-label={t("reader_bookmarks")}
+          >
+            🔖 {bookmarks.length > 0 && <span className="badge">{bookmarks.length}</span>}
+          </button>
+          {/* 🖨 Print */}
+          <button
+            onClick={printPage}
+            className="icon-btn"
+            title={t("reader_print")}
+            aria-label={t("reader_print")}
+          >
+            🖨
+          </button>
+          {/* 📸 Foto */}
+          <button
+            onClick={savePageAsImage}
+            className="icon-btn"
+            title={t("reader_photo")}
+            aria-label={t("reader_photo")}
+          >
+            📸
           </button>
           {/* Zoom (só PDF) */}
           {book.sourceFormat === "pdf" && pdfSource && (
@@ -799,99 +839,7 @@ export function Reader({
               </button>
             </div>
           )}
-          {/* ⚙️ Configurações */}
-          {onOpenSettings && (
-            <button
-              onClick={onOpenSettings}
-              className={`icon-btn settings-gear ${configReady ? "" : "unset"}`}
-              title={t("reader_settings")}
-              aria-label={t("settings")}
-            >
-              ⚙️
-            </button>
-          )}
-          {/* 🌐 Idioma da interface */}
-          <LangSwitcher />
-          {/* Auth (login Google) */}
-          {auth && (
-            <AuthButton
-              status={auth.status}
-              userName={auth.user?.user_metadata?.full_name ?? null}
-              avatarUrl={auth.user?.user_metadata?.avatar_url ?? null}
-              onSignIn={auth.signInWithGoogle}
-              onSignOut={auth.signOut}
-            />
-          )}
-          {/* Tela cheia */}
-          <button
-            onClick={toggleFullscreen}
-            className="icon-btn"
-            title={isFullscreen ? t("reader_exit_fullscreen") : t("reader_fullscreen")}
-            aria-label={isFullscreen ? t("reader_exit_fullscreen") : t("reader_fullscreen")}
-          >
-            {isFullscreen ? "🗗" : "⛶"}
-          </button>
-          {/* Ocultar/mostrar menu (só em fullscreen) */}
-          {isFullscreen && (
-            <button
-              onClick={() => setMenuVisible((v) => !v)}
-              className="icon-btn menu-toggle-btn"
-              title={menuVisible ? t("reader_hide_menu") : t("reader_show_menu")}
-              aria-label={menuVisible ? t("reader_hide_menu") : t("reader_show_menu")}
-            >
-              {menuVisible ? "👁" : "🙈"}
-            </button>
-          )}
-        </div>
-
-        {/* ── Linha 2: ações de conteúdo ── */}
-        <div className="reader-row reader-row-actions">
-          {/* Notas */}
-          <button
-            onClick={() => setNotesOpen(true)}
-            className="icon-btn"
-            title={t("reader_notes")}
-            aria-label={t("reader_notes")}
-          >
-            📓 {notes.length > 0 && <span className="badge">{notes.length}</span>}
-          </button>
-          {/* Marcador de página (toggle) */}
-          <button
-            onClick={toggleBookmark}
-            className={`icon-btn ${isBookmarked ? "active" : ""}`}
-            title={isBookmarked ? t("reader_bookmark_remove") : t("reader_bookmark")}
-            aria-label={t("reader_bookmark")}
-            aria-pressed={isBookmarked}
-          >
-            {isBookmarked ? "🔖" : "🏷"}
-          </button>
-          {/* Lista de marcadores */}
-          <button
-            onClick={() => setBookmarksOpen(true)}
-            className="icon-btn"
-            title={t("reader_bookmarks")}
-            aria-label={t("reader_bookmarks")}
-          >
-            🔖 {bookmarks.length > 0 && <span className="badge">{bookmarks.length}</span>}
-          </button>
-          {/* Print da página */}
-          <button
-            onClick={printPage}
-            className="icon-btn"
-            title={t("reader_print")}
-            aria-label={t("reader_print")}
-          >
-            🖨
-          </button>
-          {/* Foto da página (salva PNG no dispositivo) */}
-          <button
-            onClick={savePageAsImage}
-            className="icon-btn"
-            title={t("reader_photo")}
-            aria-label={t("reader_photo")}
-          >
-            📸
-          </button>
+          {/* 🌐/🧠 Traduzir/Explicar página (PDF) */}
           {book.sourceFormat === "pdf" && pdfSource && (
             <>
               <button
@@ -914,7 +862,54 @@ export function Reader({
               </button>
             </>
           )}
+          {/* Agrupa à direita: ⚙️ + idioma + login + fullscreen */}
+          <div className="reader-row-right">
+            {/* ⚙️ Configurações */}
+            {onOpenSettings && (
+              <button
+                onClick={onOpenSettings}
+                className={`icon-btn settings-gear ${configReady ? "" : "unset"}`}
+                title={t("reader_settings")}
+                aria-label={t("settings")}
+              >
+                ⚙️
+              </button>
+            )}
+            {/* 🌐 Idioma */}
+            <LangSwitcher />
+            {/* 👤 Login */}
+            {auth && (
+              <AuthButton
+                status={auth.status}
+                userName={auth.user?.user_metadata?.full_name ?? null}
+                avatarUrl={auth.user?.user_metadata?.avatar_url ?? null}
+                onSignIn={auth.signInWithGoogle}
+                onSignOut={auth.signOut}
+              />
+            )}
+            {/* 🗐 Tela cheia */}
+            <button
+              onClick={toggleFullscreen}
+              className="icon-btn"
+              title={isFullscreen ? t("reader_exit_fullscreen") : t("reader_fullscreen")}
+              aria-label={isFullscreen ? t("reader_exit_fullscreen") : t("reader_fullscreen")}
+            >
+              {isFullscreen ? "🗗" : "⛶"}
+            </button>
+            {/* 👁 Ocultar menu (fullscreen) */}
+            {isFullscreen && (
+              <button
+                onClick={() => setMenuVisible((v) => !v)}
+                className="icon-btn menu-toggle-btn"
+                title={menuVisible ? t("reader_hide_menu") : t("reader_show_menu")}
+                aria-label={menuVisible ? t("reader_hide_menu") : t("reader_show_menu")}
+              >
+                {menuVisible ? "👁" : "🙈"}
+              </button>
+            )}
+          </div>
         </div>
+
         {/* Barra de progresso de leitura (estilo Kindle) */}
         <div className="reader-progress" aria-hidden>
           <div
@@ -1139,7 +1134,7 @@ export function Reader({
           flex-shrink: 0;
           overflow: hidden;
           transition: max-height 200ms ease, opacity 200ms ease, padding 200ms ease;
-          max-height: 130px; /* duas linhas compactas */
+          max-height: 70px; /* uma linha só */
         }
         .reader:fullscreen[data-menu-hidden="true"] .reader-header {
           max-height: 0;
@@ -1170,23 +1165,29 @@ export function Reader({
           flex-wrap: wrap;
           min-height: 42px;
         }
-        /* Linha 1: space-between preenche os dois lados (logo+título esq, controles dir). */
+        /* Linha única: botões à esquerda + grupo à direita (space-between). */
         .reader-row-main {
           justify-content: space-between;
+          flex-wrap: nowrap; /* NUNCA quebra — tudo numa linha só */
+          overflow-x: auto; /* scroll horizontal se não couber (raro) */
+          scrollbar-width: none;
         }
-        .reader-row-main .reader-title {
-          flex: 1 1 auto;
-          min-width: 0;
-          max-width: 100%;
+        .reader-row-main::-webkit-scrollbar {
+          display: none;
         }
         .reader-row-main > .icon-btn,
-        .reader-row-main > .reader-zoom {
+        .reader-row-main > .reader-zoom,
+        .reader-row-main > .page-action-btn,
+        .reader-row-main > .cafezinho-mark {
           flex-shrink: 0;
         }
-        /* Linha 2: tudo justificado à DIREITA. */
-        .reader-row-actions {
-          justify-content: flex-end;
-          row-gap: 6px;
+        /* Grupo de botões à direita (⚙️ + idioma + login + fullscreen). */
+        .reader-row-right {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-shrink: 0;
+          margin-left: auto; /* empurra tudo pra direita */
         }
         .reader-zoom {
           display: flex;
