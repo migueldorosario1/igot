@@ -624,6 +624,11 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
         </p>
       )}
 
+      {/* Link pra tutorial completo */}
+      <a href="/ajuda" target="_blank" rel="noreferrer" className="help-link-banner">
+        ❓ Tutorial completo — o que cada ícone faz, como usar o Moka →
+      </a>
+
       {/* Ajuda: o que é API, ranking de preços, link do provedor */}
       <details className="help-section">
         <summary>{t("help_title")}</summary>
@@ -1055,6 +1060,23 @@ export function SettingsForm({ initial, onSaved }: SettingsFormProps) {
         }
 
         /* Seção de ajuda */
+        /* Banner de link pro tutorial */
+        .help-link-banner {
+          display: block;
+          padding: 12px 16px;
+          background: var(--accent-soft);
+          border: 1px solid var(--accent);
+          border-radius: 10px;
+          color: var(--accent) !important;
+          font-size: 14px;
+          font-weight: 600;
+          text-decoration: none;
+          transition: all 150ms ease;
+        }
+        .help-link-banner:hover {
+          background: var(--accent);
+          color: white !important;
+        }
         .help-section {
           border: 1px solid var(--border);
           border-radius: 8px;

@@ -1081,8 +1081,20 @@ export function Reader({
               ⏹
             </button>
           )}
-          {/* Agrupa à direita: ⚙️ + idioma + login + fullscreen */}
+          {/* Agrupa à direita: ❓ + ⚙️ + login + fullscreen */}
           <div className="reader-row-right">
+            {/* ❓ Ajuda */}
+            <a
+              href="/ajuda"
+              target="_blank"
+              rel="noreferrer"
+              className="icon-btn"
+              title={t("help_title")}
+              aria-label={t("help_title")}
+              style={{ textDecoration: "none", color: "var(--text)" }}
+            >
+              ❓
+            </a>
             {/* ⚙️ Configurações */}
             {onOpenSettings && (
               <button
