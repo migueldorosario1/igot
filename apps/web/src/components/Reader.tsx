@@ -2014,6 +2014,22 @@ export function Reader({
           background: var(--surface);
           border-top: 1px solid var(--border);
           flex-shrink: 0;
+          /* FIXED no rodapé da viewport — sempre visível, não depende de flex. */
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          z-index: 50;
+          box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
+        }
+        /* Em fullscreen, a nav-bar fica relativa ao .reader */
+        .reader:fullscreen .reader-nav-bar {
+          position: fixed;
+          bottom: 0;
+        }
+        /* Padding extra no scroll pra não esconder texto atrás da nav-bar */
+        .reader-scroll {
+          padding-bottom: 70px !important;
         }
         .reader-nav-bar button {
           width: 36px;
