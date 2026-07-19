@@ -201,6 +201,8 @@ a {
 .igot-workspace > * {
   min-height: 0;
   min-width: 0;
+  height: 100%;
+  overflow: hidden;
 }
 /* Overlay do AIPanel — fica FORA do grid do workspace.
    Desktop: painel fixo na lateral direita (420px).
@@ -467,6 +469,8 @@ a {
 .igot-workspace > * {
   min-height: 0;
   min-width: 0;
+  height: 100%;
+  overflow: hidden;
 }
 
 /* ── Renderização de páginas de PDF ───────────────────────────────── */
