@@ -193,8 +193,10 @@ a {
 .igot-workspace {
   display: grid;
   grid-template-columns: 1fr 420px;
+  grid-template-rows: 1fr; /* linha única ocupa toda a altura */
   flex: 1;
   min-height: 0;
+  overflow: hidden; /* contém o conteúdo dentro da área do grid */
 }
 .igot-workspace > * {
   min-height: 0;
