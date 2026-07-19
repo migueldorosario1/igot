@@ -1367,8 +1367,14 @@ export function Reader({
           background: var(--bg);
           border-right: 1px solid var(--border);
           position: relative;
-          /* SEM overflow: hidden — era isso que cortava o header.
-             O reader-scroll tem overflow-y: auto próprio. */
+          /* overflow: hidden é NECESSÁRIO pra conter o reader-scroll e
+             deixar a nav-bar visível. Mas NÃO corta o header porque:
+             - header tem flex-shrink: 0 (não encolhe)
+             - header tem min-height: 50px
+             - reader-scroll tem flex: 1 + min-height: 0 (encolhe)
+             - nav-bar tem flex-shrink: 0 (não encolhe)
+             A soma: header (fixo) + scroll (encolhe) + navbar (fixo) = 100% */
+          overflow: hidden;
         }
         /* Em tela cheia: ocupa toda a tela, mantém header + nav visíveis. */
         .reader:fullscreen {
