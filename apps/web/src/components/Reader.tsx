@@ -1367,9 +1367,8 @@ export function Reader({
           background: var(--bg);
           border-right: 1px solid var(--border);
           position: relative;
-          /* overflow: hidden contém o conteúdo, mas o header tem z-index
-             e min-height que garantem que NUNCA é cortado. */
-          overflow: hidden;
+          /* SEM overflow: hidden — era isso que cortava o header.
+             O reader-scroll tem overflow-y: auto próprio. */
         }
         /* Em tela cheia: ocupa toda a tela, mantém header + nav visíveis. */
         .reader:fullscreen {
@@ -1406,8 +1405,9 @@ export function Reader({
           background: var(--surface);
           flex-shrink: 0;
           min-height: 50px;
-          overflow: hidden;
           box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+          position: relative;
+          z-index: 5;
         }
         /* Linhas do header — distribuem bem os elementos (sem espaço vazio). */
         .reader-row {
