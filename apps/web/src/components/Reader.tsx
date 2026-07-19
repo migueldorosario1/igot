@@ -894,6 +894,36 @@ export function Reader({
     window.getSelection()?.removeAllRanges();
   };
 
+  /** Lê um trecho selecionado em voz alta (neural ou nativa). */
+  const fireSpeak = async (text: string) => {
+    setMenu(null);
+    window.getSelection()?.removeAllRanges();
+    if (tts.state === "playing") tts.stop();
+
+    const audioLang = getAudioLang();
+    const speakLang = audioLang === "original" ? (book.language || "en") : audioLang;
+    const config = getConfigSync();
+
+    if (config && config.providerId === "openai") {
+      setTtsLoading(true);
+      await tts.speakNeural(text, speakLang, {
+        baseUrl: "https://api.openai.com/v1",
+        apiKey: config.apiKey,
+        model: "tts-1",
+        voice: "nova",
+      });
+      setTtsLoading(false);
+    } else {
+      tts.speak(text, speakLang);
+    }
+  };
+
+  /** Para o áudio completamente (diferente de pausar). */
+  const stopTTS = () => {
+    tts.stop();
+    setTtsLoading(false);
+  };
+
   const renderedBlocks = useMemo(
     () => chapter?.blocks.map((b) => <BlockView key={b.id} block={b} />),
     [chapter],
@@ -971,7 +1001,15 @@ export function Reader({
           </button>
           {/* 🔊 Ler em voz alta (TTS) — neural (IA) ou nativa */}
           <button
-            onClick={readPageAloud}
+            onClick={() => {
+              // Se já tá tocando/pausado, controla pause/resume direto.
+              if (tts.state === "paused") { tts.resume(); return; }
+              if (tts.state === "playing") { tts.pause(); return; }
+              // Se tá parado, pede confirmação antes de gerar áudio.
+              if (confirm(t("reader_confirm_audio"))) {
+                readPageAloud();
+              }
+            }}
             className={`icon-btn ${tts.state !== "idle" || ttsLoading ? "active" : ""}`}
             title={
               ttsLoading ? t("reader_preparing_audio")
@@ -993,28 +1031,55 @@ export function Reader({
           >
             🎤
           </button>
-          {/* 🌐/🧠 Traduzir/Explicar página (PDF) */}
+          {/* 🌐/🧠 Traduzir/Explicar página (só ícone + confirmação) */}
           {book.sourceFormat === "pdf" && pdfSource && (
             <>
               <button
-                onClick={handleTranslatePage}
+                onClick={() => {
+                  if (overlayMode === "translate" && showTranslation) {
+                    setShowTranslation(false);
+                    return;
+                  }
+                  if (confirm(t("reader_confirm_translate_page"))) {
+                    handleTranslatePage();
+                  }
+                }}
                 disabled={translatingPage || !currentPageText}
-                className={`page-action-btn ${overlayMode === "translate" && showTranslation ? "active" : ""}`}
+                className={`icon-btn ${overlayMode === "translate" && showTranslation ? "active" : ""}`}
                 title={translateBtnLabel}
                 aria-label={translateBtnLabel}
               >
-                {isFullscreen ? translateIcon : translateBtnLabel}
+                {translatingPage && overlayMode === "translate" ? "⏳" : "🌐"}
               </button>
               <button
-                onClick={() => handlePageAction("explain")}
+                onClick={() => {
+                  if (overlayMode === "explain" && showTranslation) {
+                    setShowTranslation(false);
+                    return;
+                  }
+                  if (confirm(t("reader_confirm_explain_page"))) {
+                    handlePageAction("explain");
+                  }
+                }}
                 disabled={(translatingPage && overlayMode !== "explain") || !currentPageText}
-                className={`page-action-btn ${overlayMode === "explain" && showTranslation ? "active" : ""}`}
+                className={`icon-btn ${overlayMode === "explain" && showTranslation ? "active" : ""}`}
                 title={explainBtnLabel}
                 aria-label={explainBtnLabel}
               >
-                {isFullscreen ? explainIcon : explainBtnLabel}
+                {translatingPage && overlayMode === "explain" ? "⏳" : "🧠"}
               </button>
             </>
+          )}
+          {/* ⏹ Stop áudio (só aparece quando tem áudio rolando) */}
+          {(tts.state !== "idle" || ttsLoading) && (
+            <button
+              onClick={stopTTS}
+              className="icon-btn tts-stop-btn"
+              title={t("reader_stop")}
+              aria-label={t("reader_stop")}
+            >
+              ⏹
+            </button>
           )}
           {/* Agrupa à direita: ⚙️ + idioma + login + fullscreen */}
           <div className="reader-row-right">
@@ -1162,6 +1227,9 @@ export function Reader({
           </button>
           <button onClick={() => fire("explain")} role="menuitem">
             {t("reader_sel_explain")}
+          </button>
+          <button onClick={() => fireSpeak(menu.text)} role="menuitem">
+            🔊 {t("reader_sel_speak")}
           </button>
           <button
             className="selection-menu-close"
@@ -1575,6 +1643,20 @@ export function Reader({
         .bookmark-btn.active {
           background: var(--accent-soft);
           border-color: var(--accent);
+        }
+        /* Botão STOP (para áudio) — vermelho, aparece só durante playback */
+        .tts-stop-btn {
+          background: #e74c3c !important;
+          border-color: #c0392b !important;
+          color: white !important;
+          animation: pulse-red 1.5s infinite;
+        }
+        .tts-stop-btn:hover {
+          background: #c0392b !important;
+        }
+        @keyframes pulse-red {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4); }
+          50% { box-shadow: 0 0 0 6px rgba(231, 76, 60, 0); }
         }
         /* ⚙️ não configurado: ponto vermelho de alerta (igual ao TopBar antigo) */
         .settings-gear.unset {
