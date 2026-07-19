@@ -94,9 +94,13 @@ export function useSpeechRecognition(onFinalResult?: (text: string) => void): Sp
       }
       if (newFinal) {
         // ACUMULA: soma ao texto já reconhecido (não substitui).
-        accumulatedRef.current = (accumulatedRef.current + " " + newFinal).trim();
-        setTranscript(accumulatedRef.current);
-        callbackRef.current?.(accumulatedRef.current);
+        // Guard: não soma se o newFinal já tá no final do accumulated (evita duplicar).
+        const acc = accumulatedRef.current;
+        if (!acc.endsWith(newFinal.trim())) {
+          accumulatedRef.current = (acc + " " + newFinal).trim();
+          setTranscript(accumulatedRef.current);
+          callbackRef.current?.(accumulatedRef.current);
+        }
       } else if (interim) {
         // Mostra: acumulado + o que tá falando agora.
         setTranscript((accumulatedRef.current + " " + interim).trim());
@@ -115,13 +119,19 @@ export function useSpeechRecognition(onFinalResult?: (text: string) => void): Sp
     recognition.onend = () => {
       // iOS/Safari para o reconhecimento ao detectar silêncio, mesmo com
       // continuous=true. Se não foi o usuário que parou, REINICIA.
-      if (!stoppedManuallyRef.current) {
-        try {
-          recognition.start();
-          return;
-        } catch {
-          // Se falhar ao reiniciar, desliga.
-        }
+      // GUARD: só reinicia se ainda somos a instância ativa (evita duplicação).
+      if (!stoppedManuallyRef.current && recognitionRef.current === recognition) {
+        // Pequeno delay pra evitar múltiplas instâncias se reiniciando rápido.
+        setTimeout(() => {
+          if (!stoppedManuallyRef.current && recognitionRef.current === recognition) {
+            try {
+              recognition.start();
+            } catch {
+              // Já tá rodando ou erro — ignora.
+            }
+          }
+        }, 100);
+        return;
       }
       if (timeoutId) clearTimeout(timeoutId);
       setListening(false);

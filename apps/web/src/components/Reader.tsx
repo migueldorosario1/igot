@@ -1405,10 +1405,8 @@ export function Reader({
           border-bottom: 1px solid var(--border);
           background: var(--surface);
           flex-shrink: 0;
-          /* NUNCA corta o header — sempre visível, sempre com altura mínima. */
           min-height: 50px;
-          overflow: visible;
-          z-index: 10;
+          overflow: hidden;
           box-shadow: 0 1px 3px rgba(0,0,0,0.04);
         }
         /* Linhas do header — distribuem bem os elementos (sem espaço vazio). */
@@ -1909,12 +1907,10 @@ export function Reader({
           text-align: center;
         }
         .reader-scroll {
-          flex: 1;
+          flex: 1 1 0;
+          min-height: 0; /* CRÍTICO: permite encolher e deixar a nav-bar visível */
           overflow-y: auto;
           padding: 40px 0 120px;
-          /* Permite scroll vertical completo, inclusive margens inferiores.
-             Garante que TODO o conteúdo (inclusive o rodapé da página) seja
-             acessível via scroll. */
           -webkit-overflow-scrolling: touch;
           overscroll-behavior: contain;
         }
